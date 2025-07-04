@@ -23,6 +23,7 @@
     "@react-sigma/core": "^5.0.2",
     "@react-sigma/layout-forceatlas2": "^5.0.2",
     "@reduxjs/toolkit": "^2.0.0",
+    "axios": "^1.10.0",
     "graphology": "^0.25.4",
     "graphology-layout": "^0.6.1",
     "graphology-layout-forceatlas2": "^0.10.1",
