@@ -23,8 +23,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
   useEffect(() => {
     const fetchData = async (start_date, end_date) => {
-      if (!fetchCedulas || !mapLoaded || !map) {  // Add mapLoaded check
-        console.log('Map not ready or fetch not enabled');
+      if (!fetchCedulas) {
         return;
       }
 
@@ -68,12 +67,8 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
         setFetchedRecords(geojsonData);
         setNewDataFetched(true);
-        if (map && map.isStyleLoaded()) {
-          updateLayerData('cedulaLayer', geojsonData, sexoLayout);
-        } else {
-          console.error('Map is not initialized or style is not loaded');
-        }
-        console.log('Fetched Cedulas records:', formattedRecordsCedula);
+        updateLayerData('cedulaLayer', geojsonData, sexoLayout);
+        console.log('FetchCedulas: Fetched and updated context');
       } catch (error) {
         console.error("Error fetching Cedulas data:", error);
       } finally {

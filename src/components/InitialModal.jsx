@@ -74,8 +74,10 @@ const InitialModal = ({
             left: '50%',
             transform: 'translate(-50%, -50%)',
             padding: 24,
-            width: '100%',
+            width: '90vw',
             maxWidth: 700,
+            maxHeight: '90vh',
+            overflowY: 'auto',
             zIndex: 1001
           }}
         >

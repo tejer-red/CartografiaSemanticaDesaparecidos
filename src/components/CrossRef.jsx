@@ -2,7 +2,46 @@ import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import getFilteredFeatures from '../context/FilteredFeatures';
 
-// Add these constants at the top
+/**
+ * CrossRef.jsx - Componente de correlación entre cédulas de búsqueda y registros forenses
+ * 
+ * PROPÓSITO:
+ * Comparar personas desaparecidas (cédulas) con personas fallecidas sin identificar (PFSI)
+ * para encontrar posibles coincidencias basadas en múltiples criterios.
+ * 
+ * ALGORITMO DE MATCHING:
+ * ======================
+ * 1. FILTRADO INICIAL
+ *    - Obtener cédulas visibles en el mapa según filtros activos
+ *    - Iterar sobre cada cédula y cada registro forense
+ * 
+ * 2. MATCH FÍSICO (30% del score total)
+ *    - Sexo: OBLIGATORIO (si no coincide, se descarta inmediatamente)
+ *    - Edad: Diferencia máxima de 10 años
+ *    - Fecha: El registro forense debe ser posterior a la desaparición
+ * 
+ * 3. MATCH DE NOMBRES (40% del score total)
+ *    - Se divide el nombre en: primer nombre, segundos nombres, apellido
+ *    - Requiere mínimo 2 de 3 partes coincidentes
+ *    - Se normalizan (lowercase, sin acentos) antes de comparar
+ *    - Se excluyen nombres inválidos (PFSI, BOLSA, CRANEO, etc.)
+ * 
+ * 4. MATCH DE TATUAJES (30% del score total)
+ *    - Se comparan partes del cuerpo mencionadas
+ *    - Se comparan descriptores (estrella, tribal, letra, etc.)
+ *    - Bonus del 20% si coinciden ubicación Y descripción
+ * 
+ * SCORE TOTAL = (nombre * 0.4) + (físico * 0.3) + (tatuajes * 0.3)
+ * 
+ * NIVELES DE CONFIANZA:
+ * - HIGH: score > 0.7
+ * - MEDIUM: score > 0.4
+ * - LOW: score <= 0.4
+ */
+
+// ============================================================
+// CONSTANTES DE CONFIGURACIÓN DEL MATCHING
+// ============================================================
 const MATCH_RANGES = {
   AGE: {
     MIN_DIFF: 0,
@@ -10,10 +49,11 @@ const MATCH_RANGES = {
     WEIGHT: 0.3
   },
   SEX: {
-    REQUIRED: true,
+    REQUIRED: true,  // Si es true, descarta inmediatamente si no coincide
     WEIGHT: 0.7
   }
 };
+
 
 const INITIAL_RANGES = {
   AGE: { MIN: 0, MAX: 10, DEFAULT: 5 },
@@ -106,10 +146,10 @@ const isValidName = (name) => {
 
 const extractNames = (forenseName) => {
   if (!forenseName) return [];
-  
+
   // Split multiple names (Y/O separator)
   const aliases = forenseName.split(/\s+Y\/O\s+/);
-  
+
   // Filter and clean names
   return aliases
     .filter(name => isValidName(name))
@@ -158,9 +198,9 @@ const calculateNameMatches = (n1, n2) => {
 const calculateNameSimilarity = (name1, name2) => {
   const n1 = splitName(name1);
   const n2 = splitName(name2);
-  
+
   const nameMatch = calculateNameMatches(n1, n2);
-  
+
   if (!nameMatch.isValid) {
     return {
       score: 0,
@@ -187,7 +227,7 @@ const calculatePhysicalMatch = (cedula, forense) => {
   // Check age difference
   const cedulaAge = parseInt(cedula.edad_momento_desaparicion);
   const forenseAge = extractForenseAge(forense.Edad);
-  
+
   if (!isValidAgeMatch(cedulaAge, forenseAge)) {
     return {
       score: 0,
@@ -198,10 +238,10 @@ const calculatePhysicalMatch = (cedula, forense) => {
 
   // Check date order first
   if (!isValidDateOrder(cedula.fecha_desaparicion, forense.Fecha_Ingreso)) {
-    return { 
-      score: 0, 
-      isValidMatch: false, 
-      reasons: ['Invalid date order - forensic record before disappearance'] 
+    return {
+      score: 0,
+      isValidMatch: false,
+      reasons: ['Invalid date order - forensic record before disappearance']
     };
   }
 
@@ -213,7 +253,7 @@ const calculatePhysicalMatch = (cedula, forense) => {
   if (!sexMatch && MATCH_RANGES.SEX.REQUIRED) {
     return { score: 0, isValidMatch: false, reasons: ['Sex mismatch'] };
   }
-  
+
   if (sexMatch) {
     score += MATCH_RANGES.SEX.WEIGHT;
     reasons.push('Sex match');
@@ -231,11 +271,11 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
@@ -249,7 +289,7 @@ const TATTOO_WEIGHTS = {
 // Add more common keywords and patterns
 const TATTOO_PATTERNS = {
   BODY_PARTS: [
-    'clavicula', 'hombro', 'mano', 'brazo', 'torax', 'espalda', 
+    'clavicula', 'hombro', 'mano', 'brazo', 'torax', 'espalda',
     'pecho', 'pierna', 'tobillo', 'cuello', 'antebrazo', 'muslo',
     'pantorrilla', 'costado', 'abdomen', 'muñeca', 'dorso'
   ],
@@ -274,10 +314,10 @@ const normalizeTattooText = (text) => {
 
 const extractBodyParts = (text) => {
   const bodyParts = [
-    'clavicula', 'hombro', 'mano', 'brazo', 'torax', 'espalda', 
+    'clavicula', 'hombro', 'mano', 'brazo', 'torax', 'espalda',
     'pecho', 'pierna', 'tobillo', 'cuello', 'antebrazo'
   ];
-  
+
   const normalized = normalizeTattooText(text);
   return bodyParts.filter(part => normalized.includes(part));
 };
@@ -306,12 +346,12 @@ const calculateTattooSimilarity = (cedulaTattoos, forenseTattooText) => {
     const normalizedCedula = normalizeTattooText(tattoo.descripcion);
 
     // Body part matching
-    const bodyPartMatches = TATTOO_PATTERNS.BODY_PARTS.filter(part => 
+    const bodyPartMatches = TATTOO_PATTERNS.BODY_PARTS.filter(part =>
       normalizedCedula.includes(part) && normalizedForense.includes(part)
     );
-    
+
     if (bodyPartMatches.length) {
-      const partScore = TATTOO_WEIGHTS.BODY_PART_MATCH * 
+      const partScore = TATTOO_WEIGHTS.BODY_PART_MATCH *
         (bodyPartMatches.length / TATTOO_PATTERNS.BODY_PARTS.length);
       score += partScore;
       tempReasons.push(`Body parts: ${bodyPartMatches.join(', ')}`);
@@ -319,12 +359,12 @@ const calculateTattooSimilarity = (cedulaTattoos, forenseTattooText) => {
     }
 
     // Description matching
-    const descMatches = TATTOO_PATTERNS.DESCRIPTORS.filter(desc => 
+    const descMatches = TATTOO_PATTERNS.DESCRIPTORS.filter(desc =>
       normalizedCedula.includes(desc) && normalizedForense.includes(desc)
     );
 
     if (descMatches.length) {
-      const descScore = TATTOO_WEIGHTS.DESCRIPTION_MATCH * 
+      const descScore = TATTOO_WEIGHTS.DESCRIPTION_MATCH *
         (descMatches.length / TATTOO_PATTERNS.DESCRIPTORS.length);
       score += descScore;
       tempReasons.push(`Elements: ${descMatches.join(', ')}`);
@@ -355,11 +395,11 @@ const calculateTattooSimilarity = (cedulaTattoos, forenseTattooText) => {
 // Modify calculateTotalMatch function to include tattoos
 const calculateTotalMatch = (nameMatch, physicalMatch, tattooMatch) => {
   const totalScore = (
-    nameMatch.score * 0.4 + 
-    physicalMatch.score * 0.3 + 
+    nameMatch.score * 0.4 +
+    physicalMatch.score * 0.3 +
     tattooMatch.score * 0.3
   );
-  
+
   return {
     score: totalScore,
     reasons: [...nameMatch.reasons, ...physicalMatch.reasons, ...tattooMatch.reasons],
@@ -368,15 +408,15 @@ const calculateTotalMatch = (nameMatch, physicalMatch, tattooMatch) => {
 };
 
 const CrossRef = () => {
-  const { 
-    map, 
+  const {
+    map,
     forenseRecords,
     selectedDate,
     daysRange,
     selectedSexo,
     selectedCondicion,
     edadRange,
-    sumScoreRange 
+    sumScoreRange
   } = useData();
 
   const [matchRanges, setMatchRanges] = useState({
@@ -387,7 +427,7 @@ const CrossRef = () => {
 
   const matches = useMemo(() => {
     const filteredFeatures = getFilteredFeatures(
-      map, selectedDate, daysRange, selectedSexo, 
+      map, selectedDate, daysRange, selectedSexo,
       selectedCondicion, edadRange, sumScoreRange
     );
 
@@ -406,10 +446,10 @@ const CrossRef = () => {
         if (!forenseName) return;
 
         const validForenseNames = extractNames(forenseName);
-        
+
         validForenseNames.forEach(validName => {
           const physicalMatch = calculatePhysicalMatch(cedula.properties, forense.properties);
-          
+
           // Only proceed if sex matches
           if (!physicalMatch.isValidMatch) return;
 
@@ -419,11 +459,11 @@ const CrossRef = () => {
             forense.properties.Tatuajes
           );
           const totalMatch = calculateTotalMatch(nameMatch, physicalMatch, tattooMatch);
-          
+
           if (totalMatch.score > 0.3) {
             // Create unique key for this match combination
             const matchKey = `${cedula.properties.id_cedula_busqueda}-${forense.properties.ID}-${validName}`;
-            
+
             // Only add if we haven't seen this exact match before
             if (!seenMatches.has(matchKey)) {
               seenMatches.add(matchKey);
@@ -469,21 +509,21 @@ const CrossRef = () => {
       <div className="name-matches" style={{ maxHeight: '300px', overflow: 'auto' }}>
         <h4>Name Matches ({matches.length})</h4>
         {matches.map(match => (
-          <div 
+          <div
             key={match.id}
-            style={{ 
+            style={{
               padding: '12px',
               margin: '8px',
               border: '1px solid #ccc',
               borderRadius: '4px',
-              backgroundColor: match.confidence === 'HIGH' ? '#e6ffe6' : 
-                             match.confidence === 'MEDIUM' ? '#fff3e6' : '#fff'
+              backgroundColor: match.confidence === 'HIGH' ? '#e6ffe6' :
+                match.confidence === 'MEDIUM' ? '#fff3e6' : '#fff'
             }}
           >
             <div style={{ marginBottom: '8px' }}>
               <strong>Confidence:</strong> {match.confidence} | <strong>Score:</strong> {(match.score * 100).toFixed(1)}%
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
                 <h5>Missing Person</h5>

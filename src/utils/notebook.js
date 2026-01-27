@@ -1,7 +1,47 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 
+/**
+ * notebook.js - Hook personalizado para gestión de cuadernos de notas
+ * 
+ * PROPÓSITO:
+ * Permite guardar y restaurar estados de la aplicación junto con notas
+ * del usuario. Los cuadernos se persisten en el backend PHP y se
+ * sincronizan con localStorage.
+ * 
+ * FUNCIONALIDADES:
+ * ================
+ * 1. CAPTURA DE ESTADO
+ *    - captureCurrentState(): Guarda snapshot completo de filtros, fechas,
+ *      posición del mapa, configuración de visualización, etc.
+ * 
+ * 2. NOTAS
+ *    - addNote(): Agrega nota CON estado capturado
+ *    - addTextOnlyNote(): Agrega nota SIN estado (solo texto)
+ *    - deleteNote(): Elimina nota por ID
+ * 
+ * 3. RESTAURACIÓN
+ *    - restoreState(): Aplica un estado guardado previamente
+ *    - Actualiza filtros, fechas, posición del mapa, etc.
+ * 
+ * 4. PERSISTENCIA
+ *    - saveNotesToBackend(): Guarda cuaderno completo en servidor
+ *    - loadNotesFromBackend(): Carga cuaderno por ID
+ *    - listNotebooks(): Lista todos los cuadernos disponibles
+ * 
+ * FLUJO DE DATOS:
+ * ---------------
+ * Usuario crea nota → captureCurrentState() → guardar en notes[] 
+ * → sincroniza con localStorage → opcionalmente saveNotesToBackend()
+ * 
+ * @param {Object} dataContext - Contexto de datos de la aplicación
+ * @param {string} id - ID del cuaderno a cargar (opcional)
+ * @param {function} navigate - Función de navegación de React Router
+ * @returns {Object} Funciones y estados del cuaderno
+ */
+
 export function useNotebook(dataContext, id, navigate) {
+
   const {
     startDate,
     endDate,

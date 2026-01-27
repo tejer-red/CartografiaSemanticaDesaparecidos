@@ -7,6 +7,7 @@ import FetchForense from './components/FetchForense';
 import MapComponent from './components/MapComponent';
 import PasswordCheck from './components/PasswordCheck';
 import AppLayout from './components/AppLayout';
+import LoadingSpinner from './components/LoadingSpinner';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 
@@ -140,6 +141,7 @@ const App = () => {
           }
         `}
       </style>
+      <LoadingSpinner visible={loading} />
       {!isAuthenticated ? (
         <PasswordCheck onAuthenticated={() => setIsAuthenticated(true)} />
       ) : (

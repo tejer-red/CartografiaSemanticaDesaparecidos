@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { useTimelineSlider } from '../utils/timeLineSlider';
 import { useData } from '../context/DataContext';
 import { ArrowLeft, ArrowRight, Play, Pause, Turtle, Rabbit, ArrowRightCircle, Square } from 'lucide-react';
+import useIsMobile from '../hooks/useIsMobile';
 
 const TimelineSlider = () => {
   const { timelinePanelOpen } = useData();
+  const isMobile = useIsMobile();
   const {
     isPlaying,
     selectedDate,
@@ -46,21 +48,22 @@ const TimelineSlider = () => {
   return (
     <div
       style={{
-        display: timelinePanelOpen ? "block" : "none",
-        padding: 8,
-        display: "flex",
+        display: timelinePanelOpen ? "flex" : "none",
+        padding: isMobile ? '4px 8px' : 8,
         flexDirection: "column",
         alignItems: "center",
-        gap: "10px",
+        gap: isMobile ? "5px" : "10px",
+        width: '100%',
+        boxSizing: 'border-box'
       }}
     >
-      <div>
+      <div style={{ width: '100%', textAlign: 'center' }}>
         <span
           style={{
             textAlign: "center",
-            marginBottom: "10px",
+            marginBottom: isMobile ? "5px" : "10px",
             color: "#666",
-            fontSize: "0.9em",
+            fontSize: isMobile ? "0.8em" : "0.9em",
             display: timelinePanelOpen ? "none" : "block",
           }}
         >
@@ -79,8 +82,8 @@ const TimelineSlider = () => {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "10px",
-            justifyContent: "space-evenly",
+            gap: isMobile ? "15px" : "10px",
+            justifyContent: "center",
           }}
         >
           <button
@@ -91,19 +94,19 @@ const TimelineSlider = () => {
               cursor: "pointer",
               color: "white",
               borderRadius: "5px",
-              padding: "8px",
+              padding: isMobile ? "6px" : "8px",
+              display: 'flex'
             }}
             title={`Retroceder:
 - Días de rango: ${daysRange}
-- Rango de selección: ${
-              selectedDate
+- Rango de selección: ${selectedDate
                 ? new Date(selectedDate.getTime() - daysRange * 86400000)
-                    .toISOString()
-                    .slice(0, 10)
+                  .toISOString()
+                  .slice(0, 10)
                 : ""
-            } a ${selectedDate ? selectedDate.toISOString().slice(0, 10) : ""}`}
+              } a ${selectedDate ? selectedDate.toISOString().slice(0, 10) : ""}`}
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={isMobile ? 18 : 20} />
           </button>
           <button
             onClick={togglePlayPause}
@@ -113,25 +116,23 @@ const TimelineSlider = () => {
               cursor: "pointer",
               color: "white",
               borderRadius: "5px",
-              padding: "8px",
+              padding: isMobile ? "6px" : "8px",
+              display: 'flex'
             }}
             title={`Resumen:
 - Días de rango: ${daysRange}
 - Velocidad: ${velocity}ms
-- Fecha de inicio: ${
-              selectedDate ? selectedDate.toISOString().slice(0, 10) : ""
-            }
-- Rango de selección: ${
-              selectedDate ? selectedDate.toISOString().slice(0, 10) : ""
-            } a ${
-              selectedDate
+- Fecha de inicio: ${selectedDate ? selectedDate.toISOString().slice(0, 10) : ""
+              }
+- Rango de selección: ${selectedDate ? selectedDate.toISOString().slice(0, 10) : ""
+              } a ${selectedDate
                 ? new Date(selectedDate.getTime() + daysRange * 86400000)
-                    .toISOString()
-                    .slice(0, 10)
+                  .toISOString()
+                  .slice(0, 10)
                 : ""
-            }`}
+              }`}
           >
-            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+            {isPlaying ? <Pause size={isMobile ? 18 : 20} /> : <Play size={isMobile ? 18 : 20} />}
           </button>
           <button
             onClick={() => stepForward(daysRange)}
@@ -141,21 +142,20 @@ const TimelineSlider = () => {
               cursor: "pointer",
               color: "white",
               borderRadius: "5px",
-              padding: "8px",
+              padding: isMobile ? "6px" : "8px",
+              display: 'flex'
             }}
             title={`Avanzar:
 - Días de rango: ${daysRange}
-- Rango de selección: ${
-              selectedDate ? selectedDate.toISOString().slice(0, 10) : ""
-            } a ${
-              selectedDate
+- Rango de selección: ${selectedDate ? selectedDate.toISOString().slice(0, 10) : ""
+              } a ${selectedDate
                 ? new Date(selectedDate.getTime() + daysRange * 86400000)
-                    .toISOString()
-                    .slice(0, 10)
+                  .toISOString()
+                  .slice(0, 10)
                 : ""
-            }`}
+              }`}
           >
-            <ArrowRight size={20} />
+            <ArrowRight size={isMobile ? 18 : 20} />
           </button>
         </div>
       </div>
@@ -165,12 +165,14 @@ const TimelineSlider = () => {
           flexDirection: "column",
           alignItems: "center",
           gap: "5px",
+          width: '100%'
         }}
       >
-        <div className="rangeTime" style={{ display: "flex", alignItems: "center", gap: "5px", }}>
+        <div className="rangeTime" style={{ display: "flex", alignItems: "center", gap: "5px", width: '100%', justifyContent: 'center' }}>
           <ArrowRightCircle
-            size={20}
+            size={isMobile ? 16 : 20}
             title={minDate ? minDate.toISOString().slice(0, 10) : ""}
+            style={{ flexShrink: 0 }}
           />
           <input
             type="range"
@@ -178,15 +180,16 @@ const TimelineSlider = () => {
             max={maxDate.getTime()}
             value={selectedDate ? selectedDate.getTime() : minDate.getTime()}
             onChange={(e) => handleDateChange(new Date(Number(e.target.value)))}
-            style={{ width: 150 }}
+            style={{ width: isMobile ? '70%' : 150 }}
           />
           <Square
-            size={20}
+            size={isMobile ? 16 : 20}
             title={maxDate ? maxDate.toISOString().slice(0, 10) : ""}
+            style={{ flexShrink: 0 }}
           />
         </div>
-        <div className="rangeSpeed" style={{  alignItems: "center", gap: "5px", display: timelinePanelOpen ? "flex"  : "none"  }}>
-          <Rabbit size={20} title="Velocidad mínima: 2000ms" />
+        <div className="rangeSpeed" style={{ alignItems: "center", gap: "5px", display: timelinePanelOpen ? "flex" : "none", width: '100%', justifyContent: 'center' }}>
+          <Rabbit size={isMobile ? 16 : 20} title="Velocidad mínima: 2000ms" style={{ flexShrink: 0 }} />
           <input
             type="range"
             min={100}
@@ -194,9 +197,9 @@ const TimelineSlider = () => {
             step={100}
             value={velocity}
             onChange={(e) => setVelocity(Number(e.target.value))}
-            style={{ width: 150 }}
+            style={{ width: isMobile ? '70%' : 150 }}
           />
-          <Turtle size={20} title="Velocidad máxima: 100ms" />
+          <Turtle size={isMobile ? 16 : 20} title="Velocidad máxima: 100ms" style={{ flexShrink: 0 }} />
         </div>
       </div>
     </div>

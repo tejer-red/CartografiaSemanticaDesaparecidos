@@ -59,6 +59,8 @@ const Notebook = () => {
           setTimeScale={dataContext.setTimeScale}
           newDataFetched={dataContext.newDataFetched}
           newForenseDataFetched={dataContext.newForenseDataFetched}
+          fetchedRecords={dataContext.fetchedRecords}
+          forenseRecords={dataContext.forenseRecords}
         />
         <NotebookNotes
           newNote={newNote}

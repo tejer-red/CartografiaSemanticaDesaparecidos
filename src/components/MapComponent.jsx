@@ -9,7 +9,8 @@ const MapComponent = () => {
   const contextLostRef = useRef(false);
 
   useEffect(() => {
-    if (!map && !contextLostRef.current) {
+    if (mapContainer.current && !map) {
+      console.log('MapComponent: Initializing new map instance');
       try {
         const newMap = new maplibregl.Map({
           container: mapContainer.current,
@@ -33,26 +34,26 @@ const MapComponent = () => {
         });
 
         newMap.on('load', () => {
+          console.log('MapComponent: map loaded');
           setMap(newMap);
         });
 
         newMap.on('style.load', () => {
+          console.log('MapComponent: style loaded');
           setMap(newMap);
-          setMapLoaded(true); // Set mapLoaded to true when style is loaded
-          console.log('Map and style loaded successfully');
+          setMapLoaded(true);
         });
       } catch (error) {
         console.error("Error initializing map:", error);
       }
     }
 
+    // El cleanup solo debe ocurrir si el componente se desmonta de verdad
     return () => {
-      if (map) {
-        map.remove();
-        setMap(null);
-      }
+      // Nota: No removemos el mapa aquí si el componente solo se re-renderiza
+      // MapLibre maneja mejor la persistencia si no lo borramos agresivamente
     };
-  }, [map, setMap, setMapLoaded]);
+  }, [setMap, setMapLoaded]);
 
   return (
     <div className="map-wrapper">

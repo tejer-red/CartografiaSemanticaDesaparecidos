@@ -6,17 +6,18 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceArea } from 'recharts';
 import { useData } from '../context/DataContext';
-import { Calendar } from 'lucide-react'; // Replace FontAwesome import with Lucide
+import { Calendar } from 'lucide-react';
 import {
-  processMapData,         // Función para procesar datos del mapa según timeScale
-  calculateDateRange,      // Función para calcular el rango de fechas
-  CustomTooltip,           // Componente para el tooltip del gráfico
-  handleTimeScaleChange,   // Handler para cambiar el timeScale
-  handleDateClick          // Handler para seleccionar fecha en el gráfico
+  processMapData,
+  calculateDateRange,
+  CustomTooltip,
+  handleTimeScaleChange,
+  handleDateClick
 } from '../utils/globalTimeGraph.jsx';
+import useIsMobile from '../hooks/useIsMobile';
 
 const GlobalTimeGraph = ({ onDateSelect }) => {
-  // Obtiene estados y setters globales desde el contexto
+  const isMobile = useIsMobile();
   const {
     map,
     COLORS,
@@ -27,39 +28,18 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
     setDaysRange,
     newDataFetched,
     newForenseDataFetched,
-    selectedSexo,          // Use these states instead of filters
-    selectedCondicion      // Use these states instead of filters
+    selectedSexo,
+    selectedCondicion,
+    fetchedRecords,
+    forenseRecords
   } = useData();
 
   const [processedData, setProcessedData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!map) {
-      setIsLoading(true);
-      return;
-    }
-    const handleMapLoad = () => setIsLoading(false);
-    if (!map.isStyleLoaded()) {
-      map.once('load', handleMapLoad);
-    } else {
-      handleMapLoad();
-    }
-    return () => {
-      if (map) map.off('load', handleMapLoad);
-    };
-  }, [map]);
-
-  useEffect(() => {
-    if (isLoading || !map || (!newDataFetched && !newForenseDataFetched)) {
-      return;
-    }
-    setProcessedData(processMapData(map, timeScale));
-  }, [map, timeScale, newDataFetched, newForenseDataFetched, isLoading]);
-
-  if (isLoading) {
-    return <div>Cargando GlobalTimeGraph...</div>;
-  }
+    const data = processMapData(fetchedRecords, forenseRecords, timeScale);
+    setProcessedData(data);
+  }, [timeScale, fetchedRecords, forenseRecords]);
 
   const dateRange = calculateDateRange(selectedDate, timeScale);
 
@@ -67,158 +47,135 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
     handleDateClick(e, setSelectedDate, setDaysRange, timeScale);
   };
 
+  const scaleOptions = [
+    { value: 'daily', label: 'Diario' },
+    { value: 'weekly', label: 'Semanal' },
+    { value: 'bi-weekly', label: 'Quincenal' },
+    { value: 'monthly', label: 'Mensual' },
+    { value: 'yearly', label: 'Anual' }
+  ];
+
   return (
     <div
       className="GlobalTimeLine"
       style={{
         width: "100%",
-        height: processedData.length > 0 ? "150px" : "40px",
+        minHeight: isMobile ? "350px" : "200px",
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <div className="GlobalTimeLine" style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "15px" }}>
         <div
           className="SelectTimeLineRange"
           style={{
             display: "flex",
             alignItems: "center",
-            marginBottom: "5px",
-            alignItems: "center",
+            marginBottom: "10px",
             width: "100%",
-            padding: "0 1rem",
-            flex: 1,
-            flexDirection: "row",
-            justifyContent: "flex-end",
+            padding: isMobile ? "0 5px" : "0 1rem",
+            justifyContent: isMobile ? "center" : "flex-end",
           }}
         >
-          <Calendar style={{ marginRight: "10px", color: "#555" }} /> {/* Use Lucide icon */}
-          <span style={{ fontWeight: "bold", color: "#333" }}>
-            Selecciona el formato de la línea de tiempo
+          <Calendar size={18} style={{ marginRight: "10px", color: "#555" }} />
+          <span style={{ fontWeight: "bold", color: "#333", fontSize: isMobile ? '0.9em' : '1em' }}>
+            Escala de tiempo
           </span>
         </div>
 
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="daily"
-            checked={timeScale === "daily"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Diario
-        </label>
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="weekly"
-            checked={timeScale === "weekly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Semanal
-        </label>
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="bi-weekly"
-            checked={timeScale === "bi-weekly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Quincenal
-        </label>
-        <label>
-          <input
-            type="radio"
-            value="monthly"
-            checked={timeScale === "monthly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Mensual
-        </label>
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="yearly"
-            checked={timeScale === "yearly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Anual
-        </label>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: isMobile ? '8px' : '15px',
+          justifyContent: 'center',
+          padding: '0 5px'
+        }}>
+          {scaleOptions.map((option) => (
+            <label
+              key={option.value}
+              style={{
+                fontSize: isMobile ? '0.8em' : '0.9em',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: isMobile ? '4px 8px' : '0',
+                backgroundColor: isMobile && timeScale === option.value ? '#e7f1ff' : 'transparent',
+                borderRadius: '4px',
+                border: isMobile ? `1px solid ${timeScale === option.value ? '#007bff' : '#ddd'}` : 'none'
+              }}
+            >
+              <input
+                type="radio"
+                name="timeScale"
+                value={option.value}
+                checked={timeScale === option.value}
+                onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
+                style={{ cursor: 'pointer' }}
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
       </div>
 
       {processedData.length === 0 && (
-        <div className="PickScale">
-          <span>
-            No hay datos disponibles para la escala de tiempo seleccionada.
-          </span>
+        <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+          No hay datos disponibles para la escala de tiempo seleccionada.
         </div>
       )}
 
       {processedData.length > 0 && (
-        <ResponsiveContainer>
-          <LineChart
-            data={processedData}
-            margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-            onClick={handleClick}
-          >
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            {dateRange && (
-              <ReferenceArea
-                x1={dateRange.start}
-                x2={dateRange.end}
-                stroke="rgba(0, 0, 255, 0.6)"
-                strokeWidth={2}
-                fill="rgba(0, 0, 255, 0.2)"
-              />
-            )}
-            {selectedSexo.includes('HOMBRE') && (
-              <Line
-                type="monotone"
-                dataKey="HOMBRE"
-                stroke={COLORS.HOMBRE.opacity100}
-              />
-            )}
-            {selectedSexo.includes('MUJER') && (
-              <Line
-                type="monotone"
-                dataKey="MUJER"
-                stroke={COLORS.MUJER.opacity100}
-              />
-            )}
-            {selectedCondicion.includes('CON VIDA') && (
-              <Line
-                type="monotone"
-                dataKey="CON VIDA"
-                stroke={COLORS.CON_VIDA.opacity100}
-              />
-            )}
-            {selectedCondicion.includes('SIN VIDA') && (
-              <Line
-                type="monotone"
-                dataKey="SIN VIDA"
-                stroke={COLORS.SIN_VIDA.opacity100}
-              />
-            )}
-            {selectedCondicion.includes('NO APLICA') && (
-              <Line
-                type="monotone"
-                dataKey="NO APLICA"
-                stroke={COLORS.NO_APLICA.opacity100}
-              />
-            )}
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{ flex: 1, minHeight: isMobile ? '200px' : '150px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={processedData}
+              margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+              onClick={handleClick}
+            >
+              <XAxis dataKey="date" fontSize={10} minTickGap={20} />
+              <YAxis fontSize={10} width={30} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+              {dateRange && (
+                <ReferenceArea
+                  x1={dateRange.start}
+                  x2={dateRange.end}
+                  stroke="rgba(0, 0, 255, 0.6)"
+                  strokeWidth={2}
+                  fill="rgba(0, 0, 255, 0.2)"
+                />
+              )}
+              {selectedSexo.includes('HOMBRE') && (
+                <Line type="monotone" dataKey="HOMBRE" stroke={COLORS.HOMBRE.opacity100} dot={!isMobile} strokeWidth={2} />
+              )}
+              {selectedSexo.includes('MUJER') && (
+                <Line type="monotone" dataKey="MUJER" stroke={COLORS.MUJER.opacity100} dot={!isMobile} strokeWidth={2} />
+              )}
+              {selectedCondicion.includes('CON VIDA') && (
+                <Line type="monotone" dataKey="CON VIDA" stroke={COLORS.CON_VIDA.opacity100} dot={!isMobile} strokeWidth={2} />
+              )}
+              {selectedCondicion.includes('SIN VIDA') && (
+                <Line type="monotone" dataKey="SIN VIDA" stroke={COLORS.SIN_VIDA.opacity100} dot={!isMobile} strokeWidth={2} />
+              )}
+              {selectedCondicion.includes('NO APLICA') && (
+                <Line type="monotone" dataKey="NO APLICA" stroke={COLORS.NO_APLICA.opacity100} dot={!isMobile} strokeWidth={2} />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
+
       {selectedDate && (
-        <div
-          className="SelectedDateLegend"
-          style={{ marginBottom: "10px", textAlign: "center" }}
-        >
-          <strong>Rango de Fechas:</strong>{" "}
-          {`${dateRange.start} a ${dateRange.end}`} <br />
-          <span style={{ fontStyle: "italic", color: "#555" }}>
-            Los datos están agregados según la escala de tiempo seleccionada.
-          </span>
+        <div style={{
+          marginTop: "10px",
+          textAlign: "center",
+          fontSize: '0.8em',
+          padding: '5px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '4px'
+        }}>
+          <strong>Seleccionado:</strong> {`${dateRange.start} a ${dateRange.end}`}
         </div>
       )}
     </div>

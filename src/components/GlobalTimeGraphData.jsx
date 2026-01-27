@@ -20,11 +20,12 @@ const GlobalTimeGraphData = ({
   setTimeScale,
   newDataFetched,
   newForenseDataFetched,
+  fetchedRecords,
+  forenseRecords,
 }) => {
   useEffect(() => {
     // Aquí se usan las funciones utilitarias y se muestran los resultados en consola.
-    if (!map) return;
-    const processed = processMapData(map, timeScale);
+    const processed = processMapData(fetchedRecords, forenseRecords, timeScale);
     const range = calculateDateRange(selectedDate, timeScale);
     console.log('GlobalTimeGraphData: processMapData', processed);
     console.log('GlobalTimeGraphData: calculateDateRange', range);
@@ -48,11 +49,13 @@ const GlobalTimeGraphData = ({
     setTimeScale,
     newDataFetched,
     newForenseDataFetched,
+    fetchedRecords,
+    forenseRecords,
   ]);
 
   return (
     <>
-    {/*
+      {/*
     <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>
       <strong>GlobalTimeGraphData Debug:</strong>
       <div>Check console for detailed output.</div>

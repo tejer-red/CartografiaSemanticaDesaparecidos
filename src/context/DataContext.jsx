@@ -1,48 +1,96 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import maplibregl from 'maplibre-gl';
 
+/**
+ * DataContext.jsx - Contexto global de estado de la aplicación
+ * 
+ * PROPÓSITO:
+ * Centraliza todo el estado compartido entre componentes para:
+ * - Mapa y layers (MapLibre GL)
+ * - Datos de cédulas y forenses
+ * - Filtros de búsqueda
+ * - Configuración de visualización
+ * - Estado de la timeline
+ * 
+ * NOTA: Este archivo tiene 35+ estados. Se recomienda refactorizar
+ * en contextos separados (MapContext, FiltersContext, etc.) en una
+ * futura iteración para mejorar mantenibilidad.
+ * 
+ * CATEGORÍAS DE ESTADO:
+ * =====================
+ * 1. MAPA: map, cedulaLayer, forenseLayer, mapLoaded, mapType
+ * 2. DATOS: fetchedRecords, forenseRecords, mergedRecords
+ * 3. FILTROS: selectedSexo, selectedCondicion, edadRange, sumScoreRange
+ * 4. FECHAS: startDate, endDate, selectedDate, daysRange
+ * 5. TIMELINE: timelineData, timeScale, isTimelinePlaying, timelineVelocity
+ * 6. UI: visibleComponents, loading, colorScheme
+ */
+
 const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
-  const [map, setMap] = useState(null);
-  const [fetchedRecords, setFetchedRecords] = useState([]);
-  const [forenseRecords, setForenseRecords] = useState([]);
-  const [mergedRecords, setMergedRecords] = useState([]);
-  const [cedulaLayer, setCedulaLayer] = useState(null);
-  const [forenseLayer, setForenseLayer] = useState(null);
-  const [timelineData, setTimelineData] = useState([]);
-  const [timeline, setTimeline] = useState(null);
-  const [timelineControl, setTimelineControl] = useState(null);
-  const [newDataFetched, setNewDataFetched] = useState(false);
-  const [newForenseDataFetched, setNewForenseDataFetched] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [daysRange, setDaysRange] = useState(30); // Default to 5 days range
-  const [activeHeatmapCategories, setActiveHeatmapCategories] = useState([]); // Add this line
+  // ============================================================
+  // CATEGORÍA 1: ESTADO DEL MAPA
+  // ============================================================
+  const [map, setMap] = useState(null);                    // Instancia MapLibre GL
+  const [cedulaLayer, setCedulaLayer] = useState(null);    // Layer de marcadores de cédulas
+  const [forenseLayer, setForenseLayer] = useState(null);  // Layer de marcadores forenses
+  const [mapLoaded, setMapLoaded] = useState(false);       // Flag: mapa completamente cargado
+  const [mapType, setMapType] = useState('point');         // Tipo: 'point' | 'heatmap' | 'cluster'
+  const [activeHeatmapCategories, setActiveHeatmapCategories] = useState([]);
+
+  // ============================================================
+  // CATEGORÍA 2: DATOS DE REGISTROS
+  // ============================================================
+  const [fetchedRecords, setFetchedRecords] = useState([]);   // Cédulas de búsqueda
+  const [forenseRecords, setForenseRecords] = useState([]);   // Registros forenses (PFSI)
+  const [mergedRecords, setMergedRecords] = useState([]);     // Combinación para timeline
+
+  // ============================================================
+  // CATEGORÍA 3: FILTROS DE BÚSQUEDA
+  // ============================================================
   const [selectedSexo, setSelectedSexo] = useState(['HOMBRE', 'MUJER']);
   const [selectedCondicion, setSelectedCondicion] = useState(['CON VIDA', 'SIN VIDA', 'NO APLICA']);
-  const [edadRange, setEdadRange] = useState([0, 100]);
-  const [sumScoreRange, setsumScoreRange] = useState([0.5, 20]);
-  const [timeScale, setTimeScale] = useState('monthly'); // Set default to "monthly"
-  const [mapType, setMapType] = useState('point');
-  const [colorScheme, setColorScheme] = useState('sexo');
+  const [edadRange, setEdadRange] = useState([0, 100]);       // Rango de edad [min, max]
+  const [sumScoreRange, setsumScoreRange] = useState([0.5, 20]); // Score de relevancia
+
+  // ============================================================
+  // CATEGORÍA 4: FECHAS Y RANGOS TEMPORALES
+  // ============================================================
+  const [startDate, setStartDate] = useState('2023-01-01');   // Inicio del rango de consulta
+  const [endDate, setEndDate] = useState('2024-01-01');       // Fin del rango de consulta
+  const [selectedDate, setSelectedDate] = useState(null);      // Fecha seleccionada en timeline
+  const [daysRange, setDaysRange] = useState(30);              // Días a mostrar desde selectedDate
+
+  // ============================================================
+  // CATEGORÍA 5: TIMELINE Y ANIMACIÓN
+  // ============================================================
+  const [timelineData, setTimelineData] = useState([]);        // Datos para el gráfico temporal
+  const [timeline, setTimeline] = useState(null);
+  const [timelineControl, setTimelineControl] = useState(null);
+  const [timeScale, setTimeScale] = useState('monthly');       // 'daily'|'weekly'|'bi-weekly'|'monthly'|'yearly'
+  const [timelinePanelOpen, setTimelinePanelOpen] = useState(true);
+  const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
+  const [timelineVelocity, setTimelineVelocity] = useState(1000); // ms entre frames
+
+  // ============================================================
+  // CATEGORÍA 6: UI Y VISUALIZACIÓN
+  // ============================================================
+  const [loading, setLoading] = useState(false);
+  const [colorScheme, setColorScheme] = useState('sexo');      // 'sexo' | 'condicion'
   const [visibleComponents, setVisibleComponents] = useState({
     filterForm: true,
     currentState: true,
-    //violenceCases: true,
-    //timeGraph: false,
-    //crossRef: false,
   });
-  const [startDate, setStartDate] = useState('2023-01-01'); // Default start date
-  const [endDate, setEndDate] = useState('2024-01-01'); // Default end date
-  const [timelinePanelOpen, setTimelinePanelOpen] = useState(true);
-  const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
-  const [timelineVelocity, setTimelineVelocity] = useState(1000);
-  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Flags de control de fetch
+  const [newDataFetched, setNewDataFetched] = useState(false);
+  const [newForenseDataFetched, setNewForenseDataFetched] = useState(false);
+
 
   useEffect(() => {
-    console.log('DataContext state initialized:', { 
-      mapType, setMapType, 
+    console.log('DataContext state initialized:', {
+      mapType, setMapType,
       colorScheme, setColorScheme,
       visibleComponents
     });
@@ -83,7 +131,7 @@ export const DataProvider = ({ children }) => {
         NO_APLICA: "rgba(255, 0, 0, 1)",
         UNKNOWN: "rgba(128, 128, 128, 1)"
       }[key];
-  
+
       return [
         key,
         Object.assign(new String(fullColor), {
@@ -93,15 +141,27 @@ export const DataProvider = ({ children }) => {
       ];
     })
   );
-  
+
   const POINT_RADIUS = 30;
+
+  // Sincronización automática de datos con el mapa al cargar
+  useEffect(() => {
+    if (mapLoaded && map) {
+      if (fetchedRecords?.features?.length > 0) {
+        updateLayerData('cedulaLayer', fetchedRecords, sexoLayout);
+      }
+      if (forenseRecords?.features?.length > 0) {
+        updateLayerData('forenseLayer', forenseRecords, clusteringLayout);
+      }
+    }
+  }, [mapLoaded, map, fetchedRecords, forenseRecords]);
 
   const addTooltip = (layerId) => {
     if (!map || !map.getLayer(layerId)) {
       console.error('Map not initialized or layer not found');
       return;
     }
-  
+
     const popup = new maplibregl.Popup({
       closeButton: true,
       closeOnClick: false,
@@ -124,12 +184,12 @@ export const DataProvider = ({ children }) => {
         </div>
       `;
     };
-  
+
     // Show popup on hover
-    
+
     map.on('mouseenter', layerId, (e) => {
       if (!e.features || e.features.length === 0) return;
-      
+
       map.getCanvas().style.cursor = 'pointer';
       /*
       const feature = e.features[0];
@@ -142,20 +202,20 @@ export const DataProvider = ({ children }) => {
         .addTo(map);
         */
     });
-  
+
     // Remove pointer cursor on mouseleave but don't remove popup
     map.on('mouseleave', layerId, () => {
       map.getCanvas().style.cursor = '';
     });
-    
-  
+
+
     map.on('click', layerId, (e) => {
       if (!e.features || e.features.length === 0) return;
-  
+
       const feature = e.features[0];
       const coordinates = feature.geometry.coordinates.slice();
       const properties = feature.properties;
-  
+
       // Calcular nueva posición del mapa para centrar el feature
       const centerOffset = map.getCenter().lng - coordinates[0];
       const centerOffsetlat = map.getCenter().lat - coordinates[1];
@@ -163,21 +223,21 @@ export const DataProvider = ({ children }) => {
         coordinates[0] + centerOffset * 0.2, // Ajuste horizontal
         coordinates[1] - (1 / Math.pow(2, map.getZoom() - 1))  // Ajuste vertical (~200px)
       ];
-  
+
       // Mover el mapa suavemente
       map.easeTo({
         center: newCenter,
         duration: 500,
         essential: true
       });
-  
+
       // Mostrar popup en la posición original
       popup
         .setLngLat(coordinates)
         .setHTML(generatePopupContent(properties))
         .addTo(map);
     });
-  
+
     // Close popup when clicking elsewhere on the map
     map.on('click', (e) => {
       if (!map.queryRenderedFeatures(e.point, { layers: [layerId] }).length) {
@@ -186,16 +246,26 @@ export const DataProvider = ({ children }) => {
     });
   };
   const updateLayerData = (layerId, data, layoutConfig) => {
+    if (!data || !data.type || data.type !== 'FeatureCollection') {
+      console.error("Input data is not a valid GeoJSON object.");
+      return;
+    }
+
+    // Actualizar datos de la línea de tiempo
+    // Solo reseteamos si es la cedulaLayer (fuente principal) para evitar borrar datos de otras fuentes
+    if (layoutConfig !== clusteringLayout) {
+      const timelineEntries = data.features.map(feature => ({
+        timestamp: feature.properties?.timestamp || feature.timestamp,
+        type: feature.properties?.tipo_marcador || feature.tipo_marcador,
+      }));
+      updateTimelineData(timelineEntries, layerId === 'cedulaLayer');
+    }
+
+    // Chequeo del mapa para la parte visual
     if (!map || !map.isStyleLoaded()) {
       return;
     }
-  
-    if (!data || !data.type || data.type !== 'FeatureCollection') {
-      console.error("Input data given to 'forenseLayer' is not a valid GeoJSON object.");
-      return;
-    }
-    //console.log('Updating layer data:', layerId, layoutConfig);
-    //console.log('Data:', data);
+
     if (map.getSource(layerId)) {
       map.getSource(layerId).setData(data);
     } else {
@@ -203,27 +273,21 @@ export const DataProvider = ({ children }) => {
         type: 'geojson',
         data: data,
       });
-  
+
       map.addLayer({
         id: layerId,
         type: 'circle',
         source: layerId,
         paint: layoutConfig
       });
-  
+
       addTooltip(layerId);
     }
-  
-    if (layoutConfig === clusteringLayout) {
-      return
+
+    // Asegurar que los filtros actuales se apliquen a la nueva capa o datos
+    if (layerId === 'cedulaLayer' && selectedDate) {
+      filterMarkersByDate(selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange);
     }
-    // Update timeline data
-    const timelineEntries = data.features.map(feature => ({
-      timestamp: feature.properties.timestamp,
-      type: feature.properties.tipo_marcador,
-    }));
-  
-    updateTimelineData(timelineEntries, true);
   };
 
   const clusteringLayout = {
@@ -353,35 +417,23 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateTimelineData = (records, reset = false) => {
-    //console.log('Updating timeline data');
     const timelineEntries = records.map(record => ({
-      timestamp: record.timestamp || record.properties.timestamp,
-      type: record.type || record.properties.tipo_marcador
+      timestamp: record.timestamp || record.properties?.timestamp,
+      type: record.type || record.properties?.tipo_marcador
     }));
-    setTimelineData(reset ? timelineEntries : [...timelineData, ...timelineEntries]);
+    setTimelineData(prev => reset ? timelineEntries : [...prev, ...timelineEntries]);
   };
 
   const filterMarkersByDate = (selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {
     if (!map || !selectedDate) return;
-  
-    //console.log('Filtering markers by date...');
-    //console.log('Selected Date:', selectedDate);
-    //console.log('Days Range:', daysRange);
-    //console.log('Selected Sexo:', selectedSexo);
-    //console.log('Selected Condicion:', selectedCondicion);
-    //console.log('Edad Range:', edadRange);
-    //console.log('Sum Score Range:', sumScoreRange);
-  
+
     const endDate = new Date(selectedDate);
     endDate.setDate(selectedDate.getDate() + daysRange);
-  
+
     // Convert dates to timestamps for easier filtering
     const selectedTimestamp = selectedDate.getTime();
     const endTimestamp = endDate.getTime();
-  
-    //console.log('Selected Timestamp:', selectedTimestamp);
-    //console.log('End Timestamp:', endTimestamp);
-  
+
     // Attribute filters
     const attributeFilters = [];
     if (selectedSexo.length > 0) {
@@ -395,29 +447,22 @@ export const DataProvider = ({ children }) => {
 
     attributeFilters.push([">=", ["to-number", ["get", "sum_score"]], sumScoreRange[0]]);
     attributeFilters.push(["<=", ["to-number", ["get", "sum_score"]], sumScoreRange[1]]);
-  
 
-    //console.log('Attribute Filters:', attributeFilters);
-  
+
     // Date filters
     const dateFilters = [
       [">=", ["to-number", ["get", "timestamp"]], selectedTimestamp],
       ["<=", ["to-number", ["get", "timestamp"]], endTimestamp]
     ];
-  
-    //console.log('Date Filters:', dateFilters);
-  
+
     // Combined filters
     const combinedFilter = ['all', ...attributeFilters, ...dateFilters];
-  
-    //console.log('Combined Filter:', combinedFilter);
-  
+
     // Apply the combined filter to the "cedulaLayer"
     if (map.getLayer("cedulaLayer")) {
-      //console.log('Applying filter to cedulaLayer');
       map.setFilter("cedulaLayer", combinedFilter);
     }
-  
+
     // Update heatmap layers
     activeHeatmapCategories.forEach(category => {
       const layerId = `cedulaLayer-${category}`;
@@ -426,21 +471,19 @@ export const DataProvider = ({ children }) => {
           ? ['==', ['get', 'sexo'], category]
           : ['==', ['get', 'condicion_localizacion'], category];
         const heatmapFilter = ['all', categoryFilter, ...attributeFilters, ...dateFilters];
-        //console.log(`Applying filter to heatmap layer: ${layerId}`);
-        //console.log('Heatmap Filter:', heatmapFilter);
         map.setFilter(layerId, heatmapFilter);
       }
     });
   };
-  
+
   const avoidLayerOverlap = (records, tipo_marcador, selectedTimestamp, endTimestamp) => {
     ////console.log('Clustering nodes with the same position');
-  
+
     if (!Array.isArray(records)) {
-        console.error("Records should be an array");
-        return [];
+      console.error("Records should be an array");
+      return [];
     }
-  
+
     const clusterMap = new Map();
 
     ////console.log(tipo_marcador, selectedTimestamp, endTimestamp)
@@ -448,15 +491,15 @@ export const DataProvider = ({ children }) => {
       const { timestamp, tipo_marcador: recordTipoMarcador } = record.properties;
       const coordinates = record.geometry.coordinates.join(',');
       if (record.properties.tipo_marcador === tipo_marcador) {
-       // //console.log('Record:', record);
+        // //console.log('Record:', record);
         if (!clusterMap.has(coordinates)) {
-          clusterMap.set(coordinates, { 
-            type: 'Feature', 
-            geometry: record.geometry, 
+          clusterMap.set(coordinates, {
+            type: 'Feature',
+            geometry: record.geometry,
             properties: {
-              tipo_marcador: "cluster", 
-              count: 0, 
-              originalNodes: [], 
+              tipo_marcador: "cluster",
+              count: 0,
+              originalNodes: [],
               timestamp: timestamp
             }
           });
@@ -466,9 +509,9 @@ export const DataProvider = ({ children }) => {
         cluster.properties.originalNodes.push(record);
         // Ensure the timestamp is the minimum among the clustered nodes
         cluster.properties.timestamp = Math.min(cluster.properties.timestamp, timestamp);
-      } 
+      }
     });
-    
+
     const clusterFeatures = Array.from(clusterMap.values());
     ////console.log('Cluster features', clusterFeatures);
     const geojsonData = {
@@ -476,7 +519,7 @@ export const DataProvider = ({ children }) => {
       features: clusterFeatures
     }
     updateLayerData('forenseLayer', geojsonData, clusteringLayout);
-};
+  };
 
   const value = {
     map, setMap,

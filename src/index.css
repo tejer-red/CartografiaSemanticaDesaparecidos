@@ -469,6 +469,15 @@ button:disabled {
   overflow-y: overlay;
 }
 
+@media (max-width: 768px) {
+  .current-state {
+    height: auto;
+    overflow-y: visible;
+    border: none;
+    margin-top: 0;
+  }
+}
+
 .custom-popup p {
   margin: 0;
   padding: 0.1rem;
