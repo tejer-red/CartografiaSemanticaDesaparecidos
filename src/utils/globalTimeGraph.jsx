@@ -2,6 +2,13 @@
 // cálculo de rangos de fechas, tooltips y handlers de eventos.
 // Es utilizado tanto por GlobalTimeGraph.jsx como por GlobalTimeGraphData.jsx (y potencialmente otros).
 
+function formatDateLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function processMapData(fetchedRecords, forenseRecords, timeScale) {
   console.log('processMapData start:', {
     type: typeof fetchedRecords,
@@ -27,48 +34,109 @@ export function processMapData(fetchedRecords, forenseRecords, timeScale) {
     console.log(`processMapData feature[${i}] timestamp:`, f.properties?.timestamp || f.timestamp);
   });
 
-  features.forEach(feature => {
+  let processedCount = 0;
+  let skippedNoTimestamp = 0;
+  let skippedInvalidDate = 0;
+
+  features.forEach((feature, idx) => {
     // Intentar obtener timestamp de properties o de la raíz del objeto
     const timestampField = feature.properties?.timestamp || feature.timestamp;
-    const sexo = feature.properties?.sexo || feature.sexo;
-    const condicion = feature.properties?.condicion_localizacion || feature.condicion_localizacion;
 
-    if (!timestampField) return;
+    // Manejar diferentes formatos de datos (cédulas vs forense)
+    const sexo = feature.properties?.sexo || feature.sexo ||
+      feature.properties?.Sexo || feature.Sexo;
 
-    // Intentar parsear como número, y si no como string
-    let date = new Date(Number(timestampField));
-    if (isNaN(date.getTime())) {
+    const condicion = feature.properties?.condicion_localizacion ||
+      feature.condicion_localizacion ||
+      feature.properties?.Condicion ||
+      feature.Condicion;
+
+    if (!timestampField) {
+      skippedNoTimestamp++;
+      return;
+    }
+
+    // Intentar parsear como número (timestamp en milisegundos), y si no como string
+    let date;
+    let isNumericTimestamp = false;
+    const numericTimestamp = Number(timestampField);
+
+    if (!isNaN(numericTimestamp) && numericTimestamp > 0) {
+      // Es un timestamp numérico - crear fecha UTC
+      date = new Date(numericTimestamp);
+      isNumericTimestamp = true;
+    } else {
+      // Intentar parsear como string
       date = new Date(timestampField);
     }
 
-    if (isNaN(date.getTime())) return;
+    if (isNaN(date.getTime())) {
+      skippedInvalidDate++;
+      return;
+    }
 
     let key;
 
-    switch (timeScale) {
-      case 'weekly': {
-        const startOfWeek = new Date(date);
-        startOfWeek.setDate(date.getDate() - date.getDay());
-        key = startOfWeek.toISOString().split('T')[0];
-        break;
+    // Si es timestamp numérico, usar métodos UTC para evitar problemas de zona horaria
+    if (isNumericTimestamp) {
+      switch (timeScale) {
+        case 'weekly': {
+          const startOfWeek = new Date(Date.UTC(
+            date.getUTCFullYear(),
+            date.getUTCMonth(),
+            date.getUTCDate() - date.getUTCDay()
+          ));
+          key = formatDateLocal(startOfWeek);
+          break;
+        }
+        case 'monthly':
+          key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
+          break;
+        case 'bi-weekly': {
+          const day = date.getUTCDate();
+          const startOfBiWeek = new Date(Date.UTC(
+            date.getUTCFullYear(),
+            date.getUTCMonth(),
+            day <= 15 ? 1 : 16
+          ));
+          key = formatDateLocal(startOfBiWeek);
+          break;
+        }
+        case 'yearly':
+          key = `${date.getUTCFullYear()}-01-01`;
+          break;
+        case 'daily':
+        default:
+          key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
       }
-      case 'monthly':
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
-        break;
-      case 'bi-weekly': {
-        const startOfBiWeek = new Date(date);
-        const day = date.getDate();
-        startOfBiWeek.setDate(day <= 15 ? 1 : 16);
-        key = startOfBiWeek.toISOString().split('T')[0];
-        break;
+    } else {
+      // Para fechas parseadas de strings, usar hora local
+      switch (timeScale) {
+        case 'weekly': {
+          const startOfWeek = new Date(date);
+          startOfWeek.setDate(date.getDate() - date.getDay());
+          key = formatDateLocal(startOfWeek);
+          break;
+        }
+        case 'monthly':
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+          break;
+        case 'bi-weekly': {
+          const startOfBiWeek = new Date(date);
+          const day = date.getDate();
+          startOfBiWeek.setDate(day <= 15 ? 1 : 16);
+          key = formatDateLocal(startOfBiWeek);
+          break;
+        }
+        case 'yearly':
+          key = `${date.getFullYear()}-01-01`;
+          break;
+        case 'daily':
+        default:
+          key = formatDateLocal(date);
       }
-      case 'yearly':
-        key = `${date.getFullYear()}-01-01`;
-        break;
-      case 'daily':
-      default:
-        key = date.toISOString().split('T')[0];
     }
+
 
     if (!aggregateData.has(key)) {
       aggregateData.set(key, {
@@ -86,6 +154,7 @@ export function processMapData(fetchedRecords, forenseRecords, timeScale) {
     const normalizedSexo = sexo?.toString().trim().toUpperCase();
     if (normalizedSexo === 'HOMBRE' || normalizedSexo === 'MUJER') {
       entry[normalizedSexo]++;
+      processedCount++;
     }
 
     const normalizedCondicion = condicion?.toString().trim().toUpperCase();
@@ -93,6 +162,28 @@ export function processMapData(fetchedRecords, forenseRecords, timeScale) {
     if (conditionKeys.includes(normalizedCondicion)) {
       entry[normalizedCondicion]++;
     }
+
+    // Log first few entries for debugging
+    if (idx < 3) {
+      console.log(`processMapData feature[${idx}]:`, {
+        timestamp: timestampField,
+        date: date.toISOString(),
+        key,
+        sexo: normalizedSexo,
+        condicion: normalizedCondicion,
+        entry,
+        allProps: feature.properties || feature
+      });
+    }
+  });
+
+  console.log('processMapData summary:', {
+    totalFeatures: features.length,
+    processedCount,
+    skippedNoTimestamp,
+    skippedInvalidDate,
+    aggregatedKeys: aggregateData.size,
+    keys: Array.from(aggregateData.keys())
   });
 
   return Array.from(aggregateData.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -139,8 +230,8 @@ export function calculateDateRange(selectedDate, timeScale) {
   }
 
   return {
-    start: startDate.toISOString().split('T')[0],
-    end: endDate.toISOString().split('T')[0],
+    start: formatDateLocal(startDate),
+    end: formatDateLocal(endDate),
     daysRange
   };
 }

@@ -38,8 +38,15 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
 
   useEffect(() => {
     const data = processMapData(fetchedRecords, forenseRecords, timeScale);
+    console.log('[GlobalTimeGraph] processedData:', data);
+    console.log('[GlobalTimeGraph] processedData sample:', data.slice(0, 3));
+    console.log('[GlobalTimeGraph] selectedSexo:', selectedSexo);
+    console.log('[GlobalTimeGraph] selectedCondicion:', selectedCondicion);
+    console.log('[GlobalTimeGraph] fetchedRecords:', fetchedRecords);
+    console.log('[GlobalTimeGraph] forenseRecords:', forenseRecords);
     setProcessedData(data);
   }, [timeScale, fetchedRecords, forenseRecords]);
+
 
   const dateRange = calculateDateRange(selectedDate, timeScale);
 
@@ -127,7 +134,7 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
 
       {processedData.length > 0 && (
         <div style={{ flex: 1, minHeight: isMobile ? '200px' : '150px' }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={isMobile ? 200 : 150}>
             <LineChart
               data={processedData}
               margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
