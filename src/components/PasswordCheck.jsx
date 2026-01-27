@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Lock, Key, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import '../styles/PasswordCheck.css';
 
 const PasswordCheck = ({ onAuthenticated }) => {
@@ -12,16 +13,16 @@ const PasswordCheck = ({ onAuthenticated }) => {
     setError('');
 
     try {
-      const response = await fetch('https://datades.abundis.com.mx/dist/check_password.php', {
+      const response = await fetch(`${API_BASE_URL}/check_password.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ password }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         onAuthenticated();
       } else {
@@ -41,15 +42,15 @@ const PasswordCheck = ({ onAuthenticated }) => {
           <Lock size={24} />
           Acceso Restringido
         </Dialog.Title>
-        
+
         <p className="password-info">
-          Los datos contenidos en esta plataforma son sensibles. 
+          Los datos contenidos en esta plataforma son sensibles.
           <br />
-          Si desea solicitar acceso, puede escribir a: 
-          <br /> 
+          Si desea solicitar acceso, puede escribir a:
+          <br />
           <a href="mailto:accesos_cartografia@tejer.red">accesos_cartografia@tejer.red</a>
         </p>
-        
+
         <form onSubmit={handleSubmit} className="password-form">
           <div className="input-wrapper">
             <Key size={20} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
+import { API_BASE_URL, USE_PASSWORD } from './config';
 import FetchCedulas from './components/FetchCedulas';
 import FetchForense from './components/FetchForense';
 import MapComponent from './components/MapComponent';
@@ -14,7 +15,7 @@ const App = () => {
   const [fetchForense, setFetchForense] = useState(true);
   const [fetchId, setFetchId] = useState(0);
   const [isFormsVisible, setIsFormsVisible] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!USE_PASSWORD);
   const [toolbarTab, setToolbarTab] = useState('tab1'); // State for toolbar tabs
 
   const {
@@ -38,7 +39,7 @@ const App = () => {
   const listNotebooksApp = async () => {
     console.log('Tab5: listNotebooks called');
     try {
-      const response = await fetch(`https://datades.abundis.com.mx/api/list.php`);
+      const response = await fetch(`${API_BASE_URL}/list.php`);
       if (!response.ok) throw new Error('Failed to fetch notebooks');
       const data = await response.json();
       console.log('Tab5: listNotebooks response', data);
@@ -144,16 +145,16 @@ const App = () => {
       ) : (
         <>
           <div className="AbstractFetching">
-          <FetchCedulas
-            fetchCedulas={fetchCedulas}
-            fetchId={fetchId}
-            onFetchComplete={handleFetchComplete}
-          />
-          <FetchForense
-            fetchForense={fetchForense}
-            fetchId={fetchId}
-            onFetchComplete={handleFetchComplete}
-          />
+            <FetchCedulas
+              fetchCedulas={fetchCedulas}
+              fetchId={fetchId}
+              onFetchComplete={handleFetchComplete}
+            />
+            <FetchForense
+              fetchForense={fetchForense}
+              fetchId={fetchId}
+              onFetchComplete={handleFetchComplete}
+            />
           </div>
           <div className="Map">
             <MapComponent />

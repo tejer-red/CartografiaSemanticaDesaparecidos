@@ -1,13 +1,5 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *'); // Allow all origins
-header('Access-Control-Allow-Methods: POST, OPTIONS'); // Allow POST and OPTIONS methods
-header('Access-Control-Allow-Headers: Content-Type'); // Allow Content-Type header
-
-// Handle preflight request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+require_once __DIR__ . '/cors.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 $password = $input['password'] ?? '';

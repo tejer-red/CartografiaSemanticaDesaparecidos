@@ -1,22 +1,23 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
 import { useData } from '../context/DataContext';
+import { API_BASE_URL } from '../config';
 
 const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
-  const { 
-    startDate, 
-    endDate, 
-    setFetchedRecords, 
-    setNewDataFetched, 
-    loading, 
-    setLoading, 
-    updateLayerData, 
-    sexoLayout, 
-    forenseRecords, 
-    setTimelineData, 
-    mergeRecords, 
-    COLORS, 
-    map, 
+  const {
+    startDate,
+    endDate,
+    setFetchedRecords,
+    setNewDataFetched,
+    loading,
+    setLoading,
+    updateLayerData,
+    sexoLayout,
+    forenseRecords,
+    setTimelineData,
+    mergeRecords,
+    COLORS,
+    map,
     mapLoaded // Add this from context
   } = useData();
 
@@ -29,7 +30,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
       try {
         setLoading(true);
-        const response = await axios.get('https://datades.abundis.com.mx/api/specificDate.php', {
+        const response = await axios.get(`${API_BASE_URL}/specificDate.php`, {
           headers: {
             'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
             'Content-Type': 'application/json'

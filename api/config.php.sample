@@ -1,0 +1,11 @@
+<?php
+// config.php.sample
+// Copy this file to config.php and fill in your actual database credentials and API key.
+
+return [
+    'host' => 'localhost',
+    'user' => 'your_database_user',
+    'password' => 'your_database_password',
+    'database' => 'your_database_name',
+    'api_key' => 'your_secret_api_key_here',
+];

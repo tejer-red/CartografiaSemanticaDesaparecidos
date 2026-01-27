@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useData } from '../context/DataContext';
+import { API_BASE_URL } from '../config';
 import { MapPin, Download, BookOpen } from 'lucide-react';
 import NotebookListModal from './NotebookListModal';
 
@@ -40,7 +41,7 @@ const InitialModal = ({
 
   const handleListNotebooks = async () => {
     try {
-      const response = await fetch('https://datades.abundis.com.mx/api/list.php');
+      const response = await fetch(`${API_BASE_URL}/list.php`);
       if (!response.ok) throw new Error('Failed to fetch notebooks');
       const data = await response.json();
       if (data.success) {
@@ -83,17 +84,17 @@ const InitialModal = ({
               <Dialog.Title style={{ fontWeight: 600, fontSize: 22, marginBottom: 20 }}>
                 {isNotebookRoute ? 'Navegación de Datos' : 'Nueva Exploración'}
               </Dialog.Title>
-              
+
               <div style={{ marginBottom: 24, color: '#333', fontSize: '16px', lineHeight: '1.4' }}>
                 {isNotebookRoute ? (
                   <p>
-                    Para explorar este análisis existente, necesitará descargar los datos. 
-                    Una vez cargados, haga clic en el botón <MapPin size={16} style={{verticalAlign: 'middle'}}/> 
+                    Para explorar este análisis existente, necesitará descargar los datos.
+                    Una vez cargados, haga clic en el botón <MapPin size={16} style={{ verticalAlign: 'middle' }} />
                     <strong>"Bitácora de navegación"</strong> en el lateral derecho para visualizar el análisis completo.
                   </p>
                 ) : (
                   <p>
-                    Inicie una nueva exploración de casos de personas desaparecidas seleccionando 
+                    Inicie una nueva exploración de casos de personas desaparecidas seleccionando
                     un período de tiempo. Los datos se mostrarán en el mapa para su análisis detallado.
                   </p>
                 )}
@@ -140,12 +141,12 @@ const InitialModal = ({
                     </label>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={loading}
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: '6px',
                         padding: '8px 16px'
                       }}
@@ -159,29 +160,29 @@ const InitialModal = ({
                   <h3 style={{ fontSize: 16, marginBottom: 12 }}>
                     {isNotebookRoute ? 'Cuaderno Cargado' : 'Cargar Cuaderno Existente'}
                   </h3>
-                  
+
                   {isNotebookRoute ? (
-                    <p style={{ 
-                      color: '#666', 
-                      fontSize: '14px', 
-                      lineHeight: '1.5', 
-                      marginBottom: '16px' 
+                    <p style={{
+                      color: '#666',
+                      fontSize: '14px',
+                      lineHeight: '1.5',
+                      marginBottom: '16px'
                     }}>
                       Estás cargando un cuaderno de análisis previo que te permitirá visualizar una
-                      investigación específica. Si deseas explorar otros cuadernos disponibles, 
+                      investigación específica. Si deseas explorar otros cuadernos disponibles,
                       haz clic en "Listar Cuadernos".
                     </p>
                   ) : (
-                    <p style={{ 
-                      color: '#666', 
-                      fontSize: '14px', 
-                      lineHeight: '1.5', 
-                      marginBottom: '16px' 
+                    <p style={{
+                      color: '#666',
+                      fontSize: '14px',
+                      lineHeight: '1.5',
+                      marginBottom: '16px'
                     }}>
-                      Los cuadernos son herramientas que permiten guardar y compartir configuraciones 
-                      específicas del mapa, incluyendo filtros aplicados, niveles de zoom, rangos de fechas 
-                      y ubicaciones particulares. Además, almacenan "migas de pan" o estados que facilitan 
-                      la navegación paso a paso, ayudando a encontrar y documentar evidencia en casos específicos 
+                      Los cuadernos son herramientas que permiten guardar y compartir configuraciones
+                      específicas del mapa, incluyendo filtros aplicados, niveles de zoom, rangos de fechas
+                      y ubicaciones particulares. Además, almacenan "migas de pan" o estados que facilitan
+                      la navegación paso a paso, ayudando a encontrar y documentar evidencia en casos específicos
                       de manera sistemática y reproducible.
                     </p>
                   )}

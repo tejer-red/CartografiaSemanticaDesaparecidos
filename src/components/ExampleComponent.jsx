@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useData } from '../DataContext';
+import { API_BASE_URL } from '../config';
 
 const ExampleComponent = () => {
     const [data, setData] = useState([]);
@@ -11,7 +12,7 @@ const ExampleComponent = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('https://datades.abundis.com.mx/api/specificDate.php', {
+                const response = await axios.get(`${API_BASE_URL}/api/specificDate.php`, {
                     headers: {
                         'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
                         'Content-Type': 'application/json'
