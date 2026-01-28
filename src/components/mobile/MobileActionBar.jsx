@@ -156,7 +156,7 @@ const MobileActionBar = () => {
                 title="Bitácora de Navegación"
             >
                 <div style={{ padding: '0.5rem' }}>
-                    <Notebook />
+                    <Notebook onCloseModal={() => setIsNotebookOpen(false)} />
                 </div>
             </FullscreenModal>
         </>

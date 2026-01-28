@@ -120,6 +120,22 @@ export const MapProvider = ({ children }) => {
                 .setLngLat(coordinates)
                 .setHTML(generatePopupContent(properties))
                 .addTo(map);
+
+            // Agregar botón de cerrar en móvil después de crear el popup
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    const popupContent = popup.getElement()?.querySelector('.maplibregl-popup-content');
+                    if (popupContent && !popupContent.querySelector('.mobile-close-button')) {
+                        const closeButton = document.createElement('div');
+                        closeButton.className = 'mobile-close-button';
+                        closeButton.innerHTML = '<button>Cerrar</button>';
+                        closeButton.querySelector('button').addEventListener('click', () => {
+                            popup.remove();
+                        });
+                        popupContent.appendChild(closeButton);
+                    }
+                }, 10);
+            }
         });
 
         map.on('click', (e) => {

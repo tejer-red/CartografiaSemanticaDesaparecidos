@@ -3,9 +3,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -18,6 +18,7 @@ a {
   color: #646cff;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
@@ -46,9 +47,11 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -62,6 +65,7 @@ button:focus-visible {
   bottom: 4rem;
   z-index: 9;
   background: white;
+  color: #213547;
   overflow: auto;
   border: 1px solid gray;
   padding: 1rem;
@@ -86,6 +90,7 @@ button:focus-visible {
   height: fit-content;
   z-index: 12;
   background: white;
+  color: #213547;
   top: 0;
   padding: 0.5rem;
   border-bottom: 1px solid gray;
@@ -97,8 +102,8 @@ button:focus-visible {
   left: 0;
   bottom: 0;
   background: white;
-  display: flex
-;
+  color: #213547;
+  display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-content: center;
@@ -114,9 +119,11 @@ button:focus-visible {
     background-color: #ffffff;
     overflow: hidden;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }
@@ -127,10 +134,11 @@ button:focus-visible {
   height: 150px;
   transition: height 1.3s ease;
 }
+
 .cases-overlay {
   z-index: 1000;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   overflow: hidden;
 }
 
@@ -138,7 +146,7 @@ button:focus-visible {
   position: absolute;
   right: 10px;
   top: 10px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
   width: 24px;
@@ -149,7 +157,7 @@ button:focus-visible {
 }
 
 .close-overlay:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .date-form-container {
@@ -178,13 +186,14 @@ button:focus-visible {
   z-index: 9;
 }
 
-.date-form-container.compact:hover{
+.date-form-container.compact:hover {
   top: 0px;
 }
 
 
 .modal-form {
   background: white;
+  color: #213547;
   padding: 2rem;
   border-radius: 8px;
   width: 80%;
@@ -219,6 +228,21 @@ label {
   gap: 0.5rem;
 }
 
+input,
+select,
+textarea {
+  background-color: white;
+  color: #213547;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #666;
+}
+
 button {
   padding: 0.5rem 1rem;
   background-color: #007bff;
@@ -236,32 +260,32 @@ button:disabled {
   .date-inputs {
     flex-direction: column;
   }
-  
+
   .compact-form {
     flex-direction: column;
   }
 }
 
-.GlobalTimeLine > div {
+.GlobalTimeLine>div {
   display: flex;
   justify-content: center;
   gap: 20px;
   margin-bottom: 20px;
 }
 
-.GlobalTimeLine > div > label {
+.GlobalTimeLine>div>label {
   display: flex;
   align-items: center;
   gap: 5px;
   cursor: pointer;
 }
 
-.GlobalTimeLine > div > label input[type="radio"] {
+.GlobalTimeLine>div>label input[type="radio"] {
   margin: 0;
 }
 
 .GlobalTimeLine {
-  position:relative
+  position: relative
 }
 
 .PickScale {
@@ -279,8 +303,7 @@ button:disabled {
 
 
 .HeaderCompact {
-  display: flex
-;
+  display: flex;
   gap: 1rem;
   padding: 1rem;
   flex-wrap: wrap;
@@ -288,6 +311,7 @@ button:disabled {
   position: absolute;
   top: 0;
   background: white;
+  color: #213547;
   width: 100%;
   border-top: 1px solid gray;
 }
@@ -340,16 +364,28 @@ button:disabled {
   position: absolute;
   width: 100%;
   height: 100%;
+
   canvas {
     outline: none;
   }
 }
 
 /* Adjust other component z-indices */
-.MapForms { z-index: 2; }
-.TimelineSlider { z-index: 2; }
-.DateForm { z-index: 3; }
-.ComponentToggles { z-index: 4; }
+.MapForms {
+  z-index: 2;
+}
+
+.TimelineSlider {
+  z-index: 2;
+}
+
+.DateForm {
+  z-index: 3;
+}
+
+.ComponentToggles {
+  z-index: 4;
+}
 
 .violence-cases {
   height: 19rem;
@@ -366,13 +402,13 @@ button:disabled {
   height: calc(100vh - 19.4rem);
   z-index: 1000;
   background: white;
+  color: #213547;
   padding: 1rem;
   z-index: 99999999;
 }
 
 .violence-cases__controls {
-  display: flex
-;
+  display: flex;
   justify-content: space-between;
   margin-bottom: 1rem;
   position: absolute;
@@ -392,7 +428,7 @@ button:disabled {
 .violence-cases--fullscreen .violence-cases__graph-wrapper {
   height: calc(100vh - 24rem);
   width: calc(100% - 1.5rem);
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .violence-cases--fullscreen .violence-cases__sigma {
@@ -415,7 +451,8 @@ button:disabled {
 }
 
 .violence-cases__back-btn {
-  margin-right: 0.5rem;;
+  margin-right: 0.5rem;
+  ;
 }
 
 .violence-cases__modal {
@@ -424,7 +461,7 @@ button:disabled {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -433,11 +470,12 @@ button:disabled {
 
 .violence-cases__modal-content {
   background-color: white;
+  color: #213547;
   padding: 20px;
   border-radius: 10px;
   width: 40%;
   min-width: 300px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   position: relative;
 }
 
@@ -496,14 +534,141 @@ button:disabled {
   overflow: overlay;
 }
 
-.rt-TabsTriggerInnerHidden, .rt-BaseTabListTriggerInnerHidden {
+/* Estilos para popups en móvil */
+@media (max-width: 768px) {
+  .custom-popup.maplibregl-popup {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    max-width: none !important;
+    width: 100vw !important;
+    z-index: 10000 !important;
+  }
+
+  .custom-popup .maplibregl-popup-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 50vh !important;
+    overflow: hidden !important;
+    border-radius: 0 0 8px 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .custom-popup .maplibregl-popup-content>div {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 15px 10px 0 10px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .custom-popup .maplibregl-popup-content>div p {
+    margin: 0 0 8px 0 !important;
+    padding: 0 !important;
+    word-wrap: break-word !important;
+  }
+
+  .custom-popup .maplibregl-popup-tip {
+    display: none !important;
+  }
+
+  .custom-popup .maplibregl-popup-close-button {
+    display: none !important;
+    /* Ocultamos el botón de cerrar por defecto */
+  }
+
+  /* Botón de cerrar personalizado en móvil */
+  .custom-popup .mobile-close-button {
+    position: relative !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 30px !important;
+    max-height: 30px !important;
+    min-height: 30px !important;
+    padding: 2px !important;
+    background: #fff !important;
+    color: #213547 !important;
+    border-top: 1px solid #e5e5e5 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .custom-popup .mobile-close-button button {
+    width: calc(100% - 50px) !important;
+    max-width: calc(100% - 50px) !important;
+    min-width: calc(100% - 50px) !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    min-height: 26px !important;
+    padding: 2px 4px !important;
+    background: #007bff !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .custom-popup .mobile-close-button button:active {
+    background: #0056b3 !important;
+  }
+
+  /* Sobrescribir cualquier estilo de anchor de MapLibre en móvil */
+  .custom-popup.maplibregl-popup-anchor-top,
+  .custom-popup.maplibregl-popup-anchor-bottom,
+  .custom-popup.maplibregl-popup-anchor-left,
+  .custom-popup.maplibregl-popup-anchor-right,
+  .custom-popup.maplibregl-popup-anchor-top-left,
+  .custom-popup.maplibregl-popup-anchor-top-right,
+  .custom-popup.maplibregl-popup-anchor-bottom-left,
+  .custom-popup.maplibregl-popup-anchor-bottom-right {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+
+  .custom-popup.maplibregl-popup-anchor-top .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-bottom .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-left .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-right .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-top-left .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-top-right .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-bottom-left .mobile-close-button,
+  .custom-popup.maplibregl-popup-anchor-bottom-right .mobile-close-button {
+    height: 30px !important;
+    max-height: 30px !important;
+    min-height: 30px !important;
+  }
+}
+
+.rt-TabsTriggerInnerHidden,
+.rt-BaseTabListTriggerInnerHidden {
   display: none !important;
 }
 
-.FormsContainer{
+.FormsContainer {
   flex-direction: column;
-  display: flex
-;
+  display: flex;
   justify-content: center;
   align-content: space-around;
   flex-wrap: nowrap;

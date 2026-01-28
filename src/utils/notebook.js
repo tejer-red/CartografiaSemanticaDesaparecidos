@@ -40,7 +40,7 @@ import { API_BASE_URL } from '../config';
  * @returns {Object} Funciones y estados del cuaderno
  */
 
-export function useNotebook(dataContext, id, navigate) {
+export function useNotebook(dataContext, id, navigate, onCloseModal) {
 
   const {
     startDate,
@@ -175,10 +175,15 @@ export function useNotebook(dataContext, id, navigate) {
     }
     if (savedState.startDate) setStartDate(savedState.startDate);
     if (savedState.endDate) setEndDate(savedState.endDate);
+
+    // Cerrar modal en móvil si existe la función
+    if (onCloseModal && typeof onCloseModal === 'function') {
+      onCloseModal();
+    }
   }, [
     setSelectedDate, setDaysRange, setSelectedSexo, setSelectedCondicion, setEdadRange,
     setsumScoreRange, setTimeScale, setMapType, setColorScheme, setVisibleComponents,
-    map, setStartDate, setEndDate
+    map, setStartDate, setEndDate, onCloseModal
   ]);
 
   const deleteNote = useCallback((id) => {

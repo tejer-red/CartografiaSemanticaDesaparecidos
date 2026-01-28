@@ -1,12 +1,308 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mapping the crisis -  Jalisco</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="es-MX">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary Meta Tags -->
+  <title>Cartografía Interactiva de la Crisis de Desapariciones en Jalisco</title>
+  <meta name="title" content="Cartografía Interactiva de la Crisis de Desapariciones en Jalisco" />
+  <meta name="description"
+    content="Plataforma interactiva de geolocalización y análisis semántico de personas desaparecidas en Jalisco. Visualiza más de 3,000 casos con mapas de calor, gráficos temporales, análisis por colonias y correlaciones semánticas." />
+  <meta name="keywords"
+    content="personas desaparecidas Jalisco, mapa desaparecidos Guadalajara, Cartografía de la Ausencia, geolocalización desapariciones, Zapopan desaparecidos, Tlajomulco desaparecidos, CUCSH UDG, crisis de desapariciones México, análisis semántico desapariciones, visualización datos desaparecidos, RNPDNO, fichas de búsqueda, colonias Guadalajara, David Coronado, ITESO desaparecidos, Hector Piña, jaroplas, Jorge Ramirez, Carmen Chinas" />
+  <meta name="author" content="Tejer.Red" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://tejer.red/dist" />
+  <meta property="og:title" content="Cartografía Interactiva de la Crisis de Desapariciones en Jalisco" />
+  <meta property="og:description"
+    content="Plataforma interactiva que mapea y analiza más de 3,000 casos de personas desaparecidas en Jalisco mediante geolocalización, análisis temporal y correlaciones semánticas." />
+  <meta property="og:image" content="https://datades.abundis.com.mx/screen.png" />
+  <meta property="og:locale" content="es_MX" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://tejer.red/dist" />
+  <meta property="twitter:title" content="Cartografía Interactiva de la Crisis de Desapariciones en Jalisco" />
+  <meta property="twitter:description"
+    content="Mapa interactivo de personas desaparecidas en Jalisco con análisis semántico, gráficos temporales y visualización por colonias. Más de 3,000 casos documentados." />
+  <meta property="twitter:image" content="https://datades.abundis.com.mx/screen.png" />
+
+  <!-- Geo Tags -->
+  <meta name="geo.region" content="MX-JAL" />
+  <meta name="geo.placename" content="Jalisco, México" />
+  <meta name="geo.position" content="20.659698;-103.349609" />
+  <meta name="ICBM" content="20.659698, -103.349609" />
+
+  <!-- Additional SEO -->
+  <meta name="theme-color" content="#8884d8" />
+  <meta name="language" content="Spanish" />
+  <meta name="revisit-after" content="7 days" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Cartografía Interactiva de la Crisis de Desapariciones en Jalisco",
+    "description": "Plataforma interactiva de geolocalización y análisis semántico de personas desaparecidas en Jalisco, México. Visualiza más de 3,000 casos mediante mapas interactivos, gráficos temporales, análisis por colonias y correlaciones semánticas basadas en fichas de búsqueda del Registro Nacional de Personas Desaparecidas y No Localizadas (RNPDNO).",
+    "url": "https://tejer.red/dist",
+    "applicationCategory": "DataVisualization",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "MXN"
+    },
+    "author": [
+      {
+        "@type": "Person",
+        "name": "Angel R. Abundis"
+      }
+    ],
+    "about": {
+      "@type": "Thing",
+      "name": "Personas Desaparecidas en Jalisco",
+      "description": "Crisis de desapariciones en el estado de Jalisco, México, con más de 3,000 personas desaparecidas según el RNPDNO"
+    },
+    "spatialCoverage": {
+      "@type": "Place",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 20.659698,
+        "longitude": -103.349609
+      },
+      "name": "Jalisco, México"
+    },
+    "featureList": [
+      "Mapa interactivo con geolocalización de desapariciones por colonia",
+      "Visualización de más de 3 mil casos del RNPDNO",
+      "Gráficos temporales de desapariciones (2018-2024)",
+      "Análisis por género, edad y condición",
+      "Mapas de calor por municipio y colonia",
+      "Correlaciones semánticas entre casos",
+      "Filtros avanzados por fecha, ubicación y características",
+      "Análisis de 12 municipios prioritarios: Zapopan, Guadalajara, Tlajomulco, Tlaquepaque, Tonalá, El Salto, Lagos de Moreno, Tala, Encarnación de Díaz, Puerto Vallarta, Ixtlahuacán de los Membrillos y Chapala",
+      "Visualización de colonias con mayor incidencia: Chulavista, Haciendas de Santa Fe, Villa Fontana, Miramar",
+      "Sistema de cuadernos para investigación colaborativa"
+    ],
+    "isRelatedTo": [
+      {
+        "@type": "WebSite",
+        "name": "Cartografía de la Ausencia",
+        "description": "Iniciativa del ITESO que mapea personas desaparecidas en el Área Metropolitana de Guadalajara"
+      },
+      {
+        "@type": "ResearchProject",
+        "name": "Geolocalizaciones de tramas y urdimbres en las desapariciones de personas en Jalisco",
+        "author": {
+          "@type": "Person",
+          "name": "Dr. David Coronado",
+          "affiliation": "CUCSH - Universidad de Guadalajara"
+        }
+      },
+      {
+        "@type": "WebApplication",
+        "name": "Mapa de personas desaparecidas y localizadas en la zona metropolitana de Guadalajara",
+        "url": "https://mapadesaparecidosjal2025.pages.dev/"
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+
+  <!-- SEO Content - Visible to search engines and users without JavaScript -->
+  <noscript>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        color: #8884d8;
+        border-bottom: 3px solid #8884d8;
+        padding-bottom: 10px;
+      }
+
+      h2 {
+        color: #555;
+        margin-top: 30px;
+      }
+
+      .section {
+        margin: 30px 0;
+      }
+
+      ul {
+        line-height: 1.8;
+      }
+
+      .button {
+        display: inline-block;
+        background: #8884d8;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 10px 10px 10px 0;
+        font-weight: bold;
+      }
+
+      .button:hover {
+        background: #6668b8;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+    </style>
+    <div class="container">
+      <h1>Cartografía Interactiva de la Crisis de Desapariciones en Jalisco</h1>
+      <p>Este proyecto, basado en el documento de trabajo <strong>"Mapeo de la Crisis Humanitaria de Desapariciones
+          Forzadas en Jalisco: Patrones, Tecnología y Acción Colectiva"</strong> por <em>Angel Javier Ramirez
+          Abundis</em>, explora las desapariciones forzadas en Jalisco y el papel de la tecnología en abordar esta
+        crisis.</p>
+      <p>Guadalajara, la capital cultural y económica de Jalisco, enfrenta una de las crisis de derechos humanos más
+        severas del país. Entre 2018 y 2024, Jalisco reportó 15,348 personas desaparecidas, promediando 6.7
+        desapariciones por día. La crisis se agrava por el subregistro y la manipulación de datos, que ocultan aún más
+        su verdadera magnitud.</p>
+      <p>En respuesta, este proyecto utiliza ciencias sociales computacionales y análisis estadístico para identificar
+        patrones, mapear desapariciones y proporcionar información accionable para activistas, investigadores y
+        tomadores de decisiones.</p>
+      <img src="https://datades.abundis.com.mx/screen.png" alt="Visualización de Reportes de Desaparecidos en Jalisco">
+
+      <div class="section">
+        <h2>Cómo Funciona</h2>
+        <p>El mapa interactivo recupera datos de registros públicos y APIs, categorizando las desapariciones por
+          factores como fecha, ubicación y atributos demográficos. Esto permite la visualización en tiempo real de la
+          crisis mediante:</p>
+        <ul>
+          <li><strong>Geolocalización por colonias:</strong> Mapeo preciso de cada caso reportado en el Registro
+            Nacional de Personas Desaparecidas y No Localizadas (RNPDNO)</li>
+          <li><strong>Análisis temporal:</strong> Gráficos que muestran la evolución de las desapariciones desde 2018
+            hasta 2024</li>
+          <li><strong>Mapas de calor:</strong> Identificación de zonas con mayor concentración de casos</li>
+          <li><strong>Correlaciones semánticas:</strong> Análisis de patrones y conexiones entre casos mediante
+            procesamiento de lenguaje natural</li>
+          <li><strong>Filtros avanzados:</strong> Búsqueda por género, edad, condición, fecha y ubicación</li>
+          <li><strong>Sistema de cuadernos:</strong> Herramienta colaborativa para investigadores y activistas</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Hallazgos Clave</h2>
+        <ul>
+          <li><strong>Patrones Temporales:</strong> Las desapariciones tienden a aumentar durante ciertos períodos,
+            sugiriendo acciones dirigidas y sistemáticas.</li>
+          <li><strong>Clusters Geoespaciales:</strong> Ciertas zonas urbanas, como el Área Metropolitana de Guadalajara,
+            muestran altas densidades de desapariciones. Las colonias con mayor número de casos incluyen Chulavista,
+            Haciendas de Santa Fe, Villa Fontana en Tlajomulco, y Miramar en Zapopan.</li>
+          <li><strong>12 Municipios Prioritarios:</strong> Zapopan (1,035 fichas), Guadalajara (834), Tlajomulco de
+            Zúñiga (605), Tlaquepaque (484), Tonalá (275), El Salto (185), Lagos de Moreno, Tala, Encarnación de Díaz,
+            Puerto Vallarta, Ixtlahuacán de los Membrillos y Chapala.</li>
+          <li><strong>Disparidades Demográficas:</strong> Los datos sugieren un número desproporcionadamente alto de
+            desapariciones de hombres, planteando preguntas sobre dinámicas sociales y factores sistémicos.</li>
+          <li><strong>Desafíos Forenses:</strong> La falta de coordinación adecuada entre instituciones retrasa la
+            identificación de restos y el manejo apropiado de datos.</li>
+          <li><strong>Comunidad y Activismo:</strong> Las iniciativas lideradas por ciudadanos han sido cruciales para
+            documentar desapariciones y presionar por transparencia gubernamental.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Proyectos Relacionados</h2>
+        <p>Esta plataforma se suma a un ecosistema de iniciativas independientes y académicas que buscan visibilizar la
+          crisis de desapariciones en Jalisco:</p>
+        <ul>
+          <li><strong>Cartografía de la Ausencia (ITESO):</strong> Iniciativa independiente y digital que mapea y
+            visibiliza a miles de personas desaparecidas, mostrando sus rostros y lugares de desaparición en el Área
+            Metropolitana de Guadalajara.</li>
+          <li><strong>Proyecto CUCSH-UDG:</strong> "Geolocalizaciones de tramas y urdimbres en las desapariciones de
+            personas en Jalisco", encabezado por el Dr. David Coronado del Departamento de Sociología, que busca
+            establecer nuevos significados, patrones e intensidades frente a la acción limitada del Estado.</li>
+          <li><strong>Mapa de Desaparecidos Jalisco 2025:</strong> Desarrollado por @rys2000dev con datos de Víctor
+            Manuel González Romero y Lauro Rodríguez (<a href="https://mapadesaparecidosjal2025.pages.dev/"
+              target="_blank" rel="noopener noreferrer nofollow">mapadesaparecidosjal2025.pages.dev</a>).</li>
+          <li><strong>Cartografías de la Memoria:</strong> Trabajo elaborado por el periodista e investigador Héctor
+            Piña, Rafael Rangel y Fernanda Verduzco, que muestra la cantidad de personas desaparecidas por colonia en la
+            zona metropolitana.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Por Qué Importa</h2>
+        <p>La crisis humanitaria de desapariciones forzadas en Jalisco va más allá de los números. Detrás de cada caso
+          hay una familia buscando respuestas, justicia y cierre. Los enfoques de datos abiertos y métodos
+          computacionales proporcionan un camino hacia mayor transparencia y eficiencia en el rastreo y prevención de
+          desapariciones.</p>
+        <p>Como señaló el Dr. David Coronado: <em>"La idea de nuestra investigación es salir de esa racionalidad
+            técnico-burocrática"</em> que reduce a las víctimas a cifras. Este proyecto busca humanizar los datos,
+          revelar patrones ocultos y proporcionar herramientas para la acción colectiva.</p>
+        <p>El análisis revela que la región Centro es la que más incidencias registra, con una expansión del fenómeno
+          hacia otras regiones: Altos Norte, Altos Sur y Ciénega. Los mapas de calor identifican la ausencia de
+          desapariciones en colonias con casas con alberca, mientras aumenta en lugares con mayor concurrencia como
+          mercados, tianguis y centros comerciales.</p>
+      </div>
+
+      <div class="section">
+        <h2>Participa y Contribuye</h2>
+        <p>Invitamos a investigadores, activistas de derechos humanos y al público en general a explorar los datos y
+          compartir perspectivas. Tu punto de vista puede ayudar a refinar metodologías y mejorar la comprensión de la
+          crisis. Únete a la discusión y contribuye a las soluciones.</p>
+        <a class="button" href="https://tejer.red/dist" target="_blank" rel="noopener">Explorar el Mapa Interactivo</a>
+        <a class="button" href="https://github.com/tejer-red" target="_blank" rel="noopener noreferrer nofollow">Ver en
+          GitHub</a>
+      </div>
+
+      <div class="section">
+        <h2>Metodología y Datos</h2>
+        <p>El proyecto utiliza datos del Registro Nacional de Personas Desaparecidas y No Localizadas (RNPDNO) de la
+          Comisión Nacional de Búsqueda. El análisis incluye el filtro de 8,153 fichas de búsqueda, reducidas a 3,332
+          registros que conforman la base de análisis de datos geoespaciales.</p>
+        <p>La plataforma emplea tecnologías de visualización avanzadas incluyendo MapLibre GL para mapas interactivos,
+          Recharts para gráficos temporales, y análisis semántico mediante procesamiento de lenguaje natural para
+          identificar correlaciones entre casos.</p>
+      </div>
+
+      <div class="section">
+        <h2>Descargar Documento de Trabajo Completo</h2>
+        <p>Profundiza en la investigación y metodología detrás de este proyecto. El documento académico completo explora
+          los patrones de desapariciones forzadas, el uso de tecnología en la crisis humanitaria y el papel de la acción
+          colectiva.</p>
+        <a class="button" href="https://datades.abundis.com.mx/workingpaper.pdf" target="_blank"
+          rel="noopener noreferrer nofollow">Descargar PDF</a>
+      </div>
+
+      <div class="section">
+        <p><strong>Nota:</strong> Esta plataforma requiere JavaScript para funcionar completamente. Por favor, habilita
+          JavaScript en tu navegador para acceder a todas las funcionalidades interactivas.</p>
+      </div>
+    </div>
+  </noscript>
+</body>
+
 </html>

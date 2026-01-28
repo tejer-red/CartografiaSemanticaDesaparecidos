@@ -9,7 +9,7 @@ import NotebookLoad from './NotebookLoad';
 import GlobalTimeGraphData from './GlobalTimeGraphData';
 import { MapPin, ArrowLeft, Plus } from 'lucide-react'; // Cambiar Flag por ArrowLeft
 
-const Notebook = () => {
+const Notebook = ({ onCloseModal }) => {
   const dataContext = useData();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ const Notebook = () => {
     isModalOpen,
     setIsModalOpen,
     notebookList,
-  } = useNotebook(dataContext, id, navigate);
+  } = useNotebook(dataContext, id, navigate, onCloseModal);
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>

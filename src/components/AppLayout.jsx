@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import InitialModal from './InitialModal';
 import LeftSideBar from './LeftSideBar';
 import HeaderCompact from './HeaderCompact';
@@ -31,6 +32,7 @@ const AppLayout = ({
 }) => {
   const [activePanel, setActivePanel] = useState(null);
   const isMobile = useIsMobile(); // Hook para detectar mobile
+  const { id: notebookId } = useParams(); // Obtener ID del cuaderno desde URL
 
   const handlePanelHover = (panelName) => {
     setActivePanel(panelName);
@@ -44,6 +46,7 @@ const AppLayout = ({
   const initialModal = (
     <InitialModal
       isNotebookRoute={isNotebookRoute}
+      notebookId={notebookId}
       handleSubmit={handleSubmit}
       loading={loading}
       fetchCedulas={fetchCedulas}

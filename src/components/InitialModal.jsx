@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { API_BASE_URL } from '../config';
 import { MapPin, Download, BookOpen } from 'lucide-react';
 import NotebookListModal from './NotebookListModal';
+import useIsMobile from '../hooks/useIsMobile';
 
 const InitialModal = ({
   handleSubmit,
@@ -12,12 +13,14 @@ const InitialModal = ({
   fetchForense,
   setFetchForense,
   isNotebookRoute,
+  notebookId,
   listNotebooksApp,
 }) => {
   const { startDate, endDate, setStartDate, setEndDate, loading } = useData();
   const [open, setOpen] = useState(true);
   const [showingNotebooks, setShowingNotebooks] = useState(false);
   const [notebooks, setNotebooks] = useState([]);
+  const isMobile = useIsMobile();
 
   const [localStartDate, setLocalStartDate] = useState(startDate || '');
   const [localEndDate, setLocalEndDate] = useState(endDate || '');
@@ -61,24 +64,26 @@ const InitialModal = ({
             background: 'rgba(0, 0, 0, 0.55)',
             position: 'fixed',
             inset: 0,
-            zIndex: 1000
+            zIndex: 15000
           }}
         />
         <Dialog.Content
           style={{
-            background: 'white',
-            borderRadius: 8,
-            boxShadow: '0 10px 38px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.2)',
+            background: isNotebookRoute ? '#fffbea' : 'white', // Fondo amarillo suave en modo cuaderno
+            borderRadius: isMobile ? 0 : 8,
+            boxShadow: isMobile ? 'none' : '0 10px 38px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.2)',
             position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            padding: 24,
-            width: '90vw',
-            maxWidth: 700,
-            maxHeight: '90vh',
+            top: isMobile ? 0 : '50%',
+            left: isMobile ? 0 : '50%',
+            transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+            padding: isMobile ? 16 : 24,
+            width: isMobile ? '100vw' : '90vw',
+            maxWidth: isMobile ? 'none' : 700,
+            height: isMobile ? '100vh' : 'auto',
+            maxHeight: isMobile ? 'none' : '90vh',
             overflowY: 'auto',
-            zIndex: 1001
+            zIndex: 15001,
+            boxSizing: 'border-box'
           }}
         >
           {!showingNotebooks ? (
@@ -89,11 +94,29 @@ const InitialModal = ({
 
               <div style={{ marginBottom: 24, color: '#333', fontSize: '16px', lineHeight: '1.4' }}>
                 {isNotebookRoute ? (
-                  <p>
-                    Para explorar este análisis existente, necesitará descargar los datos.
-                    Una vez cargados, haga clic en el botón <MapPin size={16} style={{ verticalAlign: 'middle' }} />
-                    <strong>"Bitácora de navegación"</strong> en el lateral derecho para visualizar el análisis completo.
-                  </p>
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: '#fef3c7',
+                    borderLeft: '4px solid #f59e0b',
+                    borderRadius: '4px',
+                    marginBottom: '16px'
+                  }}>
+                    <p style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#92400e' }}>
+                      📊 Estás explorando el cuaderno: <strong>{notebookId || 'Cuaderno'}</strong>
+                    </p>
+                    <p style={{ margin: '0', color: '#78350f' }}>
+                      Para explorar este análisis existente, necesitará descargar los datos.
+                      {localStartDate && localEndDate && (
+                        <span style={{ display: 'block', marginTop: '8px', fontWeight: 500 }}>
+                          📅 Rango: <strong>{localStartDate}</strong> al <strong>{localEndDate}</strong>
+                        </span>
+                      )}
+                    </p>
+                    <p style={{ margin: '12px 0 0 0', fontSize: '14px', color: '#78350f' }}>
+                      Una vez cargados, haga clic en el botón <MapPin size={16} style={{ verticalAlign: 'middle' }} />
+                      <strong> "Bitácora de navegación"</strong> en el lateral derecho para visualizar el análisis completo.
+                    </p>
+                  </div>
                 ) : (
                   <p>
                     Inicie una nueva exploración de casos de personas desaparecidas seleccionando
@@ -104,7 +127,11 @@ const InitialModal = ({
 
               <form onSubmit={handleFormSubmit} className="">
                 <div className="">
-                  <div className="date-inputs" style={{ marginBottom: 12 }}>
+                  <div className="date-inputs" style={{
+                    marginBottom: 12,
+                    opacity: isNotebookRoute ? 0.6 : 1,
+                    pointerEvents: isNotebookRoute ? 'none' : 'auto'
+                  }}>
                     <label>
                       Fecha de inicio:
                       <input
@@ -112,6 +139,11 @@ const InitialModal = ({
                         value={localStartDate}
                         onChange={(e) => setLocalStartDate(e.target.value)}
                         required
+                        disabled={isNotebookRoute}
+                        style={{
+                          backgroundColor: isNotebookRoute ? '#f3f4f6' : 'white',
+                          cursor: isNotebookRoute ? 'not-allowed' : 'text'
+                        }}
                       />
                     </label>
                     <label>
@@ -121,6 +153,11 @@ const InitialModal = ({
                         value={localEndDate}
                         onChange={(e) => setLocalEndDate(e.target.value)}
                         required
+                        disabled={isNotebookRoute}
+                        style={{
+                          backgroundColor: isNotebookRoute ? '#f3f4f6' : 'white',
+                          cursor: isNotebookRoute ? 'not-allowed' : 'text'
+                        }}
                       />
                     </label>
                   </div>
@@ -150,7 +187,14 @@ const InitialModal = ({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        padding: '8px 16px'
+                        padding: '8px 16px',
+                        backgroundColor: isNotebookRoute ? '#10b981' : '#007bff',
+                        color: 'white',
+                        fontWeight: 600,
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        opacity: loading ? 0.6 : 1
                       }}
                     >
                       <Download size={18} />

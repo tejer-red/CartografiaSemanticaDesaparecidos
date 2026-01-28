@@ -1,6 +1,7 @@
 import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import useIsMobile from '../hooks/useIsMobile';
 
 const NotebookListModal = ({
   isModalOpen,
@@ -10,12 +11,14 @@ const NotebookListModal = ({
   title = "Cuadernos Disponibles",
   inDialog = false
 }) => {
+  const isMobile = useIsMobile();
+
   const ModalContent = () => (
     <>
       <Dialog.Title style={{ fontWeight: 600, fontSize: 22, marginBottom: 20 }}>
         {title}
       </Dialog.Title>
-      <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+      <div style={{ maxHeight: isMobile ? "none" : "400px", overflowY: "auto" }}>
         {notebookList.map((notebook, index) => (
           <div
             key={index}
