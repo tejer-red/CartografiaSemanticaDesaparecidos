@@ -12,7 +12,7 @@ const VisibleNotebook = () => {
     const { id } = useParams();
     const isMobile = useIsMobile();
     const dataContext = useData();
-    const { setFetchId, startDate, endDate, mapLoaded, setVisibleComponents } = dataContext;
+    const { setFetchId, startDate, endDate, mapLoaded, setVisibleComponents, map } = dataContext;
 
     // Hook de notebook para cargar y manejar las notas
     const {
@@ -103,9 +103,13 @@ const VisibleNotebook = () => {
                                                 <button
                                                     className="btn-restore-mini"
                                                     onClick={() => {
+                                                        console.log('VisibleNotebook: Restore click', note.id);
                                                         restoreState(note.state);
                                                         if (isMobile) {
+                                                            // Intentar scroll en ventana y contenedor
                                                             window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                            const container = document.querySelector('.visible-notebook-container');
+                                                            if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
                                                         }
                                                     }}
                                                     title="Ver este marcador en el mapa"

@@ -25,8 +25,8 @@ const MapComponent = ({ minimal = false }) => {
           preserveDrawingBuffer: true,
           antialias: false,
           maxParallelImageRequests: 4,
-          interactive: !effectiveMinimal,
-          attributionControl: !effectiveMinimal
+          interactive: !minimal, // Solo minimal (props) desactiva la interacción
+          attributionControl: !minimal
         });
 
         // Handle WebGL context events
