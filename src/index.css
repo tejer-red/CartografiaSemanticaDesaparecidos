@@ -83,6 +83,28 @@ button:focus-visible {
   top: 0;
   left: 0;
   z-index: 0;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.Map.visible-view-map {
+  left: auto;
+  right: 0;
+  top: 0;
+  width: 50vw;
+  height: 100vh;
+  border-radius: 0;
+  z-index: 5;
+  box-shadow: none;
+  border: none;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .Map.visible-view-map {
+    width: 100vw !important;
+    height: 50vh !important;
+    position: fixed !important;
+  }
 }
 
 .DateForm {
@@ -117,7 +139,7 @@ button:focus-visible {
   :root {
     color: #213547;
     background-color: #ffffff;
-    overflow: hidden;
+    /* overflow: hidden; */
   }
 
   a:hover {
@@ -355,8 +377,8 @@ button:disabled {
 
 .map-wrapper {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 1;
 }
 

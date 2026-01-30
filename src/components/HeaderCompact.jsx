@@ -18,10 +18,18 @@ const HeaderCompact = ({ visibleComponents, toggleComponent }) => {
       <div className="header-info">
         {location.pathname.includes("/cuaderno/") ? (
           <span className="notebook-id">
-            Cuaderno ID: {id || 'sin-id'} 
+            Cuaderno ID: {id || 'sin-id'}
             <small style={{ marginLeft: '10px', color: '#666' }}>
               (Puede navegar este cuaderno en la pestaña "Bitácora de navegación")
             </small>
+            <a
+              href={`/dist/visible/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginLeft: '15px', fontSize: '0.8rem', color: '#007bff', fontWeight: 600 }}
+            >
+              Ver visualización pública
+            </a>
           </span>
         ) : (
           <span className="timestamp">
@@ -32,7 +40,7 @@ const HeaderCompact = ({ visibleComponents, toggleComponent }) => {
           </span>
         )}
       </div>
-      <div style={{display: 'none'}} className="toggle-controls">
+      <div style={{ display: 'none' }} className="toggle-controls">
         {Object.entries(visibleComponents).map(([key, value]) => (
           <label key={key}>
             <input

@@ -32,7 +32,11 @@ const NotebookListModal = ({
             }}
             onClick={() => {
               console.log("Selected notebook:", notebook);
-              window.location.href = `/dist/cuaderno/${notebook}`;
+              if (onSelectNotebook) {
+                onSelectNotebook(notebook);
+              } else {
+                window.location.href = `/dist/cuaderno/${notebook}`;
+              }
             }}
           >
             <span>{`${index + 1} -  ${notebook}`}</span>

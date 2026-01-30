@@ -53,6 +53,17 @@ const NotebookLoad = ({
           <List style={{ marginRight: 4 }} />
           Listar cuadernos
         </Button>
+        {loadedNotebookId && (
+          <Button
+            size="1"
+            variant="soft"
+            onClick={() => window.open(`/dist/visible/${loadedNotebookId}`, '_blank')}
+            style={{ flex: 1 }}
+          >
+            <List style={{ marginRight: 4 }} />
+            Ver visualización
+          </Button>
+        )}
         <NotebookListModal
           listNotebooks={listNotebooks}
           isModalOpen={isModalOpen}

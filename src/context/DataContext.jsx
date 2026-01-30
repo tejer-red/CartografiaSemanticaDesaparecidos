@@ -145,6 +145,8 @@ export const DataProvider = ({ children }) => {
 
   const POINT_RADIUS = 30;
 
+  const [fetchId, setFetchId] = useState(0);                    // ID para triggerear fetches automáticos
+
   // Sincronización automática de datos con el mapa al cargar
   useEffect(() => {
     console.log('[useEffect updateLayers] Triggered:', {
@@ -678,6 +680,8 @@ export const DataProvider = ({ children }) => {
     setTimelineVelocity,
     mapLoaded,
     setMapLoaded,
+    fetchId,
+    setFetchId,
   };
 
   return (

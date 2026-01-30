@@ -1,0 +1,232 @@
+.visible-notebook-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background-color: transparent;
+    color: #2d3436;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+}
+
+/* COLUMNA 1 (50%): CONTENIDO FIJO Y SCROLL */
+.visible-content-column {
+    flex: 0 0 50%;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    box-sizing: border-box;
+    height: 100vh;
+}
+
+/* ENCABEZADO FIJO */
+.fixed-header-content {
+    background: white;
+    padding: 20px 40px 10px 40px;
+    border-bottom: 1px solid #f1f2f6;
+    flex-shrink: 0;
+}
+
+.breadcrumbs ol {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #636e72;
+    flex-wrap: wrap;
+}
+
+.breadcrumbs li {
+    display: flex;
+    align-items: center;
+}
+
+.breadcrumbs a {
+    color: #0984e3;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.breadcrumbs .separator {
+    margin: 0 8px;
+    color: #b2bec3;
+}
+
+.breadcrumbs .active {
+    color: #2d3436;
+    font-weight: 600;
+}
+
+.notebook-header h1 {
+    font-size: 1.2rem;
+    /* Mucho más pequeño */
+    margin: 0 0 5px 0;
+    color: #2d3436;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.notebook-meta {
+    display: flex;
+    gap: 15px;
+    color: #636e72;
+    font-size: 0.75rem;
+}
+
+.notebook-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* LISTADO SCROLLABLE */
+.notes-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 40px;
+}
+
+.note-card {
+    background: #fff;
+    border: 1px solid #e1e4e8;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.note-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 12px;
+}
+
+.note-title-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.note-title-group h2 {
+    margin: 0;
+    color: #0984e3;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+.btn-restore-mini {
+    flex-shrink: 0;
+    background: #e7f1ff;
+    color: #0984e3;
+    border: 2px solid #0984e3;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.btn-restore-mini:hover {
+    background: #0984e3;
+    color: white;
+    transform: scale(1.1);
+}
+
+.note-date {
+    font-size: 0.75rem;
+    color: #b2bec3;
+    font-weight: 500;
+}
+
+.note-body {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #2d3436;
+    white-space: pre-wrap;
+    /* Respeta saltos de línea sin <br> */
+}
+
+.note-body p {
+    margin: 0 0 0.5em 0;
+    /* Saltos dobles más pequeños */
+}
+
+.note-body details {
+    margin-top: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e1e4e8;
+    overflow: hidden;
+}
+
+.note-body summary {
+    padding: 8px 12px;
+    background: #e7f1ff;
+    color: #0984e3;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.note-body hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 10px 0;
+}
+
+/* COLUMNA 2 (50%): ESPACIO PARA EL MAPA */
+.visible-map-column {
+    flex: 0 0 50%;
+    width: 50%;
+    background: transparent;
+    position: relative;
+    pointer-events: none;
+}
+
+/* MOBILE DESIGN */
+@media (max-width: 768px) {
+    .visible-notebook-container {
+        flex-direction: column;
+    }
+
+    .visible-content-column {
+        width: 100%;
+        flex: none;
+        height: 50vh;
+        margin-top: 50vh;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .visible-map-column {
+        width: 100%;
+        height: 50vh;
+        position: fixed;
+        top: 0;
+    }
+
+    .fixed-header-content {
+        padding: 15px 20px 10px 20px;
+    }
+
+    .notes-list-scroll {
+        padding: 15px 20px;
+    }
+
+    /* Ocultar contexto en mobile */
+    .note-body details {
+        display: none !important;
+    }
+}

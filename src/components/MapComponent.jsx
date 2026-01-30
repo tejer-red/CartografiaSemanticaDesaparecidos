@@ -1,12 +1,17 @@
 import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const MapComponent = () => {
+const MapComponent = ({ minimal = false }) => {
   const { map, setMap, setMapLoaded } = useData();
   const mapContainer = useRef(null);
   const contextLostRef = useRef(false);
+  const location = useLocation();
+
+  const isVisibleRoute = location.pathname.includes('/visible/');
+  const effectiveMinimal = minimal || isVisibleRoute;
 
   useEffect(() => {
     if (mapContainer.current && !map) {
@@ -19,7 +24,9 @@ const MapComponent = () => {
           zoom: 8,
           preserveDrawingBuffer: true,
           antialias: false,
-          maxParallelImageRequests: 4
+          maxParallelImageRequests: 4,
+          interactive: !effectiveMinimal,
+          attributionControl: !effectiveMinimal
         });
 
         // Handle WebGL context events
@@ -47,19 +54,26 @@ const MapComponent = () => {
         console.error("Error initializing map:", error);
       }
     }
+  }, [mapContainer, map, setMap, setMapLoaded, effectiveMinimal]);
 
-    // El cleanup solo debe ocurrir si el componente se desmonta de verdad
+  useEffect(() => {
+    if (map) {
+      console.log('MapComponent: Resizing map due to layout change');
+      setTimeout(() => {
+        map.resize();
+      }, 500);
+    }
+  }, [isVisibleRoute, map]);
+
+  // El cleanup solo debe ocurrir si el componente se desmonta de verdad
+  useEffect(() => {
     return () => {
       // Nota: No removemos el mapa aquí si el componente solo se re-renderiza
       // MapLibre maneja mejor la persistencia si no lo borramos agresivamente
     };
-  }, [setMap, setMapLoaded]);
+  }, []);
 
-  return (
-    <div className="map-wrapper">
-      <div ref={mapContainer} className="map-container" />
-    </div>
-  );
+  return <div ref={mapContainer} className="map-container" />;
 };
 
 export default MapComponent;

@@ -258,7 +258,7 @@ const InitialModal = ({
               notebookList={notebooks}
               onSelectNotebook={(notebook) => {
                 console.log('Selected notebook:', notebook);
-                window.location.href = `/dist/cuaderno/${notebook.id}`;
+                window.location.href = `/dist/cuaderno/${notebook}`;
               }}
               inDialog={true}
               title="Seleccionar Cuaderno"

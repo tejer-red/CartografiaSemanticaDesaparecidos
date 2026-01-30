@@ -8,13 +8,14 @@ import MapComponent from './components/MapComponent';
 import PasswordCheck from './components/PasswordCheck';
 import AppLayout from './components/AppLayout';
 import LoadingSpinner from './components/LoadingSpinner';
+import VisibleNotebook from './components/VisibleNotebook';
+import MainMap from './components/MainMap';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 
 const App = () => {
   const [fetchCedulas, setFetchCedulas] = useState(true);
   const [fetchForense, setFetchForense] = useState(true);
-  const [fetchId, setFetchId] = useState(0);
   const [isFormsVisible, setIsFormsVisible] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!USE_PASSWORD);
   const [toolbarTab, setToolbarTab] = useState('tab1'); // State for toolbar tabs
@@ -30,6 +31,8 @@ const App = () => {
     setVisibleComponents,
     mapType,
     colorScheme,
+    fetchId,
+    setFetchId,
   } = useData(); // Use DataContext for shared state
 
   // State for NotebookLoad modal in Tab 5
@@ -146,23 +149,21 @@ const App = () => {
         <PasswordCheck onAuthenticated={() => setIsAuthenticated(true)} />
       ) : (
         <>
-          <div className="AbstractFetching">
-            <FetchCedulas
-              fetchCedulas={fetchCedulas}
-              fetchId={fetchId}
-              onFetchComplete={handleFetchComplete}
-            />
-            <FetchForense
-              fetchForense={fetchForense}
-              fetchId={fetchId}
-              onFetchComplete={handleFetchComplete}
-            />
-          </div>
-          <div className="Map">
-            <MapComponent />
-          </div>
-          <Suspense fallback={<div>Loading...</div>}>
-            <Router basename="/dist">
+          <Router basename="/dist">
+            <div className="AbstractFetching">
+              <FetchCedulas
+                fetchCedulas={fetchCedulas}
+                fetchId={fetchId}
+                onFetchComplete={handleFetchComplete}
+              />
+              <FetchForense
+                fetchForense={fetchForense}
+                fetchId={fetchId}
+                onFetchComplete={handleFetchComplete}
+              />
+            </div>
+            <MainMap />
+            <Suspense fallback={<div>Loading...</div>}>
               <Routes>
                 <Route path="/cuaderno/:id" element={
                   <AppLayout
@@ -178,6 +179,7 @@ const App = () => {
                     listNotebooksApp={listNotebooksApp}
                   />
                 } />
+                <Route path="/visible/:id" element={<VisibleNotebook />} />
                 <Route path="/" element={
                   <AppLayout
                     isNotebookRoute={false}
@@ -193,8 +195,8 @@ const App = () => {
                   />
                 } />
               </Routes>
-            </Router>
-          </Suspense>
+            </Suspense>
+          </Router>
         </>
       )}
     </>
