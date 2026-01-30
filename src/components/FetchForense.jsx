@@ -72,7 +72,6 @@ const FetchForense = ({ fetchForense, fetchId, onFetchComplete }) => {
       } catch (error) {
         console.error("Error fetching Forense data:", error);
       } finally {
-        setLoading(false);
         onFetchComplete?.();
       }
     };

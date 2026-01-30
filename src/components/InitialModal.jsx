@@ -16,7 +16,7 @@ const InitialModal = ({
   notebookId,
   listNotebooksApp,
 }) => {
-  const { startDate, endDate, setStartDate, setEndDate, loading } = useData();
+  const { startDate, endDate, setStartDate, setEndDate, loading, mapLoaded } = useData();
   const [open, setOpen] = useState(true);
   const [showingNotebooks, setShowingNotebooks] = useState(false);
   const [notebooks, setNotebooks] = useState([]);
@@ -182,7 +182,7 @@ const InitialModal = ({
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !mapLoaded}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -193,12 +193,12 @@ const InitialModal = ({
                         fontWeight: 600,
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.6 : 1
+                        cursor: (loading || !mapLoaded) ? 'not-allowed' : 'pointer',
+                        opacity: (loading || !mapLoaded) ? 0.6 : 1
                       }}
                     >
                       <Download size={18} />
-                      {loading ? 'Cargando...' : 'Obtener Datos'}
+                      {!mapLoaded ? 'Cargando mapa...' : loading ? 'Cargando...' : 'Obtener Datos'}
                     </button>
                   </div>
                 </div>

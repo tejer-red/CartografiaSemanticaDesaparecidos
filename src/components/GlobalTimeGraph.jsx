@@ -31,10 +31,12 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
     selectedSexo,
     selectedCondicion,
     fetchedRecords,
-    forenseRecords
+    forenseRecords,
+    daysRange
   } = useData();
 
   const [processedData, setProcessedData] = useState([]);
+  const [isHoveringChart, setIsHoveringChart] = useState(false);
 
   useEffect(() => {
     const data = processMapData(fetchedRecords, forenseRecords, timeScale);
@@ -48,7 +50,7 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
   }, [timeScale, fetchedRecords, forenseRecords]);
 
 
-  const dateRange = calculateDateRange(selectedDate, timeScale);
+  const dateRange = calculateDateRange(selectedDate, timeScale, processedData);
 
   const handleClick = (e) => {
     handleDateClick(e, setSelectedDate, setDaysRange, timeScale);
@@ -139,20 +141,35 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
               data={processedData}
               margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
               onClick={handleClick}
+              onMouseEnter={() => setIsHoveringChart(true)}
+              onMouseLeave={() => setIsHoveringChart(false)}
             >
               <XAxis dataKey="date" fontSize={10} minTickGap={20} />
               <YAxis fontSize={10} width={30} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-              {dateRange && (
+
+              {/* Área de referencia mejorada con mejor visibilidad */}
+              {dateRange && dateRange.start && dateRange.end && (
                 <ReferenceArea
                   x1={dateRange.start}
                   x2={dateRange.end}
-                  stroke="rgba(0, 0, 255, 0.6)"
-                  strokeWidth={2}
-                  fill="rgba(0, 0, 255, 0.2)"
+                  stroke="#007bff"
+                  strokeWidth={isHoveringChart ? 4 : 3}
+                  strokeOpacity={isHoveringChart ? 1 : 0.8}
+                  fill="#007bff"
+                  fillOpacity={isHoveringChart ? 0.25 : 0.15}
+                  label={{
+                    value: `Seleccionado: ${dateRange.start} → ${dateRange.end}`,
+                    position: 'top',
+                    fill: '#007bff',
+                    fontSize: isMobile ? 9 : 11,
+                    fontWeight: 'bold'
+                  }}
+                  ifOverflow="extendDomain"
                 />
               )}
+
               {selectedSexo.includes('HOMBRE') && (
                 <Line type="monotone" dataKey="HOMBRE" stroke={COLORS.HOMBRE.opacity100} dot={!isMobile} strokeWidth={2} />
               )}
@@ -173,18 +190,37 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
         </div>
       )}
 
-      {selectedDate && (
+      {selectedDate && dateRange && (
         <div style={{
           marginTop: "10px",
           textAlign: "center",
-          fontSize: '0.8em',
-          padding: '5px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '4px'
+          fontSize: isMobile ? '0.75em' : '0.85em',
+          padding: '10px 15px',
+          backgroundColor: '#e7f3ff',
+          borderRadius: '8px',
+          border: '2px solid #007bff',
+          boxShadow: '0 2px 4px rgba(0,123,255,0.1)'
         }}>
-          <strong>Seleccionado:</strong> {`${dateRange.start} a ${dateRange.end}`}
+          <div style={{ marginBottom: '5px' }}>
+            <strong style={{ color: '#007bff', fontSize: '1.1em' }}>📅 Segmento Temporal Seleccionado</strong>
+          </div>
+          <div style={{ color: '#333' }}>
+            <span style={{ fontWeight: 'bold' }}>Inicio:</span> {dateRange.start}
+            <span style={{ margin: '0 8px', color: '#007bff' }}>→</span>
+            <span style={{ fontWeight: 'bold' }}>Fin:</span> {dateRange.end}
+          </div>
+          <div style={{ marginTop: '5px', fontSize: '0.9em', color: '#666' }}>
+            <span style={{ fontWeight: 'bold' }}>Escala:</span> {
+              timeScale === 'daily' ? 'Diaria' :
+                timeScale === 'weekly' ? 'Semanal' :
+                  timeScale === 'bi-weekly' ? 'Quincenal' :
+                    timeScale === 'monthly' ? 'Mensual' :
+                      timeScale === 'yearly' ? 'Anual' : timeScale
+            } | <span style={{ fontWeight: 'bold' }}>Rango:</span> {dateRange.daysRange || daysRange} días
+          </div>
         </div>
       )}
+
     </div>
   );
 };

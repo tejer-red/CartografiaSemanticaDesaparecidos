@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
+import { calculateStats } from './filteredStats';
+
 
 /**
  * notebook.js - Hook personalizado para gestión de cuadernos de notas
@@ -72,9 +74,12 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
 
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
+  const [noteTitle, setNoteTitle] = useState(''); // Title for the note
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notebookList, setNotebookList] = useState([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Track if notebook has been modified
+  const [loadedNotebookId, setLoadedNotebookId] = useState(id || null); // Track the loaded notebook ID
 
   useEffect(() => {
     const savedNotes = localStorage.getItem('datades-notebook');
@@ -88,6 +93,7 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
   }, []);
 
   useEffect(() => {
+    console.log('[useEffect localStorage] Saving notes to localStorage:', notes);
     localStorage.setItem('datades-notebook', JSON.stringify(notes));
   }, [notes]);
 
@@ -97,6 +103,105 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
     }
     // eslint-disable-next-line
   }, [id]);
+
+  const generateContextSnippet = useCallback(() => {
+    const parts = [];
+
+    // Rango de fechas
+    if (startDate && endDate) {
+      parts.push(`Período: ${startDate} a ${endDate}`);
+    }
+
+    // Fecha seleccionada en timeline
+    if (selectedDate) {
+      const dateStr = selectedDate.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      parts.push(`Fecha: ${dateStr} (${daysRange} días)`);
+    }
+
+    // Filtros de sexo
+    if (selectedSexo && selectedSexo.length > 0 && selectedSexo.length < 2) {
+      parts.push(`Sexo: ${selectedSexo.join(', ')}`);
+    }
+
+    // Filtros de condición
+    if (selectedCondicion && selectedCondicion.length > 0 && selectedCondicion.length < 3) {
+      parts.push(`Condición: ${selectedCondicion.join(', ')}`);
+    }
+
+    // Rango de edad
+    if (edadRange && (edadRange[0] > 0 || edadRange[1] < 100)) {
+      parts.push(`Edad: ${edadRange[0]}-${edadRange[1]} años`);
+    }
+
+    // Layout - Tipo de mapa
+    if (mapType) {
+      const mapTypeLabel = mapType === 'heatmap' ? 'Mapa de calor' : 'Puntos';
+      parts.push(`Vista: ${mapTypeLabel}`);
+    }
+
+    // Layout - Esquema de color
+    if (colorScheme) {
+      const colorLabel = colorScheme === 'sexo' ? 'Por sexo' : 'Por condición';
+      parts.push(`Color: ${colorLabel}`);
+    }
+
+    // Zoom y Centro del mapa
+    if (map) {
+      const zoom = map.getZoom();
+      const center = map.getCenter();
+      parts.push(`Zoom: ${zoom.toFixed(1)}`);
+      parts.push(`Centro: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`);
+    }
+
+    // Calcular estadísticas
+    const stats = calculateStats({
+      map,
+      selectedDate,
+      daysRange,
+      selectedSexo,
+      selectedCondicion,
+      edadRange,
+      sumScoreRange
+    });
+
+    const statParts = [];
+    if (stats) {
+      statParts.push(`Total: ${stats.total}`);
+      if (stats.bySexo) {
+        Object.entries(stats.bySexo).forEach(([key, val]) => {
+          statParts.push(`${key}: ${val}`);
+        });
+      }
+      if (stats.byCondicion) {
+        Object.entries(stats.byCondicion).forEach(([key, val]) => {
+          statParts.push(`${key}: ${val}`);
+        });
+      }
+      if (stats.ageStats && stats.ageStats.avg) {
+        statParts.push(`Edad promedio: ${stats.ageStats.avg}`);
+      }
+    }
+
+    if (parts.length === 0 && statParts.length === 0) return '';
+
+    const listContext = parts.map(part => `  • ${part}`).join('\n');
+    const listStats = statParts.map(part => `  • ${part}`).join('\n');
+
+    let result = `\n---\n<details>\n<summary><b>[Contexto]</b></summary>\n${listContext}\n</details>`;
+    if (listStats) {
+      result += `\n<details>\n<summary><b>[Estadísticas]</b></summary>\n${listStats}\n</details>`;
+    }
+    result += `\n---`;
+
+    return result;
+  }, [
+    startDate, endDate, selectedDate, daysRange, selectedSexo, selectedCondicion,
+    edadRange, mapType, colorScheme, map, sumScoreRange
+  ]);
 
   const captureCurrentState = useCallback(() => {
     const timestamp = new Date().toISOString();
@@ -130,28 +235,60 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
   ]);
 
   const addNote = useCallback(() => {
-    if (!newNote.trim()) return;
+    console.log('[addNote] Called with noteTitle:', noteTitle, 'newNote:', newNote);
+    // Validate both fields are filled
+    if (!noteTitle.trim() || !newNote.trim()) {
+      console.log('[addNote] Title or note is empty, returning');
+      alert('Por favor, completa tanto el título como la nota.');
+      return;
+    }
     const stateSnapshot = captureCurrentState();
+    const contextSnippet = generateContextSnippet();
+    console.log('[addNote] State snapshot captured:', stateSnapshot);
+    console.log('[addNote] Context snippet:', contextSnippet);
+
+    // Build the full text with title
+    const fullText = `# ${noteTitle.trim()}\n${newNote.trim()}${contextSnippet}`;
+
     const newNoteEntry = {
       id: Date.now(),
-      text: newNote,
+      text: fullText,
       ...stateSnapshot
     };
-    setNotes(prev => [newNoteEntry, ...prev]);
+    console.log('[addNote] New note entry created:', newNoteEntry);
+    setNotes(prev => {
+      const updated = [newNoteEntry, ...prev];
+      console.log('[addNote] Updated notes array:', updated);
+      return updated;
+    });
     setNewNote('');
-  }, [newNote, captureCurrentState]);
+    setNoteTitle(''); // Clear title field
+    setHasUnsavedChanges(true); // Mark as modified
+    console.log('[addNote] Note added successfully, hasUnsavedChanges set to true');
+  }, [newNote, noteTitle, captureCurrentState, generateContextSnippet]);
 
   const addTextOnlyNote = useCallback(() => {
-    if (!newNote.trim()) return;
+    // Validate both fields are filled
+    if (!noteTitle.trim() || !newNote.trim()) {
+      alert('Por favor, completa tanto el título como la nota.');
+      return;
+    }
+    const contextSnippet = generateContextSnippet();
+
+    // Build the full text with title
+    const fullText = `# ${noteTitle.trim()}\n${newNote.trim()}${contextSnippet}`;
+
     const newNoteEntry = {
       id: Date.now(),
-      text: newNote,
+      text: fullText,
       timestamp: new Date().toISOString(),
       state: null
     };
     setNotes(prev => [newNoteEntry, ...prev]);
     setNewNote('');
-  }, [newNote]);
+    setNoteTitle(''); // Clear title field
+    setHasUnsavedChanges(true); // Mark as modified
+  }, [newNote, noteTitle, generateContextSnippet]);
 
   const restoreState = useCallback((savedState) => {
     if (!savedState) return;
@@ -188,6 +325,7 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
 
   const deleteNote = useCallback((id) => {
     setNotes(prev => prev.filter(note => note.id !== id));
+    setHasUnsavedChanges(true); // Mark as modified
   }, []);
 
   const formatTimestamp = (timestamp) => {
@@ -214,7 +352,12 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error('Failed to save notes to backend');
+      const data = await response.json();
       alert('Notes saved successfully!');
+      setHasUnsavedChanges(false); // Reset unsaved changes flag
+      if (data.id) {
+        setLoadedNotebookId(data.id); // Store the new notebook ID
+      }
     } catch (error) {
       alert('Error saving notes to backend.');
       console.error('Error saving notes to backend:', error);
@@ -231,6 +374,8 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
       if (data.endDate) setEndDate(data.endDate);
       if (data.selectedDate) setSelectedDate(new Date(data.selectedDate));
       if (data.timeScale) setTimeScale(data.timeScale);
+      setLoadedNotebookId(notebookId); // Store the loaded notebook ID
+      setHasUnsavedChanges(false); // Reset unsaved changes flag
     } catch (error) {
       console.error('Notebook: Error loading notes from backend:', error);
     }
@@ -257,6 +402,8 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
   return {
     notes,
     newNote,
+    noteTitle,
+    setNoteTitle,
     isPanelOpen,
     isModalOpen,
     notebookList,
@@ -271,5 +418,7 @@ export function useNotebook(dataContext, id, navigate, onCloseModal) {
     restoreState,
     formatTimestamp,
     setIsModalOpen,
+    hasUnsavedChanges,
+    loadedNotebookId,
   };
 }

@@ -11,7 +11,7 @@ const DateFormModal = ({
   setFetchForense,
   loading: loadingProp,
 }) => {
-  const { startDate, endDate, setStartDate, setEndDate, loading: loadingContext } = useData();
+  const { startDate, endDate, setStartDate, setEndDate, loading: loadingContext, mapLoaded } = useData();
   const [open, setOpen] = useState(true);
 
   // Always use loading from context unless explicitly passed as prop
@@ -100,9 +100,9 @@ const DateFormModal = ({
                 </label>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" disabled={loading}>
+                <button type="submit" disabled={loading || !mapLoaded}>
                   <Download style={{ marginRight: 6 }} /> {/* Use Lucide icon */}
-                  {loading ? 'Cargando...' : 'Obtener datos'}
+                  {!mapLoaded ? 'Cargando mapa...' : loading ? 'Cargando...' : 'Obtener datos'}
                 </button>
                 <Dialog.Close asChild>
                   <button type="button" style={{ marginLeft: 8 }}>

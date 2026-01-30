@@ -72,7 +72,6 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
       } catch (error) {
         console.error("Error fetching Cedulas data:", error);
       } finally {
-        setLoading(false);
         onFetchComplete?.();
       }
     };

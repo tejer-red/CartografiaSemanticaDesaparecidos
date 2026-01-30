@@ -189,8 +189,8 @@ export function processMapData(fetchedRecords, forenseRecords, timeScale) {
   return Array.from(aggregateData.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-export function calculateDateRange(selectedDate, timeScale) {
-  if (!selectedDate) return { start: '', end: '' };
+export function calculateDateRange(selectedDate, timeScale, processedData = []) {
+  if (!selectedDate) return { start: '', end: '', daysRange: 0 };
 
   const startDate = new Date(selectedDate);
   const endDate = new Date(selectedDate);
@@ -229,9 +229,35 @@ export function calculateDateRange(selectedDate, timeScale) {
       break;
   }
 
+  const startStr = formatDateLocal(startDate);
+  const endStr = formatDateLocal(endDate);
+
+  // Si tenemos datos procesados, encontrar coordenadas válidas para ReferenceArea
+  // x1 = punto seleccionado, x2 = siguiente punto (para crear área visible)
+  let actualStart = startStr;
+  let actualEnd = endStr;
+
+  if (processedData && processedData.length > 0) {
+    // Encontrar el índice del punto seleccionado o el más cercano
+    const startIndex = processedData.findIndex(d => d.date >= startStr);
+
+    if (startIndex !== -1) {
+      // x1 es el punto encontrado
+      actualStart = processedData[startIndex].date;
+
+      // x2 es el siguiente punto de datos (para crear un área visible)
+      if (startIndex < processedData.length - 1) {
+        actualEnd = processedData[startIndex + 1].date;
+      } else {
+        // Si es el último punto, usar el mismo (no habrá área visible)
+        actualEnd = processedData[startIndex].date;
+      }
+    }
+  }
+
   return {
-    start: formatDateLocal(startDate),
-    end: formatDateLocal(endDate),
+    start: actualStart,
+    end: actualEnd,
     daysRange
   };
 }

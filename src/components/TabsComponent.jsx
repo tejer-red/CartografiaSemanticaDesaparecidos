@@ -12,7 +12,7 @@ import FilterForm from './FilterForm';
 import FilteredStats from './FilteredStats';
 import SemanticGraph from './SemanticGraph';
 import NotebookLoad from './NotebookLoad';
- 
+
 const TabsComponent = ({
   toolbarTab,
   setToolbarTab,
@@ -160,6 +160,8 @@ const TabsComponent = ({
               isModalOpen={isNotebookModalOpen}
               setIsModalOpen={setIsNotebookModalOpen}
               notebookList={notebookList}
+              hasUnsavedChanges={false}
+              loadedNotebookId={null}
             />
           </div>
         </div>

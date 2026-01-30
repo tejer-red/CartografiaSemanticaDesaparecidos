@@ -1,4 +1,5 @@
-{{ /*
+{
+  { /*
   not longer called
   used like this if wanted 
                   <HeaderPanel
@@ -18,7 +19,8 @@
                   setIsNotebookModalOpen={setIsNotebookModalOpen}
                   notebookList={notebookList}
                   listNotebooksApp={listNotebooksApp}
-                />*/}}
+                />*/}
+}
 
 
 import React from 'react';
@@ -37,8 +39,8 @@ const tabDefs = [
   { key: "tab5", icon: <BookOpen />, label: "Cuadernos" },
 ];
 
-const HeaderPanel = ({ 
-  toolbarTab, 
+const HeaderPanel = ({
+  toolbarTab,
   setToolbarTab,
   handleSubmit,
   loading,
@@ -186,6 +188,8 @@ const HeaderPanel = ({
               isModalOpen={isNotebookModalOpen}
               setIsModalOpen={setIsNotebookModalOpen}
               notebookList={notebookList}
+              hasUnsavedChanges={false}
+              loadedNotebookId={null}
             />
           </div>
         </div>

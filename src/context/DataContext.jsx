@@ -86,6 +86,7 @@ export const DataProvider = ({ children }) => {
   // Flags de control de fetch
   const [newDataFetched, setNewDataFetched] = useState(false);
   const [newForenseDataFetched, setNewForenseDataFetched] = useState(false);
+  const [markersLoaded, setMarkersLoaded] = useState(false); // Track if markers have been loaded for the first time
 
 
   useEffect(() => {
@@ -146,15 +147,68 @@ export const DataProvider = ({ children }) => {
 
   // Sincronización automática de datos con el mapa al cargar
   useEffect(() => {
-    if (mapLoaded && map) {
-      if (fetchedRecords?.features?.length > 0) {
-        updateLayerData('cedulaLayer', fetchedRecords, sexoLayout);
-      }
-      if (forenseRecords?.features?.length > 0) {
-        updateLayerData('forenseLayer', forenseRecords, clusteringLayout);
-      }
+    console.log('[useEffect updateLayers] Triggered:', {
+      mapLoaded,
+      hasMap: !!map,
+      mapLoaded_func: map?.loaded(),
+      hasCedulaData: fetchedRecords?.features?.length > 0,
+      hasForenseData: forenseRecords?.features?.length > 0,
+      hasTimelineData: timelineData?.length > 0
+    });
+
+    // Esperar a que el mapa esté completamente cargado Y haya datos
+    if (!map || !map.loaded()) {
+      console.log('[useEffect updateLayers] Map not ready yet, waiting...');
+      return;
     }
-  }, [mapLoaded, map, fetchedRecords, forenseRecords]);
+
+    console.log('[useEffect updateLayers] Map is ready, loading layers...');
+
+    let layersAdded = false;
+
+    if (fetchedRecords?.features?.length > 0) {
+      console.log('[useEffect updateLayers] Loading cedulaLayer with', fetchedRecords.features.length, 'features');
+      updateLayerData('cedulaLayer', fetchedRecords, sexoLayout);
+      layersAdded = true;
+    }
+
+    if (forenseRecords?.features?.length > 0) {
+      console.log('[useEffect updateLayers] Loading forenseLayer with', forenseRecords.features.length, 'features');
+      updateLayerData('forenseLayer', forenseRecords, clusteringLayout);
+      layersAdded = true;
+    }
+
+    // Hide loading spinner when markers are first loaded AND timeline data is available
+    if (layersAdded && !markersLoaded && Array.isArray(timelineData) && timelineData.length > 0) {
+      console.log('[useEffect updateLayers] First markers loaded and timeline data ready, hiding spinner');
+      setMarkersLoaded(true);
+      setLoading(false);
+    }
+  }, [map, mapLoaded, fetchedRecords, forenseRecords, markersLoaded, timelineData]);
+
+  // Aplicar filtros automáticamente cuando cambian
+  useEffect(() => {
+    console.log('[useEffect filterMarkers] Triggered with:', {
+      mapLoaded,
+      hasMap: !!map,
+      hasLayer: map?.getLayer('cedulaLayer') ? 'yes' : 'no',
+      selectedDate,
+      daysRange,
+      selectedSexo,
+      selectedCondicion
+    });
+
+    if (mapLoaded && map && map.getLayer('cedulaLayer')) {
+      console.log('[useEffect filterMarkers] Calling filterMarkersByDate...');
+      filterMarkersByDate(selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange);
+    } else {
+      console.log('[useEffect filterMarkers] Conditions not met:', {
+        mapLoaded,
+        hasMap: !!map,
+        hasLayer: map?.getLayer('cedulaLayer') ? 'yes' : 'no'
+      });
+    }
+  }, [mapLoaded, map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange]);
 
   const addTooltip = (layerId) => {
     if (!map || !map.getLayer(layerId)) {
@@ -262,8 +316,16 @@ export const DataProvider = ({ children }) => {
     });
   };
   const updateLayerData = (layerId, data, layoutConfig) => {
+    console.log(`[updateLayerData] Called for ${layerId}:`, {
+      hasData: !!data,
+      dataType: data?.type,
+      featureCount: data?.features?.length,
+      hasMap: !!map,
+      isStyleLoaded: map?.isStyleLoaded()
+    });
+
     if (!data || !data.type || data.type !== 'FeatureCollection') {
-      console.error("Input data is not a valid GeoJSON object.");
+      console.error("[updateLayerData] Input data is not a valid GeoJSON object.");
       return;
     }
 
@@ -279,12 +341,15 @@ export const DataProvider = ({ children }) => {
 
     // Chequeo del mapa para la parte visual
     if (!map || !map.isStyleLoaded()) {
+      console.log(`[updateLayerData] Map not ready for ${layerId}`);
       return;
     }
 
     if (map.getSource(layerId)) {
+      console.log(`[updateLayerData] Updating existing source ${layerId} with ${data.features.length} features`);
       map.getSource(layerId).setData(data);
     } else {
+      console.log(`[updateLayerData] Creating new source and layer ${layerId} with ${data.features.length} features`);
       map.addSource(layerId, {
         type: 'geojson',
         data: data,
@@ -441,16 +506,23 @@ export const DataProvider = ({ children }) => {
   };
 
   const filterMarkersByDate = (selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {
-    if (!map || !selectedDate) return;
+    console.log('[filterMarkersByDate] Called with:', {
+      selectedDate,
+      daysRange,
+      selectedSexo,
+      selectedCondicion,
+      edadRange,
+      sumScoreRange,
+      hasMap: !!map,
+      hasLayer: map?.getLayer('cedulaLayer') ? 'yes' : 'no'
+    });
 
-    const endDate = new Date(selectedDate);
-    endDate.setDate(selectedDate.getDate() + daysRange);
+    if (!map) {
+      console.log('[filterMarkersByDate] No map, returning');
+      return;
+    }
 
-    // Convert dates to timestamps for easier filtering
-    const selectedTimestamp = selectedDate.getTime();
-    const endTimestamp = endDate.getTime();
-
-    // Attribute filters
+    // Attribute filters (siempre se aplican)
     const attributeFilters = [];
     if (selectedSexo.length > 0) {
       attributeFilters.push(['in', ['get', 'sexo'], ['literal', selectedSexo]]);
@@ -460,23 +532,46 @@ export const DataProvider = ({ children }) => {
     }
     attributeFilters.push([">=", ["to-number", ["get", "edad_momento_desaparicion"]], edadRange[0]]);
     attributeFilters.push(["<=", ["to-number", ["get", "edad_momento_desaparicion"]], edadRange[1]]);
-
     attributeFilters.push([">=", ["to-number", ["get", "sum_score"]], sumScoreRange[0]]);
     attributeFilters.push(["<=", ["to-number", ["get", "sum_score"]], sumScoreRange[1]]);
 
+    let combinedFilter;
 
-    // Date filters
-    const dateFilters = [
-      [">=", ["to-number", ["get", "timestamp"]], selectedTimestamp],
-      ["<=", ["to-number", ["get", "timestamp"]], endTimestamp]
-    ];
+    // Si no hay fecha seleccionada, solo aplicar filtros de atributos
+    if (!selectedDate) {
+      console.log('[filterMarkersByDate] No selectedDate, showing ALL markers with attribute filters');
+      combinedFilter = ['all', ...attributeFilters];
+    } else {
+      // Si hay fecha seleccionada, aplicar también filtros de fecha
+      const endDate = new Date(selectedDate);
+      endDate.setDate(selectedDate.getDate() + daysRange);
 
-    // Combined filters
-    const combinedFilter = ['all', ...attributeFilters, ...dateFilters];
+      const selectedTimestamp = selectedDate.getTime();
+      const endTimestamp = endDate.getTime();
+
+      console.log('[filterMarkersByDate] Date range:', {
+        start: selectedDate.toISOString(),
+        end: endDate.toISOString(),
+        startTimestamp: selectedTimestamp,
+        endTimestamp: endTimestamp
+      });
+
+      const dateFilters = [
+        [">=", ["to-number", ["get", "timestamp"]], selectedTimestamp],
+        ["<=", ["to-number", ["get", "timestamp"]], endTimestamp]
+      ];
+
+      combinedFilter = ['all', ...attributeFilters, ...dateFilters];
+    }
+
+    console.log('[filterMarkersByDate] Combined filter:', JSON.stringify(combinedFilter, null, 2));
 
     // Apply the combined filter to the "cedulaLayer"
     if (map.getLayer("cedulaLayer")) {
+      console.log('[filterMarkersByDate] Applying filter to cedulaLayer');
       map.setFilter("cedulaLayer", combinedFilter);
+    } else {
+      console.log('[filterMarkersByDate] cedulaLayer not found!');
     }
 
     // Update heatmap layers
@@ -486,10 +581,13 @@ export const DataProvider = ({ children }) => {
         const categoryFilter = category === 'HOMBRE' || category === 'MUJER'
           ? ['==', ['get', 'sexo'], category]
           : ['==', ['get', 'condicion_localizacion'], category];
-        const heatmapFilter = ['all', categoryFilter, ...attributeFilters, ...dateFilters];
+        const heatmapFilter = ['all', categoryFilter, ...attributeFilters, ...(selectedDate ? dateFilters : [])];
         map.setFilter(layerId, heatmapFilter);
+        console.log(`[filterMarkersByDate] Applied filter to heatmap layer: ${layerId}`);
       }
     });
+
+    console.log('[filterMarkersByDate] Filter application complete');
   };
 
   const avoidLayerOverlap = (records, tipo_marcador, selectedTimestamp, endTimestamp) => {

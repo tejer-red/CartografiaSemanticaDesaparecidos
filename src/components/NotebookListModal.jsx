@@ -71,20 +71,23 @@ const NotebookListModal = ({
           background: 'rgba(0,0,0,0.18)',
           position: 'fixed',
           inset: 0,
-          zIndex: 4000,
+          zIndex: 16000, // Por encima de InitialModal (15000) y otros modales
         }} />
         <Dialog.Content style={{
           background: 'white',
-          borderRadius: 8,
+          borderRadius: isMobile ? 0 : 8,
           padding: 24,
           boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
           position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: 500,
-          zIndex: 4001,
+          top: isMobile ? 0 : '50%',
+          left: isMobile ? 0 : '50%',
+          transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+          width: isMobile ? '100vw' : '90%',
+          height: isMobile ? '100vh' : 'auto',
+          maxWidth: isMobile ? 'none' : 500,
+          maxHeight: isMobile ? 'none' : '90vh',
+          overflowY: 'auto',
+          zIndex: 16001, // Por encima del overlay
         }}>
           <ModalContent />
         </Dialog.Content>

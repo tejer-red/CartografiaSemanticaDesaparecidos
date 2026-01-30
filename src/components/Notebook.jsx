@@ -17,6 +17,8 @@ const Notebook = ({ onCloseModal }) => {
   const {
     notes,
     newNote,
+    noteTitle,
+    setNoteTitle,
     setNewNote,
     addNote,
     addTextOnlyNote,
@@ -29,6 +31,8 @@ const Notebook = ({ onCloseModal }) => {
     isModalOpen,
     setIsModalOpen,
     notebookList,
+    hasUnsavedChanges,
+    loadedNotebookId,
   } = useNotebook(dataContext, id, navigate, onCloseModal);
 
   return (
@@ -63,6 +67,8 @@ const Notebook = ({ onCloseModal }) => {
           forenseRecords={dataContext.forenseRecords}
         />
         <NotebookNotes
+          noteTitle={noteTitle}
+          setNoteTitle={setNoteTitle}
           newNote={newNote}
           setNewNote={setNewNote}
           addNote={addNote}
@@ -83,7 +89,21 @@ const Notebook = ({ onCloseModal }) => {
                   background: '#fafbfc',
                 }}
               >
-                <Box mb="1" style={{ whiteSpace: 'pre-wrap' }}>{note.text}</Box>
+                <Box
+                  mb="1"
+                  style={{
+                    fontFamily: 'inherit',
+                    fontSize: '14px',
+                    lineHeight: '1.5',
+                    color: '#333'
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: note.text.trim()
+                      .replace(/^# (.*$)/gm, '<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 700; color: #1a1a1a;">$1</h3>')
+                      .replace(/^---$/gm, '<hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;" />')
+                      .replace(/\n/g, '<br/>')
+                  }}
+                />
                 <Box
                   style={{
                     display: 'flex',
@@ -128,6 +148,8 @@ const Notebook = ({ onCloseModal }) => {
           isModalOpen={isModalOpen}
           setIsModalOpen={setIsModalOpen}
           notebookList={notebookList}
+          hasUnsavedChanges={hasUnsavedChanges}
+          loadedNotebookId={loadedNotebookId}
         />
       </Box>
     </div>
