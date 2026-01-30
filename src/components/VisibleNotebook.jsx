@@ -121,7 +121,10 @@ const VisibleNotebook = () => {
                                         dangerouslySetInnerHTML={{
                                             __html: bodyText.trim()
                                                 .replace(/^---$/gm, '<hr />')
+                                                .replace(/<details>/g, '<div class="note-accordion-wrap"><details>') // Cerrados por default
+                                                .replace(/<\/details>/g, '</details></div>')
                                                 .replace(/\n\n/g, '</p><p>')
+                                                .replace(/\n/g, '<br class="small-br" />')
                                         }}
                                     />
                                 </article>
