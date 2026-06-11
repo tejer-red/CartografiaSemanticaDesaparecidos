@@ -474,7 +474,11 @@ export const DataProvider = ({ children }) => {
 
     // Apply the date filter to the "fosaLayer"
     if (map.getLayer("fosaLayer")) {
-      map.setFilter("fosaLayer", ['all', ...dateFilters]);
+      const fosaDateFilters = [
+        ["<=", ["to-number", ["get", "timestamp_start"]], endTimestamp],
+        [">=", ["to-number", ["get", "timestamp_end"]], selectedTimestamp]
+      ];
+      map.setFilter("fosaLayer", ['all', ...fosaDateFilters]);
     }
   
     // Update heatmap layers

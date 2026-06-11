@@ -53,7 +53,24 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
             },
             properties: {
               ...record,
-              timestamp: record.fecha_hallazgo ? new Date(record.fecha_hallazgo).getTime() : null,
+              timestamp: (() => {
+                if (!record.fecha_hallazgo) return null;
+                const parts = record.fecha_hallazgo.split('-');
+                const year = parseInt(parts[0], 10);
+                return year ? Date.UTC(year, 0, 1) : null;
+              })(),
+              timestamp_start: (() => {
+                if (!record.fecha_hallazgo) return null;
+                const parts = record.fecha_hallazgo.split('-');
+                const year = parseInt(parts[0], 10);
+                return year ? Date.UTC(year, 0, 1) : null;
+              })(),
+              timestamp_end: (() => {
+                if (!record.fecha_hallazgo) return null;
+                const parts = record.fecha_hallazgo.split('-');
+                const year = parseInt(parts[0], 10);
+                return year ? Date.UTC(year, 11, 31, 23, 59, 59, 999) : null;
+              })(),
               tipo_marcador: 'fosa'
             }
           };
