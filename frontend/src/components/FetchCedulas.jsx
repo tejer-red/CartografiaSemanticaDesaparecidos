@@ -30,7 +30,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/specificDate.php`, {
+        const response = await axios.get(`${API_BASE_URL}/casos`, {
           headers: {
             'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
             'Content-Type': 'application/json'

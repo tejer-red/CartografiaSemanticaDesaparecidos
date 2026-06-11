@@ -13,7 +13,7 @@ const PasswordCheck = ({ onAuthenticated }) => {
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/check_password.php`, {
+      const response = await fetch(`${API_BASE_URL}/check_password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

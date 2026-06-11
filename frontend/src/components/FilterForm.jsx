@@ -11,7 +11,8 @@ import {
   Users, // new - for sexo section
   Search, // new - for condición section
   Calendar, // new - for edad section
-  BarChart2 // new - for score section
+  BarChart2, // new - for score section
+  MapPin
 } from 'lucide-react';
 import * as Slider from '@radix-ui/react-slider';
 import '../styles/FilterForm.css';
@@ -23,6 +24,7 @@ const FilterForm = () => {
   const {
     handleSexoChange,
     handleCondicionChange,
+    handleMarkerTypeChange,
     handleEdadRangeChange,
     handleSumScoreRangeChange
   } = useFilterFormHandlers(dataContext);
@@ -30,6 +32,7 @@ const FilterForm = () => {
   const {
     selectedSexo,
     selectedCondicion,
+    selectedMarkerTypes,
     edadRange,
     sumScoreRange
   } = dataContext;
@@ -103,6 +106,31 @@ const FilterForm = () => {
           />
           <HelpCircle size={20} color={COLORS.NO_APLICA.opacity100} />
           No Aplica
+        </label>
+      </fieldset>
+      {/* Filtros de Tipo de Marcador */}
+      <fieldset>
+        <legend style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MapPin size={16} color="#666666" />
+          Tipo de Marcador
+        </legend>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            type="checkbox"
+            value="cedula_busqueda"
+            checked={selectedMarkerTypes.includes("cedula_busqueda")}
+            onChange={handleMarkerTypeChange}
+          />
+          Cédula de Búsqueda
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            type="checkbox"
+            value="fosa"
+            checked={selectedMarkerTypes.includes("fosa")}
+            onChange={handleMarkerTypeChange}
+          />
+          Fosa Clandestina
         </label>
       </fieldset>
 

@@ -11,6 +11,8 @@ const InitialModal = ({
   setFetchCedulas,
   fetchForense,
   setFetchForense,
+  fetchFosas,
+  setFetchFosas,
   isNotebookRoute,
   listNotebooksApp,
 }) => {
@@ -41,7 +43,7 @@ const InitialModal = ({
 
   const handleListNotebooks = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/list.php`);
+      const response = await fetch(`${API_BASE_URL}/notebooks`);
       if (!response.ok) throw new Error('Failed to fetch notebooks');
       const data = await response.json();
       if (data.success) {
@@ -138,6 +140,14 @@ const InitialModal = ({
                         onChange={(e) => setFetchForense(e.target.checked)}
                       />
                       Obtener Forense
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={fetchFosas}
+                        onChange={(e) => setFetchFosas(e.target.checked)}
+                      />
+                      Obtener Fosas
                     </label>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

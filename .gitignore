@@ -7,15 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Node modules & builds
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,5 +26,26 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment & Secrets
+.env
+.env*.local
+
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Legacy PHP paths
 api/notebooks/*
 api/config.php
+api/user_log.txt

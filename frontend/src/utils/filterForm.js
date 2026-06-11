@@ -21,6 +21,7 @@ export function useFilterFormHandlers(dataContext) {
   const {
     setSelectedSexo,
     setSelectedCondicion,
+    setSelectedMarkerTypes,
     setEdadRange,
     setsumScoreRange,
     filterMarkersByDate
@@ -42,6 +43,16 @@ export function useFilterFormHandlers(dataContext) {
     setSelectedCondicion((prev) => {
       const updated = checked ? [...prev, value] : prev.filter((item) => item !== value);
       console.log(`[FilterForm] Condición filter updated:`, updated);
+      return updated;
+    });
+  };
+
+  // Handler para filtro de tipo de marcador
+  const handleMarkerTypeChange = (e) => {
+    const { value, checked } = e.target;
+    setSelectedMarkerTypes((prev) => {
+      const updated = checked ? [...prev, value] : prev.filter((item) => item !== value);
+      console.log(`[FilterForm] Marker type filter updated:`, updated);
       return updated;
     });
   };
@@ -91,6 +102,7 @@ export function useFilterFormHandlers(dataContext) {
   return {
     handleSexoChange,
     handleCondicionChange,
+    handleMarkerTypeChange,
     handleEdadRangeChange,
     handleSumScoreRangeChange
   };

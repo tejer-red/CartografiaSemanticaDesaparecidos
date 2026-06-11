@@ -82,7 +82,6 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
             display: "flex",
             alignItems: "center",
             marginBottom: "5px",
-            alignItems: "center",
             width: "100%",
             padding: "0 1rem",
             flex: 1,

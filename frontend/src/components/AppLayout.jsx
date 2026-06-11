@@ -14,6 +14,8 @@ const AppLayout = ({
   setFetchCedulas,
   fetchForense,
   setFetchForense,
+  fetchFosas,
+  setFetchFosas,
   isNotebookRoute,
   listNotebooksApp
 }) => {
@@ -41,6 +43,8 @@ const AppLayout = ({
         setFetchCedulas={setFetchCedulas}
         fetchForense={fetchForense}
         setFetchForense={setFetchForense}
+        fetchFosas={fetchFosas}
+        setFetchFosas={setFetchFosas}
         listNotebooksApp={listNotebooksApp}
       />
       <LeftSideBar 
@@ -55,6 +59,8 @@ const AppLayout = ({
         setFetchCedulas={setFetchCedulas}
         fetchForense={fetchForense}
         setFetchForense={setFetchForense}
+        fetchFosas={fetchFosas}
+        setFetchFosas={setFetchFosas}
         onMouseEnter={() => handlePanelHover('sideNotebook')}
         onMouseLeave={() => handlePanelHover(null)}
         style={getPanelStyle('sideNotebook')}

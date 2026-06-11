@@ -163,7 +163,7 @@ export function useNotebook(dataContext, id, navigate) {
         endDate: endDate || ''
       };
       alert('Saving notes to the backend...');
-      const response = await fetch(`${API_BASE_URL}/save.php`, {
+      const response = await fetch(`${API_BASE_URL}/notebooks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -178,7 +178,7 @@ export function useNotebook(dataContext, id, navigate) {
 
   const loadNotesFromBackend = useCallback(async (notebookId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/load.php?id=${notebookId}`);
+      const response = await fetch(`${API_BASE_URL}/notebooks/${notebookId}`);
       if (!response.ok) throw new Error('Failed to load notes from backend');
       const data = await response.json();
       setNotes(data.notes || []);
@@ -193,7 +193,7 @@ export function useNotebook(dataContext, id, navigate) {
 
   const listNotebooks = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/list.php`);
+      const response = await fetch(`${API_BASE_URL}/notebooks`);
       if (!response.ok) throw new Error('Failed to fetch notebooks');
       const data = await response.json();
       if (data.success) {

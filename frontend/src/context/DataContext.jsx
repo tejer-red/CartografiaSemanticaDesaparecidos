@@ -39,6 +39,29 @@ export const DataProvider = ({ children }) => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [timelineVelocity, setTimelineVelocity] = useState(1000);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [selectedMarkerTypes, setSelectedMarkerTypes] = useState(['cedula_busqueda', 'fosa']);
+
+  useEffect(() => {
+    if (!map) return;
+
+    try {
+      if (map.getLayer('cedulaLayer')) {
+        const visible = selectedMarkerTypes.includes('cedula_busqueda') ? 'visible' : 'none';
+        map.setLayoutProperty('cedulaLayer', 'visibility', visible);
+      }
+    } catch (e) {
+      console.warn('Error setting visibility for cedulaLayer', e);
+    }
+
+    try {
+      if (map.getLayer('fosaLayer')) {
+        const visible = selectedMarkerTypes.includes('fosa') ? 'visible' : 'none';
+        map.setLayoutProperty('fosaLayer', 'visibility', visible);
+      }
+    } catch (e) {
+      console.warn('Error setting visibility for fosaLayer', e);
+    }
+  }, [selectedMarkerTypes, map]);
 
   useEffect(() => {
     console.log('DataContext state initialized:', { 
@@ -74,14 +97,15 @@ export const DataProvider = ({ children }) => {
   }, [startDate, endDate, visibleComponents, mapType, colorScheme]);
 
   const COLORS = Object.fromEntries(
-    ["MUJER", "HOMBRE", "CON_VIDA", "SIN_VIDA", "NO_APLICA", "UNKNOWN"].map((key) => {
+    ["MUJER", "HOMBRE", "CON_VIDA", "SIN_VIDA", "NO_APLICA", "UNKNOWN", "FOSA"].map((key) => {
       const fullColor = {
         MUJER: "rgba(255, 105, 180, 1)",
         HOMBRE: "rgba(30, 144, 255, 1)",
         CON_VIDA: "rgba(0, 128, 0, 1)",
         SIN_VIDA: "rgba(0, 0, 0, 1)",
         NO_APLICA: "rgba(255, 0, 0, 1)",
-        UNKNOWN: "rgba(128, 128, 128, 1)"
+        UNKNOWN: "rgba(128, 128, 128, 1)",
+        FOSA: "rgba(210, 105, 30, 1)"
       }[key];
   
       return [
@@ -112,6 +136,19 @@ export const DataProvider = ({ children }) => {
 
     // Shared function to generate popup content
     const generatePopupContent = (properties) => {
+      if (properties.tipo_marcador === 'fosa') {
+        return `
+          <div style="font-family: inherit; color: #333; padding: 5px;">
+            <h4 style="margin: 0 0 8px 0; color: #b2182b; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Fosa Clandestina</h4>
+            <p style="margin: 4px 0;"><strong>Estado:</strong> ${properties.estado || 'Desconocido'}</p>
+            <p style="margin: 4px 0;"><strong>Municipio:</strong> ${properties.municipio || 'Desconocido'}</p>
+            <p style="margin: 4px 0;"><strong>Año/Fecha Hallazgo:</strong> ${properties.fecha_hallazgo || 'Desconocido'}</p>
+            <p style="margin: 4px 0;"><strong>Total de Fosas:</strong> ${properties.total_fosas || 0}</p>
+            <p style="margin: 4px 0;"><strong>Cuerpos recuperados:</strong> ${properties.total_cuerpos || 0}</p>
+            <p style="margin: 4px 0;"><strong>Restos/Fragmentos:</strong> ${properties.total_restos_fragmentos || 0}</p>
+          </div>
+        `;
+      }
       return `
         <div>
           ${properties.ruta_foto ? `<p style="text-align:center;"><img src="${properties.ruta_foto}" alt="Foto" style="max-width: 128px; height: auto;"></p>` : ''}
@@ -302,6 +339,23 @@ export const DataProvider = ({ children }) => {
     'circle-stroke-opacity': 1,
   };
 
+  const fosasLayout = {
+    'circle-radius': [
+      'interpolate',
+      ['linear'],
+      ['to-number', ['get', 'total_cuerpos']],
+      0, 6,
+      5, 10,
+      20, 15,
+      100, 22
+    ],
+    'circle-color': COLORS.FOSA.opacity30,
+    'circle-stroke-color': COLORS.FOSA.opacity100,
+    'circle-stroke-width': 2.5,
+    'circle-opacity': 0.8,
+    'circle-stroke-opacity': 1,
+  };
+
   const heatmapLayout = {
     'heatmap-weight': [
       'interpolate',
@@ -417,6 +471,11 @@ export const DataProvider = ({ children }) => {
       //console.log('Applying filter to cedulaLayer');
       map.setFilter("cedulaLayer", combinedFilter);
     }
+
+    // Apply the date filter to the "fosaLayer"
+    if (map.getLayer("fosaLayer")) {
+      map.setFilter("fosaLayer", ['all', ...dateFilters]);
+    }
   
     // Update heatmap layers
     activeHeatmapCategories.forEach(category => {
@@ -497,6 +556,7 @@ export const DataProvider = ({ children }) => {
     clusteringLayout,
     sexoLayout,
     condicionLocalizacionLayout,
+    fosasLayout,
     heatmapLayout,
     activeHeatmapCategories, setActiveHeatmapCategories,
     updateLayerData,
@@ -521,6 +581,8 @@ export const DataProvider = ({ children }) => {
     setTimelineVelocity,
     mapLoaded,
     setMapLoaded,
+    selectedMarkerTypes,
+    setSelectedMarkerTypes,
   };
 
   return (

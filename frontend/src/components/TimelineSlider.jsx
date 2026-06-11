@@ -46,9 +46,8 @@ const TimelineSlider = () => {
   return (
     <div
       style={{
-        display: timelinePanelOpen ? "block" : "none",
+        display: timelinePanelOpen ? "flex" : "none",
         padding: 8,
-        display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: "10px",

@@ -12,7 +12,7 @@ const ExampleComponent = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/api/specificDate.php`, {
+                const response = await axios.get(`${API_BASE_URL}/casos`, {
                     headers: {
                         'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
                         'Content-Type': 'application/json'

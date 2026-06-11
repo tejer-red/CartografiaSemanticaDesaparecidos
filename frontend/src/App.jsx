@@ -4,6 +4,7 @@ import { useData } from './context/DataContext'; // Remove DataProvider import
 import { API_BASE_URL, USE_PASSWORD } from './config';
 import FetchCedulas from './components/FetchCedulas';
 import FetchForense from './components/FetchForense';
+import FetchFosas from './components/FetchFosas';
 import MapComponent from './components/MapComponent';
 import PasswordCheck from './components/PasswordCheck';
 import AppLayout from './components/AppLayout';
@@ -13,6 +14,7 @@ import './styles/FilterForm.css'; // Import FilterForm styles
 const App = () => {
   const [fetchCedulas, setFetchCedulas] = useState(true);
   const [fetchForense, setFetchForense] = useState(true);
+  const [fetchFosas, setFetchFosas] = useState(true);
   const [fetchId, setFetchId] = useState(0);
   const [isFormsVisible, setIsFormsVisible] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!USE_PASSWORD);
@@ -39,7 +41,7 @@ const App = () => {
   const listNotebooksApp = async () => {
     console.log('Tab5: listNotebooks called');
     try {
-      const response = await fetch(`${API_BASE_URL}/list.php`);
+      const response = await fetch(`${API_BASE_URL}/notebooks`);
       if (!response.ok) throw new Error('Failed to fetch notebooks');
       const data = await response.json();
       console.log('Tab5: listNotebooks response', data);
@@ -145,13 +147,18 @@ const App = () => {
       ) : (
         <>
           <div className="AbstractFetching">
-            <FetchCedulas
+             <FetchCedulas
               fetchCedulas={fetchCedulas}
               fetchId={fetchId}
               onFetchComplete={handleFetchComplete}
             />
             <FetchForense
               fetchForense={fetchForense}
+              fetchId={fetchId}
+              onFetchComplete={handleFetchComplete}
+            />
+            <FetchFosas
+              fetchFosas={fetchFosas}
               fetchId={fetchId}
               onFetchComplete={handleFetchComplete}
             />
@@ -173,6 +180,8 @@ const App = () => {
                     setFetchCedulas={setFetchCedulas}
                     fetchForense={fetchForense}
                     setFetchForense={setFetchForense}
+                    fetchFosas={fetchFosas}
+                    setFetchFosas={setFetchFosas}
                     listNotebooksApp={listNotebooksApp}
                   />
                 } />
@@ -187,6 +196,8 @@ const App = () => {
                     setFetchCedulas={setFetchCedulas}
                     fetchForense={fetchForense}
                     setFetchForense={setFetchForense}
+                    fetchFosas={fetchFosas}
+                    setFetchFosas={setFetchFosas}
                     listNotebooksApp={listNotebooksApp}
                   />
                 } />
