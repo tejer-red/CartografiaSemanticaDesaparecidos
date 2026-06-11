@@ -66,13 +66,11 @@ export const useTimelineSlider = () => {
       setMinDate(min);
       setMaxDate(max);
       
-      // If no date is selected, set it to the minimum date
-      if (!selectedDate) {
-        setSelectedDate(min);
-        console.log('TimelineSlider: Initial date set to:', min);
-      }
+      // Force selectedDate to the minimum date of the timeline
+      setSelectedDate(min);
+      console.log('TimelineSlider: Initial date set to:', min);
     }
-  }, [timelineData, selectedDate, setSelectedDate]);
+  }, [timelineData, setSelectedDate]);
 
   return {
     isPlaying: isTimelinePlaying,

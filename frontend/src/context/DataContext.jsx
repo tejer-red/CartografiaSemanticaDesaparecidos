@@ -261,6 +261,10 @@ export const DataProvider = ({ children }) => {
     }));
   
     updateTimelineData(timelineEntries, false);
+
+    if (selectedDate) {
+      filterMarkersByDate(selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange);
+    }
   };
 
   const clusteringLayout = {
