@@ -7,7 +7,6 @@ import {
   getEffectiveColorScheme
 } from '../../utils/layoutForm';
 import { Circle, Thermometer, Venus, MapPin } from 'lucide-react'; // Replace FontAwesome with Lucide
-import * as Switch from '@radix-ui/react-switch';
 
 const LayoutForm = () => {
   const [localMapType, setLocalMapType] = useState('point');
@@ -42,10 +41,12 @@ const LayoutForm = () => {
           >
             <Circle style={{ color: effectiveMapType === 'point' ? 'blue' : '#ccc' }} /> Puntos
           </label>
-          <Switch.Root
+          <button
             id="mapTypeSwitch"
-            checked={effectiveMapType === 'heatmap'}
-            onCheckedChange={(checked) => handleMapTypeChange({ target: { value: checked ? 'heatmap' : 'point' } })}
+            type="button"
+            role="switch"
+            aria-checked={effectiveMapType === 'heatmap'}
+            onClick={() => handleMapTypeChange({ target: { value: effectiveMapType === 'heatmap' ? 'point' : 'heatmap' } })}
             style={{
               width: '50px',
               height: '25px',
@@ -60,7 +61,7 @@ const LayoutForm = () => {
               padding: '2px',
             }}
           >
-            <Switch.Thumb
+            <div
               style={{
                 width: '21px',
                 height: '21px',
@@ -70,7 +71,7 @@ const LayoutForm = () => {
                 transition: 'transform 0.2s',
               }}
             />
-          </Switch.Root>
+          </button>
           <label
             htmlFor="mapTypeSwitch"
             style={{
@@ -99,11 +100,13 @@ const LayoutForm = () => {
           >
             <Venus style={{ color: effectiveColorScheme === 'sexo' ? 'pink' : '#ccc' }} /> Sexo
           </label>
-          <Switch.Root
+          <button
             id="colorSchemeSwitch"
-            checked={effectiveColorScheme === 'condicionLocalizacion'}
-            onCheckedChange={(checked) =>
-              handleColorSchemeChange({ target: { value: checked ? 'condicionLocalizacion' : 'sexo' } })
+            type="button"
+            role="switch"
+            aria-checked={effectiveColorScheme === 'condicionLocalizacion'}
+            onClick={() =>
+              handleColorSchemeChange({ target: { value: effectiveColorScheme === 'condicionLocalizacion' ? 'sexo' : 'condicionLocalizacion' } })
             }
             style={{
               width: '50px',
@@ -119,7 +122,7 @@ const LayoutForm = () => {
               padding: '2px',
             }}
           >
-            <Switch.Thumb
+            <div
               style={{
                 width: '21px',
                 height: '21px',
@@ -129,7 +132,7 @@ const LayoutForm = () => {
                 transition: 'transform 0.2s',
               }}
             />
-          </Switch.Root>
+          </button>
           <label
             htmlFor="colorSchemeSwitch"
             style={{

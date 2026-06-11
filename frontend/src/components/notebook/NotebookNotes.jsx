@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button, Box } from '@radix-ui/themes';
 import { Flag, StickyNote } from 'lucide-react'; // Cambiar Network por Flag
 
 const NotebookNotes = ({
@@ -8,7 +7,7 @@ const NotebookNotes = ({
   addNote,
   addTextOnlyNote,
 }) => (
-  <Box mb="3">
+  <div style={{ marginBottom: '12px' }}>
     <textarea
       value={newNote}
       onChange={(e) => setNewNote(e.target.value)}
@@ -24,32 +23,64 @@ const NotebookNotes = ({
         minHeight: 60,
       }}
     />
-    <Box
-      mt="2"
+    <div
       style={{
+        marginTop: '8px',
         display: 'flex',
         gap: 8,
         width: '100%',
       }}
     >
-      <Button
-        size="1"
+      <button
+        type="button"
         onClick={addNote}
-        style={{ flex: 1 }}
+        style={{
+          flex: 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '8px 12px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer',
+          fontWeight: 500,
+          fontSize: '14px',
+          transition: 'background-color 0.2s',
+        }}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
       >
-        <Flag style={{ marginRight: 4 }} />
+        <Flag size={16} style={{ marginRight: 4 }} />
         Marcar Navegación
-      </Button>
-      <Button
-        size="1"
+      </button>
+      <button
+        type="button"
         onClick={addTextOnlyNote}
-        style={{ flex: 1 }}
+        style={{
+          flex: 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '8px 12px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer',
+          fontWeight: 500,
+          fontSize: '14px',
+          transition: 'background-color 0.2s',
+        }}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
       >
-        <StickyNote style={{ marginRight: 4 }} />
+        <StickyNote size={16} style={{ marginRight: 4 }} />
         Nota de Texto
-      </Button>
-    </Box>
-  </Box>
+      </button>
+    </div>
+  </div>
 );
 
 export default NotebookNotes;

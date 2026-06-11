@@ -2,12 +2,11 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import '../../styles/Notebook.css';
-import { Button, Heading, Box } from '@radix-ui/themes';
 import { useNotebook } from '../../utils/notebook';
 import NotebookNotes from './NotebookNotes';
 import NotebookLoad from './NotebookLoad';
 import GlobalTimeGraphData from '../timeline/GlobalTimeGraphData';
-import { MapPin, ArrowLeft, Plus } from 'lucide-react'; // Cambiar Flag por ArrowLeft
+import { MapPin, ArrowLeft } from 'lucide-react';
 
 const Notebook = () => {
   const dataContext = useData();
@@ -33,7 +32,7 @@ const Notebook = () => {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box
+      <div
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -44,12 +43,12 @@ const Notebook = () => {
           gap: 8,
         }}
       >
-        <MapPin style={{ fontSize: 28, color: '#007bff' }} /> {/* Use Lucide icon */}
-        <Heading size="1" style={{ margin: 0, fontSize: '1rem', lineHeight: '1.2' }}>
+        <MapPin style={{ fontSize: 28, color: '#007bff' }} />
+        <h2 style={{ margin: 0, fontSize: '1rem', lineHeight: '1.2', fontWeight: 600 }}>
           Bitácora de navegación
-        </Heading>
-      </Box>
-      <Box style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        </h2>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
         <GlobalTimeGraphData
           map={dataContext.map}
           COLORS={dataContext.COLORS}
@@ -66,12 +65,12 @@ const Notebook = () => {
           addNote={addNote}
           addTextOnlyNote={addTextOnlyNote}
         />
-        <Box>
+        <div>
           {notes.length === 0 ? (
-            <Box color="gray" mb="2">¡Aún no hay notas! Agrega una para comenzar.</Box>
+            <div style={{ color: 'gray', marginBottom: '8px' }}>¡Aún no hay notas! Agrega una para comenzar.</div>
           ) : (
             notes.map(note => (
-              <Box
+              <div
                 key={note.id}
                 style={{
                   border: '1px solid #eee',
@@ -81,8 +80,8 @@ const Notebook = () => {
                   background: '#fafbfc',
                 }}
               >
-                <Box mb="1" style={{ whiteSpace: 'pre-wrap' }}>{note.text}</Box>
-                <Box
+                <div style={{ marginBottom: '4px', whiteSpace: 'pre-wrap' }}>{note.text}</div>
+                <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -92,33 +91,58 @@ const Notebook = () => {
                   }}
                 >
                   <span>{formatTimestamp(note.timestamp)}</span>
-                  <Box style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
                     {note.state && (
-                      <Button
-                        size="1"
-                        variant="soft"
+                      <button
+                        type="button"
                         onClick={() => restoreState(note.state)}
                         title="Añadir marcador en este estado"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          backgroundColor: '#e6f0fa',
+                          color: '#007bff',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          transition: 'background-color 0.2s',
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#d0e3f7'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#e6f0fa'}
                       >
-                        <ArrowLeft size={14} />
+                        <ArrowLeft size={12} />
                         Ir a marcador
-                      </Button>
+                      </button>
                     )}
-                    <Button
-                      size="1"
-                      variant="ghost"
-                      color="red"
+                    <button
+                      type="button"
                       onClick={() => deleteNote(note.id)}
                       title="Eliminar esta nota"
+                      style={{
+                        padding: '4px 8px',
+                        backgroundColor: 'transparent',
+                        color: '#e5484d',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fdebee'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       🗑️
-                    </Button>
-                  </Box>
-                </Box>
-              </Box>
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))
           )}
-        </Box>
+        </div>
         <NotebookLoad
           saveNotesToBackend={saveNotesToBackend}
           loadNotesFromBackend={loadNotesFromBackend}
@@ -127,7 +151,7 @@ const Notebook = () => {
           setIsModalOpen={setIsModalOpen}
           notebookList={notebookList}
         />
-      </Box>
+      </div>
     </div>
   );
 };

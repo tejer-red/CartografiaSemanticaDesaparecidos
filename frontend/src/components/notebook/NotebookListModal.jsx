@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 
 import createLogger from '../../utils/logger';
@@ -16,9 +15,9 @@ const NotebookListModal = ({
 }) => {
   const ModalContent = () => (
     <>
-      <Dialog.Title style={{ fontWeight: 600, fontSize: 22, marginBottom: 20 }}>
+      <h2 style={{ fontWeight: 600, fontSize: 22, marginBottom: 20, marginTop: 0 }}>
         {title}
-      </Dialog.Title>
+      </h2>
       <div style={{ maxHeight: "400px", overflowY: "auto" }}>
         {notebookList.map((notebook, index) => (
           <div
@@ -41,20 +40,18 @@ const NotebookListModal = ({
         ))}
       </div>
       <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
-        <Dialog.Close asChild>
-          <button
-            onClick={() => setIsModalOpen(false)}
-            style={{
-              padding: "8px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer"
-            }}
-          >
-            <X size={18} /> Cerrar
-          </button>
-        </Dialog.Close>
+        <button
+          onClick={() => setIsModalOpen(false)}
+          style={{
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            cursor: "pointer"
+          }}
+        >
+          <X size={18} /> Cerrar
+        </button>
       </div>
     </>
   );
@@ -66,31 +63,42 @@ const NotebookListModal = ({
   }
 
   return isModalOpen ? (
-    <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
-      <Dialog.Portal>
-        <Dialog.Overlay style={{
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 4000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      {/* Overlay */}
+      <div
+        style={{
           background: 'rgba(0,0,0,0.18)',
-          position: 'fixed',
+          position: 'absolute',
           inset: 0,
-          zIndex: 4000,
-        }} />
-        <Dialog.Content style={{
+          zIndex: 4000
+        }}
+        onClick={() => setIsModalOpen(false)}
+      />
+      {/* Content */}
+      <div
+        style={{
           background: 'white',
           borderRadius: 8,
           padding: 24,
           boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
+          position: 'relative',
           width: '90%',
           maxWidth: 500,
-          zIndex: 4001,
-        }}>
-          <ModalContent />
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          zIndex: 4001
+        }}
+      >
+        <ModalContent />
+      </div>
+    </div>
   ) : null;
 };
 

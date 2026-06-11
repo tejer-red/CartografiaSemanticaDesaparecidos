@@ -64,3 +64,43 @@ legend {
   font-size: 14px;
   color: #666;
 }
+
+/* Dual Slider input styling */
+.dual-slider-input {
+  pointer-events: none;
+  appearance: none;
+  background: none;
+  border: none;
+  width: 100%;
+  z-index: 2;
+}
+
+.dual-slider-input::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #666;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-top: -8px; /* Align webkit thumb to center */
+}
+
+.dual-slider-input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #666;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dual-slider-input::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+}
+

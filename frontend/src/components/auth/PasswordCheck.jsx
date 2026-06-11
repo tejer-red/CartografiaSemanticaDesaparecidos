@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
 import { Lock, Key, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
 import '../../styles/PasswordCheck.css';
@@ -35,13 +34,22 @@ const PasswordCheck = ({ onAuthenticated }) => {
   };
 
   return (
-    <Dialog.Root open={true}>
-      <Dialog.Overlay className="password-overlay" />
-      <Dialog.Content className="password-content">
-        <Dialog.Title className="password-title">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 5000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      <div className="password-overlay" style={{ position: 'absolute', inset: 0 }} />
+      <div className="password-content" style={{ position: 'relative', zIndex: 5001 }}>
+        <h2 className="password-title" style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Lock size={24} />
           Acceso Restringido
-        </Dialog.Title>
+        </h2>
 
         <p className="password-info">
           Los datos contenidos en esta plataforma son sensibles.
@@ -76,8 +84,8 @@ const PasswordCheck = ({ onAuthenticated }) => {
             Verificar Acceso
           </button>
         </form>
-      </Dialog.Content>
-    </Dialog.Root>
+      </div>
+    </div>
   );
 };
 

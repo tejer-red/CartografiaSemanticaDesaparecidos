@@ -1,5 +1,4 @@
 import React from 'react';
-import { Tabs } from '@radix-ui/themes';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import TimelineSlider from '../timeline/TimelineSlider';
 import Clustering from '../data/Clustering';
@@ -51,47 +50,48 @@ const TabsComponent = ({
           top: 0,
         }}
       >
-        <Tabs.Root value={toolbarTab} onValueChange={setToolbarTab}>
-          <Tabs.List
-            style={{
-              display: "flex",
-              borderBottom: "1px solid #ccc",
-              padding: 0,
-              margin: 0,
-              background: "transparent",
-            }}
-          >
-            {tabDefs.map((tab) => (
-              <Tabs.Trigger
-                key={tab.key}
-                value={tab.key}
-                style={{
-                  flex: 1,
-                  padding: "12px 0",
-                  border: "none",
-                  borderTop:
-                    toolbarTab === tab.key
-                      ? "3px solid #007bff"
-                      : "3px solid transparent",
-                  borderBottom: "none",
-                  background: "none",
-                  outline: "none",
-                  fontWeight: toolbarTab === tab.key ? "bold" : "normal",
-                  color: toolbarTab === tab.key ? "#007bff" : "#333",
-                  cursor: "pointer",
-                  transition: "border-top 0.2s, color 0.2s",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
-                <FontAwesomeIcon icon={tab.icon} />
-                <span style={{ fontSize: 12 }}>{tab.label}</span>
-              </Tabs.Trigger>
-            ))}
-          </Tabs.List>
-        </Tabs.Root>
+        <div
+          role="tablist"
+          style={{
+            display: "flex",
+            borderBottom: "1px solid #ccc",
+            padding: 0,
+            margin: 0,
+            background: "transparent",
+          }}
+        >
+          {tabDefs.map((tab) => (
+            <button
+              key={tab.key}
+              role="tab"
+              aria-selected={toolbarTab === tab.key}
+              onClick={() => setToolbarTab(tab.key)}
+              style={{
+                flex: 1,
+                padding: "12px 0",
+                border: "none",
+                borderTop:
+                  toolbarTab === tab.key
+                    ? "3px solid #007bff"
+                    : "3px solid transparent",
+                borderBottom: "none",
+                background: "none",
+                outline: "none",
+                fontWeight: toolbarTab === tab.key ? "bold" : "normal",
+                color: toolbarTab === tab.key ? "#007bff" : "#333",
+                cursor: "pointer",
+                transition: "border-top 0.2s, color 0.2s",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
+              <FontAwesomeIcon icon={tab.icon} />
+              <span style={{ fontSize: 12 }}>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </header>
       <div
         style={{

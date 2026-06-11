@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
-import {
+import { 
   useFilterFormHandlers
 } from '../../utils/filterForm';
 import { 
@@ -14,8 +14,97 @@ import {
   BarChart2, // new - for score section
   MapPin
 } from 'lucide-react';
-import * as Slider from '@radix-ui/react-slider';
 import '../../styles/FilterForm.css';
+
+// Pure React/HTML5 Dual Range Slider Component
+const DualRangeSlider = ({ min, max, step, value, onChange }) => {
+  const [minVal, maxVal] = value;
+  
+  const handleMinChange = (e) => {
+    const val = Math.min(Number(e.target.value), maxVal - step);
+    onChange([val, maxVal]);
+  };
+  
+  const handleMaxChange = (e) => {
+    const val = Math.max(Number(e.target.value), minVal + step);
+    onChange([minVal, val]);
+  };
+
+  const minPercent = ((minVal - min) / (max - min)) * 100;
+  const maxPercent = ((maxVal - min) / (max - min)) * 100;
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '20px', margin: '10px 0' }}>
+      {/* Track Background */}
+      <div 
+        style={{ 
+          position: 'absolute', 
+          left: 0, 
+          right: 0, 
+          top: '8px', 
+          height: '4px', 
+          backgroundColor: '#e5e5e5', 
+          borderRadius: '2px' 
+        }} 
+      />
+      {/* Active Range */}
+      <div 
+        style={{ 
+          position: 'absolute', 
+          left: `${minPercent}%`, 
+          right: `${100 - maxPercent}%`, 
+          top: '8px', 
+          height: '4px', 
+          backgroundColor: '#666', 
+          borderRadius: '2px' 
+        }} 
+      />
+      
+      {/* Min Range Input */}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={minVal}
+        onChange={handleMinChange}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '0',
+          top: '8px',
+          outline: 'none',
+          background: 'none',
+          pointerEvents: 'none',
+          WebkitAppearance: 'none',
+          margin: 0
+        }}
+        className="dual-slider-input"
+      />
+      {/* Max Range Input */}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={maxVal}
+        onChange={handleMaxChange}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '0',
+          top: '8px',
+          outline: 'none',
+          background: 'none',
+          pointerEvents: 'none',
+          WebkitAppearance: 'none',
+          margin: 0
+        }}
+        className="dual-slider-input"
+      />
+    </div>
+  );
+};
 
 const FilterForm = () => {
   const dataContext = useData();
@@ -150,25 +239,16 @@ const FilterForm = () => {
           Edad de Desaparición
         </legend>
         <div style={{ width: "100%" }}>
-          <Slider.Root
-            className="SliderRoot"
-            defaultValue={[0, 100]}
-            value={[edadRange[0], edadRange[1]]}
+          <DualRangeSlider
             min={0}
             max={100}
             step={1}
-            minStepsBetweenThumbs={1}
-            onValueChange={handleEdadRangeChange}
-          >
-            <Slider.Track className="SliderTrack">
-              <Slider.Range className="SliderRange" />
-            </Slider.Track>
-            <Slider.Thumb className="SliderThumb" aria-label="Min age" />
-            <Slider.Thumb className="SliderThumb" aria-label="Max age" />
-          </Slider.Root>
+            value={[edadRange[0], edadRange[1]]}
+            onChange={handleEdadRangeChange}
+          />
           <div className="rangeLegend">
             <span>
-              Rango de edad: {edadRange[0]} - {edadRange[1]} years
+              Rango de edad: {edadRange[0]} - {edadRange[1]} años
             </span>
           </div>
         </div>
@@ -181,22 +261,13 @@ const FilterForm = () => {
           Score de Violencia
         </legend>
         <div style={{  width: "100%" }}>
-          <Slider.Root
-            className="SliderRoot"
-            defaultValue={[0.5, 20]}
-            value={[sumScoreRange[0], sumScoreRange[1]]}
+          <DualRangeSlider
             min={0.5}
             max={20}
             step={0.5}
-            minStepsBetweenThumbs={1}
-            onValueChange={handleSumScoreRangeChange}
-          >
-            <Slider.Track className="SliderTrack">
-              <Slider.Range className="SliderRange" />
-            </Slider.Track>
-            <Slider.Thumb className="SliderThumb" aria-label="Min score" />
-            <Slider.Thumb className="SliderThumb" aria-label="Max score" />
-          </Slider.Root>
+            value={[sumScoreRange[0], sumScoreRange[1]]}
+            onChange={handleSumScoreRangeChange}
+          />
           <div className="rangeLegend">
             <span>
               Rango de Score: {sumScoreRange[0]} - {sumScoreRange[1]}

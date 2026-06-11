@@ -19,6 +19,7 @@ Este proyecto sigue los principios **CUPID** y **KISS** para la organización de
 - **No código muerto**: Archivos deprecated van a `_deprecated/`. No dejar archivos `.useless` ni componentes sin imports.
 - **Sin duplicaciones**: Una sola variante de cada componente (e.g., un solo `DateFormCompact`, no tres variantes de `DateForm`).
 - **Prop drilling mínimo**: Si un componente necesita datos del contexto, usa `useData()` directamente en lugar de pasarlos como props a través de 3+ niveles.
+- **Sin Dependencias de Radix UI**: El proyecto ha sido completamente purgado de `@radix-ui/themes` y `@radix-ui/react-*` para optimizar el rendimiento y el tamaño de la aplicación. Para elementos interactivos comunes (diálogos/modales, interruptores, sliders dobles, acordeones), se deben utilizar componentes ligeros basados en HTML5 nativo y CSS personalizado en lugar de librerías externas.
 
 ---
 

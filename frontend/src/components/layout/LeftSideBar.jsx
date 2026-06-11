@@ -1,5 +1,4 @@
-import React from 'react';
-import * as Accordion from '@radix-ui/react-accordion';
+import React, { useState } from 'react';
 import { ChevronDown, Filter, BarChart } from 'lucide-react';
 import FilterForm from '../filters/FilterForm';
 import FilterFormWrapper from '../filters/FilterFormWrapper';
@@ -46,6 +45,13 @@ const accordionStyles = {
 const LeftSideBar = () => {
   const { visibleComponents } = useData();
   const { zIndex, handleClick } = useZIndex('left-sidebar');
+  
+  // Custom accordion state
+  const [openSection, setOpenSection] = useState('filters'); // 'filters', 'stats', or null
+
+  const toggleSection = (section) => {
+    setOpenSection(prev => (prev === section ? null : section));
+  };
 
   return (
     <div 
@@ -66,41 +72,63 @@ const LeftSideBar = () => {
       }}
     >
       <FilterFormWrapper />
-      <Accordion.Root 
-        type="single" 
-        defaultValue="filters"
-        collapsible
-      >
+      <div>
         {visibleComponents.filterForm && (
-          <Accordion.Item style={accordionStyles.item} value="filters">
-            <Accordion.Trigger style={accordionStyles.trigger}>
+          <div style={accordionStyles.item}>
+            <button 
+              type="button"
+              onClick={() => toggleSection('filters')}
+              style={accordionStyles.trigger}
+              aria-expanded={openSection === 'filters'}
+            >
               <div style={accordionStyles.triggerIcon}>
                 <Filter size={16} />
                 Filtros
               </div>
-              <ChevronDown style={accordionStyles.chevron} aria-hidden />
-            </Accordion.Trigger>
-            <Accordion.Content style={accordionStyles.content}>
-              <FilterForm />
-            </Accordion.Content>
-          </Accordion.Item>
+              <ChevronDown 
+                style={{
+                  ...accordionStyles.chevron,
+                  transform: openSection === 'filters' ? 'rotate(180deg)' : 'rotate(0deg)'
+                }} 
+                aria-hidden 
+              />
+            </button>
+            {openSection === 'filters' && (
+              <div style={accordionStyles.content}>
+                <FilterForm />
+              </div>
+            )}
+          </div>
         )}
         
         {visibleComponents.currentState && (
-          <Accordion.Item style={accordionStyles.item} value="stats">
-            <Accordion.Trigger style={accordionStyles.trigger}>
+          <div style={accordionStyles.item}>
+            <button 
+              type="button"
+              onClick={() => toggleSection('stats')}
+              style={accordionStyles.trigger}
+              aria-expanded={openSection === 'stats'}
+            >
               <div style={accordionStyles.triggerIcon}>
                 <BarChart size={16} />
                 Estadísticas
               </div>
-              <ChevronDown style={accordionStyles.chevron} aria-hidden />
-            </Accordion.Trigger>
-            <Accordion.Content style={accordionStyles.content}>
-              <FilteredStats />
-            </Accordion.Content>
-          </Accordion.Item>
+              <ChevronDown 
+                style={{
+                  ...accordionStyles.chevron,
+                  transform: openSection === 'stats' ? 'rotate(180deg)' : 'rotate(0deg)'
+                }} 
+                aria-hidden 
+              />
+            </button>
+            {openSection === 'stats' && (
+              <div style={accordionStyles.content}>
+                <FilteredStats />
+              </div>
+            )}
+          </div>
         )}
-      </Accordion.Root>
+      </div>
     </div>
   );
 };
