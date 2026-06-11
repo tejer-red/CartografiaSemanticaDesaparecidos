@@ -15,6 +15,8 @@ const SideNotebook = ({
   setFetchForense,
   fetchFosas,
   setFetchFosas,
+  fetchNoticias,
+  setFetchNoticias,
 }) => {
   const [open, setOpen] = useState(false);
   const { zIndex, handleClick } = useZIndex('side-notebook');
@@ -83,6 +85,8 @@ const SideNotebook = ({
               setFetchForense={setFetchForense}
               fetchFosas={fetchFosas}
               setFetchFosas={setFetchFosas}
+              fetchNoticias={fetchNoticias}
+              setFetchNoticias={setFetchNoticias}
             />
           </div>
           <div

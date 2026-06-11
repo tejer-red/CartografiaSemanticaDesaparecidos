@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('Map');
+
+
 function Map() {
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -15,7 +19,7 @@ function Map() {
 
       // Add an event listener to confirm map initialization
       map.current.on('load', () => {
-        console.log('Map has been initialized');
+        logger.log('Map has been initialized');
       });
     }
 

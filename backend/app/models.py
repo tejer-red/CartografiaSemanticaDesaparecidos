@@ -126,6 +126,7 @@ class Noticia(Base):
     url = Column(String(1000), nullable=False)
     titular = Column(String(500), nullable=False)
     fecha = Column(Date, nullable=True)
+    coordenadas = Column(String(100), nullable=True)
 
     caso_id = Column(String(36), ForeignKey('cedulas_anonimizadas.id_cedula_busqueda', ondelete='CASCADE'), nullable=True)
     fosa_id = Column(Integer, ForeignKey('fosas.id', ondelete='CASCADE'), nullable=True)

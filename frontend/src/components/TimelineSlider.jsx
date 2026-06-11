@@ -3,6 +3,10 @@ import { useTimelineSlider } from '../utils/timeLineSlider';
 import { useData } from '../context/DataContext';
 import { ArrowLeft, ArrowRight, Play, Pause, Turtle, Rabbit, ArrowRightCircle, Square } from 'lucide-react';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('TimelineSlider');
+
+
 const TimelineSlider = () => {
   const { timelinePanelOpen } = useData();
   const {
@@ -23,7 +27,7 @@ const TimelineSlider = () => {
   // Add this useEffect to handle initial date selection
   useEffect(() => {
     if (timelineData && timelineData.length > 0 && !selectedDate && minDate) {
-      console.log('TimelineSlider: Setting initial date to:', minDate);
+      logger.log('TimelineSlider: Setting initial date to:', minDate);
       handleDateChange(minDate);
     }
   }, [timelineData, minDate, selectedDate, handleDateChange]);

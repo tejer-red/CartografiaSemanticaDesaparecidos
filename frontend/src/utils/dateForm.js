@@ -1,5 +1,9 @@
 import { useState } from 'react';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('dateForm');
+
+
 export function useDateForm({ startDate, endDate, setStartDate, setEndDate, handleSubmit }) {
   const [localStartDate, setLocalStartDate] = useState(startDate);
   const [localEndDate, setLocalEndDate] = useState(endDate);
@@ -9,7 +13,7 @@ export function useDateForm({ startDate, endDate, setStartDate, setEndDate, hand
     e.preventDefault();
     setStartDate(localStartDate);
     setEndDate(localEndDate);
-    console.log('DateForm: Updated startDate and endDate:', {
+    logger.log('DateForm: Updated startDate and endDate:', {
       startDate: localStartDate,
       endDate: localEndDate,
     });

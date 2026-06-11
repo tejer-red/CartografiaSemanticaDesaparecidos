@@ -5,6 +5,10 @@ import { API_BASE_URL } from '../config';
 import { MapPin, Download, BookOpen } from 'lucide-react';
 import NotebookListModal from './NotebookListModal';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('InitialModal');
+
+
 const InitialModal = ({
   handleSubmit,
   fetchCedulas,
@@ -13,6 +17,8 @@ const InitialModal = ({
   setFetchForense,
   fetchFosas,
   setFetchFosas,
+  fetchNoticias,
+  setFetchNoticias,
   isNotebookRoute,
   listNotebooksApp,
 }) => {
@@ -30,7 +36,7 @@ const InitialModal = ({
   }, [startDate, endDate]);
 
   useEffect(() => {
-    console.log(`Estás en modo: ${isNotebookRoute ? 'Edición de cuaderno' : 'Nuevo cuaderno'}`);
+    logger.log(`Estás en modo: ${isNotebookRoute ? 'Edición de cuaderno' : 'Nuevo cuaderno'}`);
   }, [isNotebookRoute]);
 
   const handleFormSubmit = useCallback(async (e) => {
@@ -51,7 +57,7 @@ const InitialModal = ({
         setShowingNotebooks(true);
       }
     } catch (error) {
-      console.error('Error fetching notebooks:', error);
+      logger.error('Error fetching notebooks:', error);
     }
   };
 
@@ -149,6 +155,14 @@ const InitialModal = ({
                       />
                       Obtener Fosas
                     </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={fetchNoticias}
+                        onChange={(e) => setFetchNoticias(e.target.checked)}
+                      />
+                      Obtener Noticias
+                    </label>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                     <button
@@ -221,7 +235,7 @@ const InitialModal = ({
               setIsModalOpen={setShowingNotebooks}
               notebookList={notebooks}
               onSelectNotebook={(notebook) => {
-                console.log('Selected notebook:', notebook);
+                logger.log('Selected notebook:', notebook);
                 window.location.href = `/dist/cuaderno/${notebook.id}`;
               }}
               inDialog={true}

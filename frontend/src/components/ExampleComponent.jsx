@@ -3,6 +3,10 @@ import axios from 'axios';
 import { useData } from '../DataContext';
 import { API_BASE_URL } from '../config';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('ExampleComponent');
+
+
 const ExampleComponent = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,7 +31,7 @@ const ExampleComponent = () => {
 
                 const fetchedRecords = records.map((record) => {
                     const [lat, lon] = record.lat_long ? record.lat_long.split(',').map(coord => parseFloat(coord)) : [null, null];
-                    console.log(`Fetched record ID: ${record.id_cedula_busqueda}, Lat: ${lat}, Lon: ${lon}`);
+                    logger.log(`Fetched record ID: ${record.id_cedula_busqueda}, Lat: ${lat}, Lon: ${lon}`);
                     return {
                         ...record,
                         lat,
@@ -59,18 +63,18 @@ const ExampleComponent = () => {
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error: {error.message}</p>;
 
-    console.log('Fetched Data:', data);
-    console.log('Map instance:', map);
-    console.log('Fetched Records:', fetchedRecords);
-    console.log('Forense Records:', forenseRecords);
-    console.log('Markers:', markers);
-    console.log('Forense Markers:', forenseMarkers);
-    console.log('Heatmap Layer:', heatmapLayer);
-    console.log('Marker Cluster Group:', markerClusterGroup);
-    console.log('Timeline Data:', timelineData);
-    console.log('Timeline:', timeline);
-    console.log('Timeline Control:', timelineControl);
-    console.log('Marker Colors:', COLORS);
+    logger.log('Fetched Data:', data);
+    logger.log('Map instance:', map);
+    logger.log('Fetched Records:', fetchedRecords);
+    logger.log('Forense Records:', forenseRecords);
+    logger.log('Markers:', markers);
+    logger.log('Forense Markers:', forenseMarkers);
+    logger.log('Heatmap Layer:', heatmapLayer);
+    logger.log('Marker Cluster Group:', markerClusterGroup);
+    logger.log('Timeline Data:', timelineData);
+    logger.log('Timeline:', timeline);
+    logger.log('Timeline Control:', timelineControl);
+    logger.log('Marker Colors:', COLORS);
 
     return (
         <div>

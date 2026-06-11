@@ -1,5 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('filterForm');
+
+
 // Add debounce utility
 function useDebounce(callback, delay) {
   const timeoutRef = useRef(null);
@@ -32,7 +36,7 @@ export function useFilterFormHandlers(dataContext) {
     const { value, checked } = e.target;
     setSelectedSexo((prev) => {
       const updated = checked ? [...prev, value] : prev.filter((item) => item !== value);
-      console.log(`[FilterForm] Sexo filter updated:`, updated);
+      logger.log(`[FilterForm] Sexo filter updated:`, updated);
       return updated;
     });
   };
@@ -42,7 +46,7 @@ export function useFilterFormHandlers(dataContext) {
     const { value, checked } = e.target;
     setSelectedCondicion((prev) => {
       const updated = checked ? [...prev, value] : prev.filter((item) => item !== value);
-      console.log(`[FilterForm] Condición filter updated:`, updated);
+      logger.log(`[FilterForm] Condición filter updated:`, updated);
       return updated;
     });
   };
@@ -52,7 +56,7 @@ export function useFilterFormHandlers(dataContext) {
     const { value, checked } = e.target;
     setSelectedMarkerTypes((prev) => {
       const updated = checked ? [...prev, value] : prev.filter((item) => item !== value);
-      console.log(`[FilterForm] Marker type filter updated:`, updated);
+      logger.log(`[FilterForm] Marker type filter updated:`, updated);
       return updated;
     });
   };
@@ -65,7 +69,7 @@ export function useFilterFormHandlers(dataContext) {
 
   // Handler para rango de edad con actualización visual inmediata
   const handleEdadRangeChange = (values) => {
-    console.log('[FilterForm] Handling edad range change:', values);
+    logger.log('[FilterForm] Handling edad range change:', values);
     // Actualización visual inmediata
     setEdadRange(values);
     // Solo actualizar el mapa si hay una fecha seleccionada
@@ -83,7 +87,7 @@ export function useFilterFormHandlers(dataContext) {
 
   // Handler para rango de score con actualización visual inmediata
   const handleSumScoreRangeChange = (values) => {
-    console.log('[FilterForm] Handling sum score change:', values);
+    logger.log('[FilterForm] Handling sum score change:', values);
     // Actualización visual inmediata
     setsumScoreRange(values);
     // Solo actualizar el mapa si hay una fecha seleccionada
@@ -127,7 +131,7 @@ export function useFilterFormEffects(dataContext) {
     // Inicialización de filtros después del slider de tiempo
     if (selectedDate && daysRange !== undefined) {
       if (!filtersInitialized.current) {
-        console.log('[FilterForm] Initializing filters after time slider is set...');
+        logger.log('[FilterForm] Initializing filters after time slider is set...');
         filtersInitialized.current = true;
       }
       applyFilters();
@@ -136,7 +140,7 @@ export function useFilterFormEffects(dataContext) {
     // Aplica los filtros al mapa
     function applyFilters() {
       if (!map || !filtersInitialized.current) return;
-      console.log('[FilterForm] Applying filters with:', {
+      logger.log('[FilterForm] Applying filters with:', {
         selectedDate,
         daysRange,
         selectedSexo,

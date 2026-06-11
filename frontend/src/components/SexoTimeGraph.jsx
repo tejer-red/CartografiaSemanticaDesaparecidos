@@ -2,6 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useData } from '../context/DataContext';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('SexoTimeGraph');
+
+
 const SexoTimeGraph = () => {
   const { map, COLORS } = useData();
   const [timeScale, setTimeScale] = useState('daily');
@@ -20,7 +24,7 @@ const SexoTimeGraph = () => {
         return source?._data?.features || [];
       });
 
-    console.log('Map Features:', features);
+    logger.log('Map Features:', features);
 
     features.forEach(feature => {
       const timestamp = feature.properties?.timestamp;

@@ -3,6 +3,10 @@ import axios from 'axios';
 import { useData } from '../context/DataContext';
 import { API_BASE_URL } from '../config';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('FetchCedulas');
+
+
 const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
   const {
     startDate,
@@ -24,7 +28,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
   useEffect(() => {
     const fetchData = async (start_date, end_date) => {
       if (!fetchCedulas || !mapLoaded || !map) {  // Add mapLoaded check
-        console.log('Map not ready or fetch not enabled');
+        logger.log('Map not ready or fetch not enabled');
         return;
       }
 
@@ -72,11 +76,11 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
         if (map && map.isStyleLoaded()) {
           updateLayerData('cedulaLayer', geojsonData, sexoLayout);
         } else {
-          console.error('Map is not initialized or style is not loaded');
+          logger.error('Map is not initialized or style is not loaded');
         }
-        console.log('Fetched Cedulas records:', formattedRecordsCedula);
+        logger.log('Fetched Cedulas records:', formattedRecordsCedula);
       } catch (error) {
-        console.error("Error fetching Cedulas data:", error);
+        logger.error("Error fetching Cedulas data:", error);
       } finally {
         setLoading(false);
         onFetchComplete?.();
@@ -84,7 +88,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
     };
 
     if (fetchCedulas && fetchId) {
-      console.log('FetchCedulas: Using startDate and endDate for fetching:', {
+      logger.log('FetchCedulas: Using startDate and endDate for fetching:', {
         startDate,
         endDate,
       });

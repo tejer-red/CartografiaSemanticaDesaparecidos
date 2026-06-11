@@ -4,6 +4,10 @@ import { useData } from '../context/DataContext';
 import getFilteredFeatures from '../context/FilteredFeatures';
 import '../App.css'; // Ensure App.css is imported
 
+import createLogger from '../utils/logger';
+const logger = createLogger('TimeGraph');
+
+
 const TimeGraph = () => {
   const { 
     selectedDate,
@@ -36,7 +40,7 @@ const TimeGraph = () => {
     const features = getFilteredFeatures(map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange)
       .filter(feature => feature.properties.tipo_marcador === 'cedula_busqueda');
 
-    //console.log('Retrieved Features:', features);
+    //logger.log('Retrieved Features:', features);
 
     const startDate = new Date(selectedDate);
     const endDate = new Date(selectedDate);
@@ -85,7 +89,7 @@ const TimeGraph = () => {
       })
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    //console.log('Processed Data:', result);
+    //logger.log('Processed Data:', result);
     return result;
   }, [map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange]);
 

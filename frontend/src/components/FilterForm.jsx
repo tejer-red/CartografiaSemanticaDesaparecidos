@@ -132,6 +132,15 @@ const FilterForm = () => {
           />
           Fosa Clandestina
         </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            type="checkbox"
+            value="noticia"
+            checked={selectedMarkerTypes.includes("noticia")}
+            onChange={handleMarkerTypeChange}
+          />
+          Reporte de Prensa
+        </label>
       </fieldset>
 
       {/* Filtros de Edad */}

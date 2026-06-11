@@ -3,6 +3,10 @@ import { useData } from '../context/DataContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('MapComponent');
+
+
 const MapComponent = () => {
   const { map, setMap, setMapLoaded } = useData();
   const mapContainer = useRef(null);
@@ -23,12 +27,12 @@ const MapComponent = () => {
 
         // Handle WebGL context events
         newMap.on('webglcontextlost', () => {
-          console.log('WebGL context lost');
+          logger.log('WebGL context lost');
           contextLostRef.current = true;
         });
 
         newMap.on('webglcontextrestored', () => {
-          console.log('WebGL context restored');
+          logger.log('WebGL context restored');
           contextLostRef.current = false;
         });
 
@@ -39,10 +43,10 @@ const MapComponent = () => {
         newMap.on('style.load', () => {
           setMap(newMap);
           setMapLoaded(true); // Set mapLoaded to true when style is loaded
-          console.log('Map and style loaded successfully');
+          logger.log('Map and style loaded successfully');
         });
       } catch (error) {
-        console.error("Error initializing map:", error);
+        logger.error("Error initializing map:", error);
       }
     }
 

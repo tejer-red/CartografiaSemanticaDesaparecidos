@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('timeLineSlider');
+
+
 export const useTimelineSlider = () => {
   const {
     selectedDate,
@@ -68,7 +72,7 @@ export const useTimelineSlider = () => {
       
       // Force selectedDate to the minimum date of the timeline
       setSelectedDate(min);
-      console.log('TimelineSlider: Initial date set to:', min);
+      logger.log('TimelineSlider: Initial date set to:', min);
     }
   }, [timelineData, setSelectedDate]);
 

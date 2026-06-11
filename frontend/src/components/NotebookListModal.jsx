@@ -2,6 +2,10 @@ import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('NotebookListModal');
+
+
 const NotebookListModal = ({
   isModalOpen,
   setIsModalOpen,
@@ -28,7 +32,7 @@ const NotebookListModal = ({
               alignItems: "center",
             }}
             onClick={() => {
-              console.log("Selected notebook:", notebook);
+              logger.log("Selected notebook:", notebook);
               window.location.href = `/dist/cuaderno/${notebook}`;
             }}
           >
@@ -55,7 +59,7 @@ const NotebookListModal = ({
     </>
   );
 
-  console.log(notebookList);
+  logger.log(notebookList);
 
   if (inDialog) {
     return <ModalContent />;

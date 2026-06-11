@@ -16,6 +16,8 @@ const AppLayout = ({
   setFetchForense,
   fetchFosas,
   setFetchFosas,
+  fetchNoticias,
+  setFetchNoticias,
   isNotebookRoute,
   listNotebooksApp
 }) => {
@@ -45,6 +47,8 @@ const AppLayout = ({
         setFetchForense={setFetchForense}
         fetchFosas={fetchFosas}
         setFetchFosas={setFetchFosas}
+        fetchNoticias={fetchNoticias}
+        setFetchNoticias={setFetchNoticias}
         listNotebooksApp={listNotebooksApp}
       />
       <LeftSideBar 
@@ -61,6 +65,8 @@ const AppLayout = ({
         setFetchForense={setFetchForense}
         fetchFosas={fetchFosas}
         setFetchFosas={setFetchFosas}
+        fetchNoticias={fetchNoticias}
+        setFetchNoticias={setFetchNoticias}
         onMouseEnter={() => handlePanelHover('sideNotebook')}
         onMouseLeave={() => handlePanelHover(null)}
         style={getPanelStyle('sideNotebook')}

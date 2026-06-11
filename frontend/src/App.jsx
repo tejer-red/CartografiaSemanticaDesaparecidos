@@ -5,16 +5,22 @@ import { API_BASE_URL, USE_PASSWORD } from './config';
 import FetchCedulas from './components/FetchCedulas';
 import FetchForense from './components/FetchForense';
 import FetchFosas from './components/FetchFosas';
+import FetchNoticias from './components/FetchNoticias';
 import MapComponent from './components/MapComponent';
 import PasswordCheck from './components/PasswordCheck';
 import AppLayout from './components/AppLayout';
 import './styles/FilterForm.css'; // Import FilterForm styles
+
+import createLogger from './utils/logger';
+const logger = createLogger('App');
+
 
 
 const App = () => {
   const [fetchCedulas, setFetchCedulas] = useState(true);
   const [fetchForense, setFetchForense] = useState(true);
   const [fetchFosas, setFetchFosas] = useState(true);
+  const [fetchNoticias, setFetchNoticias] = useState(true);
   const [fetchId, setFetchId] = useState(0);
   const [isFormsVisible, setIsFormsVisible] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!USE_PASSWORD);
@@ -31,6 +37,7 @@ const App = () => {
     setVisibleComponents,
     mapType,
     colorScheme,
+    setTimelineData,
   } = useData(); // Use DataContext for shared state
 
   // State for NotebookLoad modal in Tab 5
@@ -39,41 +46,41 @@ const App = () => {
 
   // Debug-enabled listNotebooks for Tab 5
   const listNotebooksApp = async () => {
-    console.log('Tab5: listNotebooks called');
+    logger.log('Tab5: listNotebooks called');
     try {
       const response = await fetch(`${API_BASE_URL}/notebooks`);
       if (!response.ok) throw new Error('Failed to fetch notebooks');
       const data = await response.json();
-      console.log('Tab5: listNotebooks response', data);
+      logger.log('Tab5: listNotebooks response', data);
       if (data.success) {
         setNotebookList(data.notebooks);
         setIsNotebookModalOpen(true);
-        console.log('Tab5: Modal should open now');
+        logger.log('Tab5: Modal should open now');
       } else {
         alert('No notebooks found.');
       }
     } catch (error) {
       alert('Error fetching notebooks.');
-      console.error('Tab5: Error fetching notebooks:', error);
+      logger.error('Tab5: Error fetching notebooks:', error);
     }
   };
 
   useEffect(() => {
-    console.log('App received visibleComponents:', visibleComponents);
-    console.log('setVisibleComponents is:', typeof setVisibleComponents);
+    logger.log('App received visibleComponents:', visibleComponents);
+    logger.log('setVisibleComponents is:', typeof setVisibleComponents);
   }, [visibleComponents, setVisibleComponents]);
 
   useEffect(() => {
-    console.log('isFormsVisible state updated:', isFormsVisible);
+    logger.log('isFormsVisible state updated:', isFormsVisible);
   }, [isFormsVisible]);
 
   // check changes in start and end date
   useEffect(() => {
-    console.log('App: startDate updated:', startDate);
+    logger.log('App: startDate updated:', startDate);
   }, [startDate]);
 
   useEffect(() => {
-    console.log('App: endDate updated:', endDate);
+    logger.log('App: endDate updated:', endDate);
   }, [endDate]);
 
   useEffect(() => {
@@ -83,7 +90,7 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    console.log('App: Context values from useData():', {
+    logger.log('App: Context values from useData():', {
       startDate,
       endDate,
       visibleComponents,
@@ -93,7 +100,8 @@ const App = () => {
   }, [startDate, endDate, visibleComponents, mapType, colorScheme]);
 
   const handleDateSelect = (start, end) => {
-    console.log('Date selected in GlobalTimeGraph:', { start, end });
+    logger.log('Date selected in GlobalTimeGraph:', { start, end });
+    setTimelineData([]); // Clear previous timeline data
     setStartDate(start); // Update via DataContext
     setEndDate(end);     // Update via DataContext
     setFetchId(prev => prev + 1);
@@ -101,35 +109,36 @@ const App = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Form submitted');
+    logger.log('Form submitted');
+    setTimelineData([]); // Clear previous timeline data
     setLoading(true);
     setFetchId(prev => prev + 1); // Increment the fetchId to trigger useEffect in child components
-    console.log('Fetch ID incremented:', fetchId + 1);
+    logger.log('Fetch ID incremented:', fetchId + 1);
   };
 
   const handleFetchComplete = () => {
-    console.log('Fetch complete');
+    logger.log('Fetch complete');
     setLoading(false);
   };
 
   const toggleFormsVisibility = () => {
-    console.log('Toggling forms visibility. Current state:', isFormsVisible);
+    logger.log('Toggling forms visibility. Current state:', isFormsVisible);
     setIsFormsVisible(!isFormsVisible);
-    console.log('New forms visibility state:', !isFormsVisible);
+    logger.log('New forms visibility state:', !isFormsVisible);
   };
 
   const toggleComponent = (component) => {
-    console.log('Toggling component:', component);
-    console.log('Current state before toggle:', visibleComponents);
+    logger.log('Toggling component:', component);
+    logger.log('Current state before toggle:', visibleComponents);
 
     if (typeof setVisibleComponents === 'function') {
       setVisibleComponents(prev => {
         const updated = { ...prev, [component]: !prev[component] };
-        console.log('New visibility state after toggle:', updated);
+        logger.log('New visibility state after toggle:', updated);
         return updated;
       });
     } else {
-      console.error('setVisibleComponents is not a function!');
+      logger.error('setVisibleComponents is not a function!');
     }
   };
 
@@ -162,6 +171,11 @@ const App = () => {
               fetchId={fetchId}
               onFetchComplete={handleFetchComplete}
             />
+            <FetchNoticias
+              fetchNoticias={fetchNoticias}
+              fetchId={fetchId}
+              onFetchComplete={handleFetchComplete}
+            />
           </div>
           <div className="Map">
             <MapComponent />
@@ -182,6 +196,8 @@ const App = () => {
                     setFetchForense={setFetchForense}
                     fetchFosas={fetchFosas}
                     setFetchFosas={setFetchFosas}
+                    fetchNoticias={fetchNoticias}
+                    setFetchNoticias={setFetchNoticias}
                     listNotebooksApp={listNotebooksApp}
                   />
                 } />
@@ -198,6 +214,8 @@ const App = () => {
                     setFetchForense={setFetchForense}
                     fetchFosas={fetchFosas}
                     setFetchFosas={setFetchFosas}
+                    fetchNoticias={fetchNoticias}
+                    setFetchNoticias={setFetchNoticias}
                     listNotebooksApp={listNotebooksApp}
                   />
                 } />

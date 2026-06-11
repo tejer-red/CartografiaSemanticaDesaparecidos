@@ -7,6 +7,10 @@ import { useData } from '../context/DataContext';
 import getFilteredFeatures from '../context/FilteredFeatures';
 import React from 'react';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('semanticGraphUtils');
+
+
 const COLORS = {
   TERM: '#8884d8',
   CASE: '#82ca9d'
@@ -30,7 +34,7 @@ function LoadGraph({ graph }) {
         loadGraph(graph);
       }
     } catch (error) {
-      console.error('Error loading graph:', error);
+      logger.error('Error loading graph:', error);
     }
   }, [graph, loadGraph]);
   return null;

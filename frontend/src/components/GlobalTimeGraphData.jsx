@@ -11,6 +11,9 @@ import {
   handleDateClick
 } from '../utils/globalTimeGraph.jsx';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('GlobalTimeGraphData');
+
 const GlobalTimeGraphData = ({
   map,
   COLORS,
@@ -26,19 +29,19 @@ const GlobalTimeGraphData = ({
     if (!map) return;
     const processed = processMapData(map, timeScale);
     const range = calculateDateRange(selectedDate, timeScale);
-    console.log('GlobalTimeGraphData: processMapData', processed);
-    console.log('GlobalTimeGraphData: calculateDateRange', range);
-    console.log('GlobalTimeGraphData: CustomTooltip', CustomTooltip);
-    console.log('GlobalTimeGraphData: handleTimeScaleChange', handleTimeScaleChange);
-    console.log('GlobalTimeGraphData: handleDateClick', handleDateClick);
-    console.log('GlobalTimeGraphData: map', map);
-    console.log('GlobalTimeGraphData: COLORS', COLORS);
-    console.log('GlobalTimeGraphData: selectedDate', selectedDate);
-    console.log('GlobalTimeGraphData: timeScale', timeScale);
-    console.log('GlobalTimeGraphData: setSelectedDate', setSelectedDate);
-    console.log('GlobalTimeGraphData: setTimeScale', setTimeScale);
-    console.log('GlobalTimeGraphData: newDataFetched', newDataFetched);
-    console.log('GlobalTimeGraphData: newForenseDataFetched', newForenseDataFetched);
+    logger.log('GlobalTimeGraphData: processMapData', processed);
+    logger.log('GlobalTimeGraphData: calculateDateRange', range);
+    logger.log('GlobalTimeGraphData: CustomTooltip', CustomTooltip);
+    logger.log('GlobalTimeGraphData: handleTimeScaleChange', handleTimeScaleChange);
+    logger.log('GlobalTimeGraphData: handleDateClick', handleDateClick);
+    logger.log('GlobalTimeGraphData: map', map);
+    logger.log('GlobalTimeGraphData: COLORS', COLORS);
+    logger.log('GlobalTimeGraphData: selectedDate', selectedDate);
+    logger.log('GlobalTimeGraphData: timeScale', timeScale);
+    logger.log('GlobalTimeGraphData: setSelectedDate', setSelectedDate);
+    logger.log('GlobalTimeGraphData: setTimeScale', setTimeScale);
+    logger.log('GlobalTimeGraphData: newDataFetched', newDataFetched);
+    logger.log('GlobalTimeGraphData: newForenseDataFetched', newForenseDataFetched);
   }, [
     map,
     COLORS,

@@ -29,6 +29,10 @@ import SemanticGraph from './SemanticGraph';
 import NotebookLoad from './NotebookLoad';
 import { useData } from '../context/DataContext';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('HeaderPanel');
+
+
 const tabDefs = [
   { key: "tab1", icon: <Calendar />, label: "Fechas" },
   { key: "tab2", icon: <LayoutDashboard />, label: "Layout" },
@@ -177,10 +181,10 @@ const HeaderPanel = ({
           <div style={{ padding: 16 }}>
             <NotebookLoad
               saveNotesToBackend={() => {
-                console.log("Tab5: saveNotesToBackend called");
+                logger.log("Tab5: saveNotesToBackend called");
               }}
               loadNotesFromBackend={() => {
-                console.log("Tab5: loadNotesFromBackend called");
+                logger.log("Tab5: loadNotesFromBackend called");
               }}
               listNotebooks={listNotebooksApp}
               isModalOpen={isNotebookModalOpen}

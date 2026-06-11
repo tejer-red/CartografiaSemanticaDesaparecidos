@@ -7,6 +7,10 @@ import { useData } from '../context/DataContext';
 import { Timer } from 'lucide-react';
 import { useZIndex } from '../utils/useZIndex';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('BottomTimelinePanel');
+
+
 const PANEL_HEIGHT = 300;
 
 const BottomTimelinePanel = () => {
@@ -21,7 +25,7 @@ const BottomTimelinePanel = () => {
   const { zIndex, handleClick } = useZIndex('bottom-timeline');
 
   const handleDateSelect = (start, end) => {
-    console.log('Date selected in GlobalTimeGraph:', { start, end });
+    logger.log('Date selected in GlobalTimeGraph:', { start, end });
     setStartDate(start);
     setEndDate(end);
   };

@@ -12,6 +12,10 @@ import FilterForm from './FilterForm';
 import FilteredStats from './FilteredStats';
 import SemanticGraph from './SemanticGraph';
 import NotebookLoad from './NotebookLoad';
+
+import createLogger from '../utils/logger';
+const logger = createLogger('TabsComponent');
+
  
 const TabsComponent = ({
   toolbarTab,
@@ -151,10 +155,10 @@ const TabsComponent = ({
           <div style={{ padding: 16 }}>
             <NotebookLoad
               saveNotesToBackend={() => {
-                console.log("Tab5: saveNotesToBackend called");
+                logger.log("Tab5: saveNotesToBackend called");
               }}
               loadNotesFromBackend={() => {
-                console.log("Tab5: loadNotesFromBackend called");
+                logger.log("Tab5: loadNotesFromBackend called");
               }}
               listNotebooks={listNotebooksApp}
               isModalOpen={isNotebookModalOpen}

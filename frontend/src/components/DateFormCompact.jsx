@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { Calendar, Download } from 'lucide-react'; // Replace FontAwesome with Lucide
 import { Box, Heading } from '@radix-ui/themes';
 
-const DateFormCompact = ({ handleSubmit, fetchCedulas, setFetchCedulas, fetchForense, setFetchForense, loading: loadingProp }) => {
+const DateFormCompact = ({ handleSubmit, fetchCedulas, setFetchCedulas, fetchForense, setFetchForense, fetchFosas, setFetchFosas, fetchNoticias, setFetchNoticias, loading: loadingProp }) => {
   const { startDate, endDate, setStartDate, setEndDate, loading: loadingContext } = useData();
 
   // Always use loading from context unless explicitly passed as prop

@@ -1,6 +1,10 @@
 import React, { useEffect } from 'react';
 import { useData } from '../context/DataContext';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('FetchForense');
+
+
 const FetchForense = ({ fetchForense, fetchId, onFetchComplete }) => {
   const { 
     map, 
@@ -12,7 +16,7 @@ const FetchForense = ({ fetchForense, fetchId, onFetchComplete }) => {
   useEffect(() => {
     const fetchData = async () => {
       if (!fetchForense || !mapLoaded || !map) {
-        console.log('Map not ready or fetch not enabled');
+        logger.log('Map not ready or fetch not enabled');
         return;
       }
 
@@ -20,7 +24,7 @@ const FetchForense = ({ fetchForense, fetchId, onFetchComplete }) => {
         // ...existing fetch code...
 
       } catch (error) {
-        console.error('Error fetching forense:', error);
+        logger.error('Error fetching forense:', error);
       } finally {
         onFetchComplete?.();
       }

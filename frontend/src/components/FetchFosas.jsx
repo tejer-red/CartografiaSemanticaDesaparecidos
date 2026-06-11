@@ -3,6 +3,10 @@ import axios from 'axios';
 import { useData } from '../context/DataContext';
 import { API_BASE_URL } from '../config';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('FetchFosas');
+
+
 const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
   const {
     startDate,
@@ -30,7 +34,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
       }
 
       if (!mapLoaded || !map) {
-        console.log('Map not ready');
+        logger.log('Map not ready');
         return;
       }
 
@@ -45,14 +49,16 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         });
 
         const records = response.data || [];
-        const formattedRecords = records.map(record => {
-          const [lat, lon] = record.coordenadas ? record.coordenadas.split(',').map(coord => parseFloat(coord)) : [null, null];
-          return {
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [lon, lat]
-            },
+        const formattedRecords = records
+          .filter(record => record.coordenadas)
+          .map(record => {
+            const [lat, lon] = record.coordenadas.split(',').map(coord => parseFloat(coord));
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [lon, lat]
+              },
             properties: {
               ...record,
               timestamp: (() => {
@@ -86,11 +92,11 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         if (map && map.isStyleLoaded()) {
           updateLayerData('fosaLayer', geojsonData, fosasLayout);
         } else {
-          console.error('Map is not initialized or style is not loaded');
+          logger.error('Map is not initialized or style is not loaded');
         }
-        console.log('Fetched Fosas records:', formattedRecords);
+        logger.log('Fetched Fosas records:', formattedRecords);
       } catch (error) {
-        console.error("Error fetching Fosas data:", error);
+        logger.error("Error fetching Fosas data:", error);
       } finally {
         setLoading(false);
         onFetchComplete?.();
@@ -98,7 +104,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
     };
 
     if (fetchId) {
-      console.log('FetchFosas: fetching graves...');
+      logger.log('FetchFosas: fetching graves...');
       fetchData(startDate, endDate);
     }
   }, [fetchId, fetchFosas, map, mapLoaded, startDate, endDate]);

@@ -1,3 +1,7 @@
+
+import createLogger from '../utils/logger';
+const logger = createLogger('FilteredFeatures');
+
 const getFilteredFeatures = (map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {
     if (!map || !selectedDate) return [];
   
@@ -27,14 +31,14 @@ const getFilteredFeatures = (map, selectedDate, daysRange, selectedSexo, selecte
   
     const combinedFilter = ['all', ...attributeFilters, ...dateFilters];
   
-    console.log('Combined Filter:', combinedFilter);
+    logger.log('Combined Filter:', combinedFilter);
   
     // Query the features from the map using the combined filter
     const filteredFeatures = map.querySourceFeatures('cedulaLayer', {
       filter: combinedFilter
     });
   
-    console.log('Filtered Features:', filteredFeatures);
+    logger.log('Filtered Features:', filteredFeatures);
   
     return filteredFeatures;
   };

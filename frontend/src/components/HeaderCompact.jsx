@@ -1,16 +1,20 @@
 import React, { useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('HeaderCompact');
+
+
 const HeaderCompact = ({ visibleComponents, toggleComponent }) => {
   const { id } = useParams();
   const location = useLocation();
   const currentTimestamp = Date.now();
 
   useEffect(() => {
-    console.log('HeaderCompact - Current location:', location);
-    console.log('HeaderCompact - Route params:', { id });
-    console.log('HeaderCompact - Full pathname:', location.pathname);
-    console.log('HeaderCompact - Route match:', location.pathname.includes("/cuaderno/"));
+    logger.log('HeaderCompact - Current location:', location);
+    logger.log('HeaderCompact - Route params:', { id });
+    logger.log('HeaderCompact - Full pathname:', location.pathname);
+    logger.log('HeaderCompact - Route match:', location.pathname.includes("/cuaderno/"));
   }, [location, id]);
 
   return (

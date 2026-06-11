@@ -1,5 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
+import * as layerManager from './layerManager';
+
+import createLogger from '../utils/logger';
+const logger = createLogger('DataContext');
+
 
 const DataContext = createContext();
 
@@ -39,7 +44,8 @@ export const DataProvider = ({ children }) => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [timelineVelocity, setTimelineVelocity] = useState(1000);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [selectedMarkerTypes, setSelectedMarkerTypes] = useState(['cedula_busqueda', 'fosa']);
+  const [selectedMarkerTypes, setSelectedMarkerTypes] = useState(['cedula_busqueda', 'fosa', 'noticia']);
+  const layerDataRef = useRef(new Map());
 
   useEffect(() => {
     if (!map) return;
@@ -50,7 +56,7 @@ export const DataProvider = ({ children }) => {
         map.setLayoutProperty('cedulaLayer', 'visibility', visible);
       }
     } catch (e) {
-      console.warn('Error setting visibility for cedulaLayer', e);
+      logger.warn('Error setting visibility for cedulaLayer', e);
     }
 
     try {
@@ -59,12 +65,21 @@ export const DataProvider = ({ children }) => {
         map.setLayoutProperty('fosaLayer', 'visibility', visible);
       }
     } catch (e) {
-      console.warn('Error setting visibility for fosaLayer', e);
+      logger.warn('Error setting visibility for fosaLayer', e);
+    }
+
+    try {
+      if (map.getLayer('noticiasLayer')) {
+        const visible = selectedMarkerTypes.includes('noticia') ? 'visible' : 'none';
+        map.setLayoutProperty('noticiasLayer', 'visibility', visible);
+      }
+    } catch (e) {
+      logger.warn('Error setting visibility for noticiasLayer', e);
     }
   }, [selectedMarkerTypes, map]);
 
   useEffect(() => {
-    console.log('DataContext state initialized:', { 
+    logger.log('DataContext state initialized:', { 
       mapType, setMapType, 
       colorScheme, setColorScheme,
       visibleComponents
@@ -72,22 +87,22 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    console.log('DataContext initialized with:', {
+    logger.log('DataContext initialized with:', {
       visibleComponents,
       setVisibleComponents: typeof setVisibleComponents === 'function' ? 'function' : typeof setVisibleComponents
     });
   }, [visibleComponents]);
 
   useEffect(() => {
-    console.log('DataContext: startDate updated:', startDate);
+    logger.log('DataContext: startDate updated:', startDate);
   }, [startDate]);
 
   useEffect(() => {
-    console.log('DataContext: endDate updated:', endDate);
+    logger.log('DataContext: endDate updated:', endDate);
   }, [endDate]);
 
   useEffect(() => {
-    console.log('DataProvider initialized with context values:', {
+    logger.log('DataProvider initialized with context values:', {
       startDate,
       endDate,
       visibleComponents,
@@ -122,7 +137,7 @@ export const DataProvider = ({ children }) => {
 
   const addTooltip = (layerId) => {
     if (!map || !map.getLayer(layerId)) {
-      console.error('Map not initialized or layer not found');
+      logger.error('Map not initialized or layer not found');
       return;
     }
   
@@ -146,6 +161,16 @@ export const DataProvider = ({ children }) => {
             <p style="margin: 4px 0;"><strong>Total de Fosas:</strong> ${properties.total_fosas || 0}</p>
             <p style="margin: 4px 0;"><strong>Cuerpos recuperados:</strong> ${properties.total_cuerpos || 0}</p>
             <p style="margin: 4px 0;"><strong>Restos/Fragmentos:</strong> ${properties.total_restos_fragmentos || 0}</p>
+          </div>
+        `;
+      }
+      if (properties.tipo_marcador === 'noticia') {
+        return `
+          <div style="font-family: inherit; color: #333; padding: 5px;">
+            <h4 style="margin: 0 0 8px 0; color: #e11d48; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Reporte de Prensa</h4>
+            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${properties.fecha || 'Desconocido'}</p>
+            <p style="margin: 6px 0; font-style: italic; font-weight: 500;">"${properties.titular}"</p>
+            ${properties.url ? `<p style="margin: 8px 0 0 0;"><a href="${properties.url}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline; font-weight: bold;">Ver noticia completa</a></p>` : ''}
           </div>
         `;
       }
@@ -223,19 +248,64 @@ export const DataProvider = ({ children }) => {
     });
   };
   const updateLayerData = (layerId, data, layoutConfig) => {
-    if (!map || !map.isStyleLoaded()) {
+    logger.log(`[updateLayerData] called for: ${layerId}. map exists: ${!!map}, style loaded: ${map?.isStyleLoaded()}`);
+    if (!map) {
+      logger.warn(`[updateLayerData] Warning: map is null for layer ${layerId}`);
+      return;
+    }
+    if (!map.isStyleLoaded()) {
+      logger.warn(`[updateLayerData] Warning: map style is not loaded yet for layer ${layerId}. Retrying in 200ms...`);
+      setTimeout(() => updateLayerData(layerId, data, layoutConfig), 200);
       return;
     }
   
     if (!data || !data.type || data.type !== 'FeatureCollection') {
-      console.error("Input data given to 'forenseLayer' is not a valid GeoJSON object.");
+      logger.error(`[updateLayerData] Error: Input data given to ${layerId} is not a valid GeoJSON object:`, data);
       return;
     }
-    //console.log('Updating layer data:', layerId, layoutConfig);
-    //console.log('Data:', data);
-    if (map.getSource(layerId)) {
-      map.getSource(layerId).setData(data);
+  
+    let markerType = null;
+    if (layerId === 'cedulaLayer') markerType = 'cedula_busqueda';
+    else if (layerId === 'fosaLayer') markerType = 'fosa';
+    else if (layerId === 'noticiasLayer') markerType = 'noticia';
+
+    const isVisible = markerType ? selectedMarkerTypes.includes(markerType) : true;
+    logger.log(`[updateLayerData] Layer: ${layerId}, MarkerType: ${markerType}, SelectedMarkerTypes: ${selectedMarkerTypes.join(', ')}, isVisible: ${isVisible}`);
+
+    // Delegate caching and overlap detection to layerManager
+    logger.log(`[updateLayerData] Storing layer data for ${layerId}. Current cached layers: ${Array.from(layerDataRef.current.keys()).join(', ')}`);
+    layerManager.storeLayerData(layerDataRef.current, layerId, data);
+    
+    logger.log(`[updateLayerData] Running detectAndJitterOverlaps...`);
+    const overlaps = layerManager.detectAndJitterOverlaps(layerDataRef.current);
+
+    if (overlaps.length > 0) {
+      logger.warn(`[Overlap Detector] Adjusted ${overlaps.length} overlapping point groups`, overlaps);
+      
+      // Update OTHER layers if they were modified by the jittering
+      const affectedLayers = new Set();
+      overlaps.forEach(overlap => {
+        overlap.items.slice(1).forEach(item => affectedLayers.add(item.layer));
+      });
+      
+      logger.log(`[updateLayerData] Affected layers by jittering:`, Array.from(affectedLayers));
+      
+      affectedLayers.forEach(affectedLayerId => {
+         if (affectedLayerId !== layerId && map.getSource(affectedLayerId)) {
+             logger.log(`[updateLayerData] Also updating map source for affected layer: ${affectedLayerId}`);
+             map.getSource(affectedLayerId).setData(layerDataRef.current.get(affectedLayerId).data);
+         }
+      });
     } else {
+      logger.log(`[Overlap Detector] Verified: 0 coordinate overlaps found between active layers.`);
+    }
+
+    if (map.getSource(layerId)) {
+      logger.log(`[updateLayerData] Updating existing source and layer for ${layerId}`);
+      map.getSource(layerId).setData(data);
+      layerManager.applyVisibility(map, layerId, markerType, selectedMarkerTypes);
+    } else {
+      logger.log(`[updateLayerData] Creating new source and layer for ${layerId}`);
       map.addSource(layerId, {
         type: 'geojson',
         data: data,
@@ -249,21 +319,25 @@ export const DataProvider = ({ children }) => {
       });
   
       addTooltip(layerId);
+      layerManager.applyVisibility(map, layerId, markerType, selectedMarkerTypes);
     }
   
     if (layoutConfig === clusteringLayout) {
-      return
+      logger.log(`[updateLayerData] Clustering layout detected for ${layerId}, skipping timeline update`);
+      return;
     }
-    // Update timeline data
-    const timelineEntries = data.features.map(feature => ({
-      timestamp: feature.properties.timestamp,
-      type: feature.properties.tipo_marcador,
-    }));
+    
+    // Delegate timeline entry generation
+    const timelineEntries = layerManager.generateTimelineEntries(data);
+    logger.log(`[updateLayerData] Adding ${timelineEntries.length} timeline entries for ${layerId}`);
   
     updateTimelineData(timelineEntries, false);
 
     if (selectedDate) {
+      logger.log(`[updateLayerData] selectedDate exists (${selectedDate}), filtering markers...`);
       filterMarkersByDate(selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange);
+    } else {
+      logger.log(`[updateLayerData] selectedDate is null, waiting for slider initialization`);
     }
   };
 
@@ -347,7 +421,7 @@ export const DataProvider = ({ children }) => {
     'circle-radius': [
       'interpolate',
       ['linear'],
-      ['to-number', ['get', 'total_cuerpos']],
+      ['to-number', ['get', 'total_cuerpos'], 0],
       0, 6,
       5, 10,
       20, 15,
@@ -403,15 +477,15 @@ export const DataProvider = ({ children }) => {
   };
 
   const mergeRecords = (cedulasRecords, forenseRecords) => {
-    //console.log('Merging records');
+    //logger.log('Merging records');
     const mergedRecordsObj = [...cedulasRecords, ...forenseRecords];
-    //console.log("Merged Records:", mergedRecordsObj);
+    //logger.log("Merged Records:", mergedRecordsObj);
     setMergedRecords(mergedRecordsObj);
     updateTimelineData(mergedRecordsObj);
   };
 
   const updateTimelineData = (records, reset = false) => {
-    //console.log('Updating timeline data');
+    //logger.log('Updating timeline data');
     const timelineEntries = records.map(record => ({
       timestamp: record.timestamp || record.properties?.timestamp,
       type: record.type || record.properties?.tipo_marcador
@@ -422,13 +496,13 @@ export const DataProvider = ({ children }) => {
   const filterMarkersByDate = (selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {
     if (!map || !selectedDate) return;
   
-    //console.log('Filtering markers by date...');
-    //console.log('Selected Date:', selectedDate);
-    //console.log('Days Range:', daysRange);
-    //console.log('Selected Sexo:', selectedSexo);
-    //console.log('Selected Condicion:', selectedCondicion);
-    //console.log('Edad Range:', edadRange);
-    //console.log('Sum Score Range:', sumScoreRange);
+    //logger.log('Filtering markers by date...');
+    //logger.log('Selected Date:', selectedDate);
+    //logger.log('Days Range:', daysRange);
+    //logger.log('Selected Sexo:', selectedSexo);
+    //logger.log('Selected Condicion:', selectedCondicion);
+    //logger.log('Edad Range:', edadRange);
+    //logger.log('Sum Score Range:', sumScoreRange);
   
     const endDate = new Date(selectedDate);
     endDate.setDate(selectedDate.getDate() + daysRange);
@@ -437,8 +511,8 @@ export const DataProvider = ({ children }) => {
     const selectedTimestamp = selectedDate.getTime();
     const endTimestamp = endDate.getTime();
   
-    //console.log('Selected Timestamp:', selectedTimestamp);
-    //console.log('End Timestamp:', endTimestamp);
+    //logger.log('Selected Timestamp:', selectedTimestamp);
+    //logger.log('End Timestamp:', endTimestamp);
   
     // Attribute filters
     const attributeFilters = [];
@@ -455,67 +529,92 @@ export const DataProvider = ({ children }) => {
     attributeFilters.push(["<=", ["to-number", ["get", "sum_score"]], sumScoreRange[1]]);
   
 
-    //console.log('Attribute Filters:', attributeFilters);
+    //logger.log('Attribute Filters:', attributeFilters);
   
     // Date filters
     const dateFilters = [
-      [">=", ["to-number", ["get", "timestamp"]], selectedTimestamp],
-      ["<=", ["to-number", ["get", "timestamp"]], endTimestamp]
+      [">=", ["to-number", ["get", "timestamp"], 0], selectedTimestamp],
+      ["<=", ["to-number", ["get", "timestamp"], 0], endTimestamp]
     ];
   
-    //console.log('Date Filters:', dateFilters);
+    //logger.log('Date Filters:', dateFilters);
   
     // Combined filters
     const combinedFilter = ['all', ...attributeFilters, ...dateFilters];
   
-    //console.log('Combined Filter:', combinedFilter);
+    //logger.log('Combined Filter:', combinedFilter);
   
     // Apply the combined filter to the "cedulaLayer"
     if (map.getLayer("cedulaLayer")) {
-      //console.log('Applying filter to cedulaLayer');
-      map.setFilter("cedulaLayer", combinedFilter);
+      try {
+        //logger.log('Applying filter to cedulaLayer');
+        map.setFilter("cedulaLayer", combinedFilter);
+      } catch (e) {
+        logger.error("Error applying filter to cedulaLayer:", e);
+      }
     }
 
     // Apply the date filter to the "fosaLayer"
     if (map.getLayer("fosaLayer")) {
-      const fosaDateFilters = [
-        ["<=", ["to-number", ["get", "timestamp_start"]], endTimestamp],
-        [">=", ["to-number", ["get", "timestamp_end"]], selectedTimestamp]
-      ];
-      map.setFilter("fosaLayer", ['all', ...fosaDateFilters]);
+      try {
+        const fosaDateFilters = [
+          ["<=", ["to-number", ["get", "timestamp_start"], 0], endTimestamp],
+          [">=", ["to-number", ["get", "timestamp_end"], 0], selectedTimestamp]
+        ];
+        map.setFilter("fosaLayer", ['all', ...fosaDateFilters]);
+      } catch (e) {
+        logger.error("Error applying filter to fosaLayer:", e);
+      }
+    }
+
+    // Apply the date filter to the "noticiasLayer"
+    if (map.getLayer("noticiasLayer")) {
+      try {
+        const noticiasDateFilters = [
+          ["<=", ["to-number", ["get", "timestamp_start"], 0], endTimestamp],
+          [">=", ["to-number", ["get", "timestamp_end"], 0], selectedTimestamp]
+        ];
+        map.setFilter("noticiasLayer", ['all', ...noticiasDateFilters]);
+      } catch (e) {
+        logger.error("Error applying filter to noticiasLayer:", e);
+      }
     }
   
     // Update heatmap layers
     activeHeatmapCategories.forEach(category => {
       const layerId = `cedulaLayer-${category}`;
       if (map.getLayer(layerId)) {
-        const categoryFilter = category === 'HOMBRE' || category === 'MUJER'
-          ? ['==', ['get', 'sexo'], category]
-          : ['==', ['get', 'condicion_localizacion'], category];
-        const heatmapFilter = ['all', categoryFilter, ...attributeFilters, ...dateFilters];
-        //console.log(`Applying filter to heatmap layer: ${layerId}`);
-        //console.log('Heatmap Filter:', heatmapFilter);
-        map.setFilter(layerId, heatmapFilter);
+        try {
+          const categoryFilter = category === 'HOMBRE' || category === 'MUJER'
+            ? ['==', ['get', 'sexo'], category]
+            : ['==', ['get', 'condicion_localizacion'], category];
+          const heatmapFilter = ['all', categoryFilter, ...attributeFilters, ...dateFilters];
+          //logger.log(`Applying filter to heatmap layer: ${layerId}`);
+          //logger.log('Heatmap Filter:', heatmapFilter);
+          map.setFilter(layerId, heatmapFilter);
+        } catch (e) {
+          logger.error(`Error applying filter to heatmap layer ${layerId}:`, e);
+        }
       }
     });
   };
   
   const avoidLayerOverlap = (records, tipo_marcador, selectedTimestamp, endTimestamp) => {
-    ////console.log('Clustering nodes with the same position');
+    ////logger.log('Clustering nodes with the same position');
   
     if (!Array.isArray(records)) {
-        console.error("Records should be an array");
+        logger.error("Records should be an array");
         return [];
     }
   
     const clusterMap = new Map();
 
-    ////console.log(tipo_marcador, selectedTimestamp, endTimestamp)
+    ////logger.log(tipo_marcador, selectedTimestamp, endTimestamp)
     records.forEach(record => {
       const { timestamp, tipo_marcador: recordTipoMarcador } = record.properties;
       const coordinates = record.geometry.coordinates.join(',');
       if (record.properties.tipo_marcador === tipo_marcador) {
-       // //console.log('Record:', record);
+       // //logger.log('Record:', record);
         if (!clusterMap.has(coordinates)) {
           clusterMap.set(coordinates, { 
             type: 'Feature', 
@@ -537,7 +636,7 @@ export const DataProvider = ({ children }) => {
     });
     
     const clusterFeatures = Array.from(clusterMap.values());
-    ////console.log('Cluster features', clusterFeatures);
+    ////logger.log('Cluster features', clusterFeatures);
     const geojsonData = {
       type: 'FeatureCollection',
       features: clusterFeatures

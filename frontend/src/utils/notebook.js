@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 
+import createLogger from '../utils/logger';
+const logger = createLogger('notebook');
+
+
 export function useNotebook(dataContext, id, navigate) {
   const {
     startDate,
@@ -42,7 +46,7 @@ export function useNotebook(dataContext, id, navigate) {
       try {
         setNotes(JSON.parse(savedNotes));
       } catch (e) {
-        console.error('Error loading notes from localStorage:', e);
+        logger.error('Error loading notes from localStorage:', e);
       }
     }
   }, []);
@@ -172,7 +176,7 @@ export function useNotebook(dataContext, id, navigate) {
       alert('Notes saved successfully!');
     } catch (error) {
       alert('Error saving notes to backend.');
-      console.error('Error saving notes to backend:', error);
+      logger.error('Error saving notes to backend:', error);
     }
   }, [notes, startDate, endDate]);
 
@@ -187,7 +191,7 @@ export function useNotebook(dataContext, id, navigate) {
       if (data.selectedDate) setSelectedDate(new Date(data.selectedDate));
       if (data.timeScale) setTimeScale(data.timeScale);
     } catch (error) {
-      console.error('Notebook: Error loading notes from backend:', error);
+      logger.error('Notebook: Error loading notes from backend:', error);
     }
   }, [setNotes, setStartDate, setEndDate, setSelectedDate, setTimeScale]);
 
@@ -204,7 +208,7 @@ export function useNotebook(dataContext, id, navigate) {
       }
     } catch (error) {
       alert('Error fetching notebooks.');
-      console.error('Error fetching notebooks:', error);
+      logger.error('Error fetching notebooks:', error);
     }
   }, []);
 

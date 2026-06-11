@@ -52,6 +52,7 @@ class NoticiaBase(BaseModel):
     fecha: Optional[date] = None
     caso_id: Optional[str] = None
     fosa_id: Optional[int] = None
+    coordenadas: Optional[str] = None
 
 class NoticiaCreate(NoticiaBase):
     pass
