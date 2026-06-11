@@ -2,13 +2,10 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
 import { API_BASE_URL, USE_PASSWORD } from './config';
-import FetchCedulas from './components/FetchCedulas';
-import FetchForense from './components/FetchForense';
-import FetchFosas from './components/FetchFosas';
-import FetchNoticias from './components/FetchNoticias';
-import MapComponent from './components/MapComponent';
-import PasswordCheck from './components/PasswordCheck';
-import AppLayout from './components/AppLayout';
+import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './components/data';
+import { MapComponent } from './components/map';
+import { PasswordCheck } from './components/auth';
+import { AppLayout } from './components/layout';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 import createLogger from './utils/logger';
