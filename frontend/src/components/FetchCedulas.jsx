@@ -29,6 +29,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
       }
 
       try {
+        setTimelineData([]);
         setLoading(true);
         const response = await axios.get(`${API_BASE_URL}/casos`, {
           headers: {

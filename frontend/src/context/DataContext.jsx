@@ -260,7 +260,7 @@ export const DataProvider = ({ children }) => {
       type: feature.properties.tipo_marcador,
     }));
   
-    updateTimelineData(timelineEntries, true);
+    updateTimelineData(timelineEntries, false);
   };
 
   const clusteringLayout = {
@@ -409,10 +409,10 @@ export const DataProvider = ({ children }) => {
   const updateTimelineData = (records, reset = false) => {
     //console.log('Updating timeline data');
     const timelineEntries = records.map(record => ({
-      timestamp: record.timestamp || record.properties.timestamp,
-      type: record.type || record.properties.tipo_marcador
+      timestamp: record.timestamp || record.properties?.timestamp,
+      type: record.type || record.properties?.tipo_marcador
     }));
-    setTimelineData(reset ? timelineEntries : [...timelineData, ...timelineEntries]);
+    setTimelineData(prev => reset ? timelineEntries : [...prev, ...timelineEntries]);
   };
 
   const filterMarkersByDate = (selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {

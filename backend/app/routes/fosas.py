@@ -1,13 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from .. import models, schemas, database
 
 router = APIRouter()
 
 @router.get("", response_model=List[schemas.FosaOut])
-def get_fosas(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    return db.query(models.Fosa).offset(skip).limit(limit).all()
+def get_fosas(
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(database.get_db)
+):
+    query = db.query(models.Fosa)
+    if start_date and end_date:
+        query = query.filter(models.Fosa.fecha_hallazgo.between(start_date, end_date))
+    return query.offset(skip).limit(limit).all()
 
 @router.post("", response_model=schemas.FosaOut)
 def create_fosa(fosa: schemas.FosaCreate, db: Session = Depends(database.get_db)):

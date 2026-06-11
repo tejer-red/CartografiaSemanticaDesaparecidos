@@ -38,6 +38,8 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         setLoading(true);
         const response = await axios.get(`${API_BASE_URL}/fosas`, {
           params: {
+            start_date,
+            end_date,
             limit: 1000 // Get all graves
           }
         });
