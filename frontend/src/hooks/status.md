@@ -1,9 +1,9 @@
-# Estado: Fase 2 (Base de Datos Local)
+# Estado: Fase 3 (Vínculos Semánticos)
 
 ## Cambios Realizados
-- **[NEW] `useLocalData.js`**: Se creó un hook personalizado de React que expone todas las operaciones CRUD para la base de datos local (Dexie).
-- Inyecta automáticamente el `user_id` de la sesión actual de Supabase a todos los registros nuevos, junto con un `uuid` v4 único y un `timestamp`.
-- Las consultas de obtención (`getLocalFosas`, etc.) están filtradas mediante Dexie para devolver únicamente los registros del usuario autenticado.
+- **[NEW] `useLinks.js`**: Hook encargado de gestionar los datos relacionales (CRUD de `local_vinculos` en Dexie).
+- Incluye el diccionario de `RELATION_TYPES` (ej. `MENCIONA_HALLAZGO`, `PERTENECE_A_FOSA`).
+- `getLinksForEntity` permite buscar todas las aristas conectadas a un nodo (sea en posición origen o destino), lo que habilita consultas transversales fluidas.
 
 ## Resultado
-Los componentes de React ahora pueden interactuar fácilmente con la base de datos local llamando a las funciones del hook, manteniendo el encapsulamiento y el aislamiento de datos por usuario.
+Se consolidó la capa lógica para almacenar aristas locales y privadas del grafo semántico. Estas relaciones permitirán que los datos generados por el usuario intersecten los datos extraídos del backend en la vista final.
