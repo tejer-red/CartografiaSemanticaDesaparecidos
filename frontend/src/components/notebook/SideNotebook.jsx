@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Notebook from './Notebook';
 import LocalDataPanel from './LocalDataPanel';
 import DateFormCompact from '../forms/DateFormCompact';
-import { MapPin } from 'lucide-react'; // Replace FontAwesome with Lucide
+import { MapPin, Database } from 'lucide-react'; // Replace FontAwesome with Lucide
 import { useZIndex } from '../../utils/useZIndex';
 
 const PANEL_WIDTH = 500;
@@ -20,22 +20,32 @@ const SideNotebook = ({
   setFetchNoticias,
 }) => {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('notebook'); // 'notebook' or 'ingesta'
   const { zIndex, handleClick } = useZIndex('side-notebook');
+
+  const toggleTab = (tab) => {
+    if (open && activeTab === tab) {
+      setOpen(false);
+    } else {
+      setActiveTab(tab);
+      setOpen(true);
+    }
+  };
 
   return (
     <div 
       id="side-notebook"
       onClick={handleClick}
     >
-      {/* Rotated tab button */}
+      {/* Rotated tab button 1: Notebook */}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => toggleTab('notebook')}
         style={{
           position: "fixed",
           top: 70,
           right: open ? PANEL_WIDTH + 45 : 45,
           zIndex: 8,
-          background: "#007bff",
+          background: activeTab === 'notebook' && open ? "#0056b3" : "#007bff",
           color: "#fff",
           border: "none",
           borderRadius: "8px 8px 0 0",
@@ -48,11 +58,42 @@ const SideNotebook = ({
           display: "flex",
           alignItems: "center",
           gap: 6,
+          transition: "right 0.3s ease, background 0.2s",
         }}
       >
-        <MapPin style={{ fontSize: 18 }} /> {/* Use Lucide icon */}
+        <MapPin style={{ fontSize: 18 }} />
         <span style={{ fontWeight: 500, letterSpacing: 1 }}>
           Bitácora de navegación
+        </span>
+      </button>
+
+      {/* Rotated tab button 2: Ingesta */}
+      <button
+        onClick={() => toggleTab('ingesta')}
+        style={{
+          position: "fixed",
+          top: 290, // Moved down to prevent overlap
+          right: open ? PANEL_WIDTH + 45 : 45,
+          zIndex: 8,
+          background: activeTab === 'ingesta' && open ? "#4f46e5" : "#6366f1",
+          color: "#fff",
+          border: "none",
+          borderRadius: "8px 8px 0 0",
+          padding: "12px 8px",
+          cursor: "pointer",
+          transform: "rotate(-90deg)",
+          transformOrigin: "top right",
+          fontSize: 14,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          transition: "right 0.3s ease, background 0.2s",
+        }}
+      >
+        <Database style={{ fontSize: 18 }} />
+        <span style={{ fontWeight: 500, letterSpacing: 1 }}>
+          Ingesta de datos
         </span>
       </button>
       {/* Side panel */}
@@ -73,37 +114,56 @@ const SideNotebook = ({
           maxWidth: open ? PANEL_WIDTH : 0,
           height: "100vh",
           overflow: "hidden",
+          transition: "width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease",
         }}
       >
         <>
-          <div>
-            <DateFormCompact
-              handleSubmit={handleSubmit}
-              loading={loading}
-              fetchCedulas={fetchCedulas}
-              setFetchCedulas={setFetchCedulas}
-              fetchForense={fetchForense}
-              setFetchForense={setFetchForense}
-              fetchFosas={fetchFosas}
-              setFetchFosas={setFetchFosas}
-              fetchNoticias={fetchNoticias}
-              setFetchNoticias={setFetchNoticias}
-            />
-          </div>
-          <div
-            style={{
-              minWidth: PANEL_WIDTH,
-              maxWidth: 600,
-              height: "100vh",
-              background: "#fff",
-              display: "flex",
-              flexDirection: "column",
-              boxSizing: "border-box",
-            }}
-          >
-            <LocalDataPanel />
-            <Notebook />
-          </div>
+          {activeTab === 'notebook' ? (
+            <>
+              <div>
+                <DateFormCompact
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  fetchCedulas={fetchCedulas}
+                  setFetchCedulas={setFetchCedulas}
+                  fetchForense={fetchForense}
+                  setFetchForense={setFetchForense}
+                  fetchFosas={fetchFosas}
+                  setFetchFosas={setFetchFosas}
+                  fetchNoticias={fetchNoticias}
+                  setFetchNoticias={setFetchNoticias}
+                />
+              </div>
+              <div
+                style={{
+                  minWidth: PANEL_WIDTH,
+                  maxWidth: 600,
+                  height: "100vh",
+                  background: "#fff",
+                  display: "flex",
+                  flexDirection: "column",
+                  boxSizing: "border-box",
+                }}
+              >
+                <Notebook />
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                minWidth: PANEL_WIDTH,
+                maxWidth: 600,
+                height: "100vh",
+                background: "#f9fafb", // slightly different background for ingesta
+                display: "flex",
+                flexDirection: "column",
+                boxSizing: "border-box",
+                overflowY: "auto"
+              }}
+            >
+              <LocalDataPanel />
+            </div>
+          )}
         </>
       </div>
     </div>
