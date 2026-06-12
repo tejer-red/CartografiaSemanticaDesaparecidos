@@ -4,7 +4,7 @@ import { useData } from './context/DataContext'; // Remove DataProvider import
 import { useAuth } from './context/AuthContext';
 import { API_BASE_URL } from './config';
 import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './components/data';
-import { MapComponent } from './components/map';
+import { MapComponent, LocalDataFAB } from './components/map';
 import { LoginScreen } from './components/auth';
 import { AppLayout, LoadingOverlay } from './components/layout';
 import './styles/FilterForm.css'; // Import FilterForm styles
@@ -219,6 +219,7 @@ const App = () => {
               </Routes>
             </Router>
           </Suspense>
+          <LocalDataFAB />
         </>
       )}
     </>

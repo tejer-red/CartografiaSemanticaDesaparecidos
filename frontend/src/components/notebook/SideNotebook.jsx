@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Notebook from './Notebook';
+import LocalDataPanel from './LocalDataPanel';
 import DateFormCompact from '../forms/DateFormCompact';
 import { MapPin } from 'lucide-react'; // Replace FontAwesome with Lucide
 import { useZIndex } from '../../utils/useZIndex';
@@ -100,6 +101,7 @@ const SideNotebook = ({
               boxSizing: "border-box",
             }}
           >
+            <LocalDataPanel />
             <Notebook />
           </div>
         </>
