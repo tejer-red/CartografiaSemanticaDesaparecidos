@@ -15,7 +15,9 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
     updateLayerData,
     fosasLayout,
     map,
-    mapLoaded
+    mapLoaded,
+    updateLoadingStatus,
+    updateDataCount
   } = useData();
 
   useEffect(() => {
@@ -25,6 +27,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         if (map && map.getLayer('fosaLayer')) {
           map.setLayoutProperty('fosaLayer', 'visibility', 'none');
         }
+        updateLoadingStatus('fosas', false);
         return;
       }
 
@@ -40,6 +43,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
 
       try {
         setLoading(true);
+        updateLoadingStatus('fosas', true);
         const response = await axios.get(`${API_BASE_URL}/fosas`, {
           params: {
             start_date,
@@ -91,6 +95,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
 
         if (map && map.isStyleLoaded()) {
           updateLayerData('fosaLayer', geojsonData, fosasLayout);
+          updateDataCount('fosas', formattedRecords.length);
         } else {
           logger.error('Map is not initialized or style is not loaded');
         }
@@ -99,6 +104,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         logger.error("Error fetching Fosas data:", error);
       } finally {
         setLoading(false);
+        updateLoadingStatus('fosas', false);
         onFetchComplete?.();
       }
     };

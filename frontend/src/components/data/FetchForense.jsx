@@ -10,22 +10,29 @@ const FetchForense = ({ fetchForense, fetchId, onFetchComplete }) => {
     map, 
     mapLoaded, 
     startDate, 
-    endDate 
+    endDate,
+    updateLoadingStatus
   } = useData();
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!fetchForense || !mapLoaded || !map) {
-        logger.log('Map not ready or fetch not enabled');
+      if (!fetchForense) {
+        updateLoadingStatus('forense', false);
+        return;
+      }
+      if (!mapLoaded || !map) {
+        logger.log('Map not ready');
         return;
       }
 
       try {
+        updateLoadingStatus('forense', true);
         // ...existing fetch code...
 
       } catch (error) {
         logger.error('Error fetching forense:', error);
       } finally {
+        updateLoadingStatus('forense', false);
         onFetchComplete?.();
       }
     };

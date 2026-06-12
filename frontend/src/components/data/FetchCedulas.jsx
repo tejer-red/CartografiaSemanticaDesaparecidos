@@ -22,19 +22,26 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
     mergeRecords,
     COLORS,
     map,
-    mapLoaded // Add this from context
+    mapLoaded, // Add this from context
+    updateLoadingStatus,
+    updateDataCount
   } = useData();
 
   useEffect(() => {
     const fetchData = async (start_date, end_date) => {
-      if (!fetchCedulas || !mapLoaded || !map) {  // Add mapLoaded check
-        logger.log('Map not ready or fetch not enabled');
+      if (!fetchCedulas) {
+        updateLoadingStatus('cedulas', false);
+        return;
+      }
+      if (!mapLoaded || !map) {
+        logger.log('Map not ready');
         return;
       }
 
       try {
         setTimelineData([]);
         setLoading(true);
+        updateLoadingStatus('cedulas', true);
         const response = await axios.get(`${API_BASE_URL}/casos`, {
           headers: {
             'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
@@ -75,6 +82,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
         setNewDataFetched(true);
         if (map && map.isStyleLoaded()) {
           updateLayerData('cedulaLayer', geojsonData, sexoLayout);
+          updateDataCount('cedulas', formattedRecordsCedula.length);
         } else {
           logger.error('Map is not initialized or style is not loaded');
         }
@@ -83,6 +91,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
         logger.error("Error fetching Cedulas data:", error);
       } finally {
         setLoading(false);
+        updateLoadingStatus('cedulas', false);
         onFetchComplete?.();
       }
     };

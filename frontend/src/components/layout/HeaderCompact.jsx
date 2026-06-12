@@ -5,7 +5,7 @@ import createLogger from '../../utils/logger';
 const logger = createLogger('HeaderCompact');
 
 
-const HeaderCompact = ({ visibleComponents, toggleComponent }) => {
+const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick }) => {
   const { id } = useParams();
   const location = useLocation();
   const currentTimestamp = Date.now();
@@ -47,6 +47,11 @@ const HeaderCompact = ({ visibleComponents, toggleComponent }) => {
             {key.charAt(0).toUpperCase() + key.slice(1)}
           </label>
         ))}
+      </div>
+      <div>
+        <button onClick={onNewDatasetClick}>
+          Nuevo conjunto de datos
+        </button>
       </div>
     </div>
   );

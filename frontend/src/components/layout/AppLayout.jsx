@@ -22,6 +22,7 @@ const AppLayout = ({
   listNotebooksApp
 }) => {
   const [activePanel, setActivePanel] = useState(null);
+  const [isInitialModalOpen, setIsInitialModalOpen] = useState(true);
 
   const handlePanelHover = (panelName) => {
     setActivePanel(panelName);
@@ -36,8 +37,11 @@ const AppLayout = ({
       <HeaderCompact 
         visibleComponents={visibleComponents}
         toggleComponent={toggleComponent}
+        onNewDatasetClick={() => setIsInitialModalOpen(true)}
       />
       <InitialModal
+        isOpen={isInitialModalOpen}
+        onClose={() => setIsInitialModalOpen(false)}
         isNotebookRoute={isNotebookRoute}
         handleSubmit={handleSubmit}
         loading={loading}

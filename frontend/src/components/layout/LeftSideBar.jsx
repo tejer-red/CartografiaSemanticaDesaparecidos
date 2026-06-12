@@ -9,10 +9,10 @@ import { useZIndex } from '../../utils/useZIndex';
 const accordionStyles = {
   trigger: {
     width: '100%',
-    padding: '5px 20px',
-    backgroundColor: 'rgb(0, 123, 255)',
+    padding: '8px 20px',
+    backgroundColor: 'var(--primary-color)',
     border: 'none',
-    borderBottom: '1px solid #e5e5e5',
+    borderBottom: '1px solid var(--border-color)',
     fontSize: '15px',
     fontWeight: 500,
     color: '#fff',
@@ -22,15 +22,15 @@ const accordionStyles = {
     cursor: 'pointer'
   },
   content: {
-    backgroundColor: 'white',
-    padding: '5px'
+    backgroundColor: 'var(--bg-color)',
+    padding: '8px'
   },
   item: {
     overflow: 'hidden',
-    marginBottom: '4px',
-    background: 'white',
-    border: '1px solid #e5e5e5',
-    borderRadius: '4px'
+    marginBottom: '8px',
+    background: 'var(--bg-color)',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--border-radius)'
   },
   chevron: {
     transition: 'transform 300ms'
@@ -62,13 +62,13 @@ const LeftSideBar = () => {
         left: 5,
         top: 65,
         width: '400px',
-        background: 'white',
+        background: 'var(--bg-color)',
         padding: '16px',
         zIndex: zIndex,
         maxHeight: 'calc(100vh - 100px)',
         overflowY: 'auto',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
+        borderRadius: 'var(--border-radius)',
+        boxShadow: 'var(--panel-shadow)'
       }}
     >
       <FilterFormWrapper />

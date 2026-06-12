@@ -5,7 +5,7 @@ import { API_BASE_URL, USE_PASSWORD } from './config';
 import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './components/data';
 import { MapComponent } from './components/map';
 import { PasswordCheck } from './components/auth';
-import { AppLayout } from './components/layout';
+import { AppLayout, LoadingOverlay } from './components/layout';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 import createLogger from './utils/logger';
@@ -35,6 +35,7 @@ const App = () => {
     mapType,
     colorScheme,
     setTimelineData,
+    setShowLoadingScreen,
   } = useData(); // Use DataContext for shared state
 
   // State for NotebookLoad modal in Tab 5
@@ -109,6 +110,7 @@ const App = () => {
     logger.log('Form submitted');
     setTimelineData([]); // Clear previous timeline data
     setLoading(true);
+    setShowLoadingScreen(true);
     setFetchId(prev => prev + 1); // Increment the fetchId to trigger useEffect in child components
     logger.log('Fetch ID incremented:', fetchId + 1);
   };
@@ -152,6 +154,7 @@ const App = () => {
         <PasswordCheck onAuthenticated={() => setIsAuthenticated(true)} />
       ) : (
         <>
+          <LoadingOverlay />
           <div className="AbstractFetching">
              <FetchCedulas
               fetchCedulas={fetchCedulas}

@@ -8,16 +8,21 @@ const logger = createLogger('FetchNoticias');
 
 
 const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
-  const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData } = useData();
+  const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData, updateLoadingStatus, updateDataCount } = useData();
 
   useEffect(() => {
     const fetchData = async (start_date, end_date) => {
-      if (!fetchNoticias || !mapLoaded || !map) {
-        logger.log('Noticias: Map not ready or fetch disabled');
+      if (!fetchNoticias) {
+        updateLoadingStatus('noticias', false);
+        return;
+      }
+      if (!mapLoaded || !map) {
+        logger.log('Noticias: Map not ready');
         return;
       }
 
       try {
+        updateLoadingStatus('noticias', true);
         logger.log('Fetching noticias with params:', { start_date, end_date });
         const response = await axios.get(`${API_BASE_URL}/noticias`, {
           params: {
@@ -85,10 +90,12 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
 
         logger.log('Updating map layer noticiasLayer...');
         updateLayerData('noticiasLayer', geojsonData, noticiasLayout);
+        updateDataCount('noticias', features.length);
 
       } catch (error) {
         logger.error('Error fetching noticias:', error);
       } finally {
+        updateLoadingStatus('noticias', false);
         if (typeof onFetchComplete === 'function') {
           onFetchComplete();
         }

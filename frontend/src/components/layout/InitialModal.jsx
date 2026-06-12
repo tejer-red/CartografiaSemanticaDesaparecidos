@@ -20,9 +20,10 @@ const InitialModal = ({
   setFetchNoticias,
   isNotebookRoute,
   listNotebooksApp,
+  isOpen,
+  onClose
 }) => {
   const { startDate, endDate, setStartDate, setEndDate, loading } = useData();
-  const [open, setOpen] = useState(true);
   const [showingNotebooks, setShowingNotebooks] = useState(false);
   const [notebooks, setNotebooks] = useState([]);
 
@@ -43,8 +44,8 @@ const InitialModal = ({
     setStartDate(localStartDate);
     setEndDate(localEndDate);
     await handleSubmit(e);
-    setOpen(false);
-  }, [localStartDate, localEndDate, setStartDate, setEndDate, handleSubmit]);
+    if (onClose) onClose();
+  }, [localStartDate, localEndDate, setStartDate, setEndDate, handleSubmit, onClose]);
 
   const handleListNotebooks = async () => {
     try {
@@ -60,7 +61,7 @@ const InitialModal = ({
     }
   };
 
-  if (!open) return null;
+  if (!isOpen) return null;
 
   return (
     <div

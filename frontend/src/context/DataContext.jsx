@@ -47,6 +47,29 @@ export const DataProvider = ({ children }) => {
   const [selectedMarkerTypes, setSelectedMarkerTypes] = useState(['cedula_busqueda', 'fosa', 'noticia']);
   const layerDataRef = useRef(new Map());
 
+  const [loadingStatus, setLoadingStatus] = useState({
+    map: true,
+    cedulas: true,
+    fosas: true,
+    noticias: true,
+    forense: false // Forense is currently empty in its fetch, so leave it false or true depending on usage
+  });
+  const [dataCounts, setDataCounts] = useState({
+    cedulas: 0,
+    fosas: 0,
+    noticias: 0,
+    forense: 0
+  });
+  const [autoStart, setAutoStart] = useState(true);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+
+  const updateLoadingStatus = (key, status) => {
+    setLoadingStatus(prev => ({ ...prev, [key]: status }));
+  };
+  const updateDataCount = (key, count) => {
+    setDataCounts(prev => ({ ...prev, [key]: count }));
+  };
+
   useEffect(() => {
     if (!map) return;
 
@@ -77,6 +100,11 @@ export const DataProvider = ({ children }) => {
       logger.warn('Error setting visibility for noticiasLayer', e);
     }
   }, [selectedMarkerTypes, map]);
+
+  // Update map loading status when mapLoaded changes
+  useEffect(() => {
+    updateLoadingStatus('map', !mapLoaded);
+  }, [mapLoaded]);
 
   useEffect(() => {
     logger.log('DataContext state initialized:', { 
@@ -690,6 +718,14 @@ export const DataProvider = ({ children }) => {
     setMapLoaded,
     selectedMarkerTypes,
     setSelectedMarkerTypes,
+    loadingStatus,
+    updateLoadingStatus,
+    dataCounts,
+    updateDataCount,
+    autoStart,
+    setAutoStart,
+    showLoadingScreen,
+    setShowLoadingScreen,
   };
 
   return (
