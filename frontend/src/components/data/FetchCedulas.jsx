@@ -24,7 +24,9 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
     map,
     mapLoaded, // Add this from context
     updateLoadingStatus,
-    updateDataCount
+    updateDataCount,
+    localCedulas,
+    mergeWithLocal
   } = useData();
 
   useEffect(() => {
@@ -78,11 +80,13 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
           features: formattedRecordsCedula
         };
 
-        setFetchedRecords(geojsonData);
+        const mergedGeoJSON = mergeWithLocal(geojsonData, localCedulas, 'cedula_busqueda');
+
+        setFetchedRecords(mergedGeoJSON);
         setNewDataFetched(true);
         if (map && map.isStyleLoaded()) {
-          updateLayerData('cedulaLayer', geojsonData, sexoLayout);
-          updateDataCount('cedulas', formattedRecordsCedula.length);
+          updateLayerData('cedulaLayer', mergedGeoJSON, sexoLayout);
+          updateDataCount('cedulas', mergedGeoJSON.features.length);
         } else {
           logger.error('Map is not initialized or style is not loaded');
         }

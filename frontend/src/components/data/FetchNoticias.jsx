@@ -8,7 +8,7 @@ const logger = createLogger('FetchNoticias');
 
 
 const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
-  const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData, updateLoadingStatus, updateDataCount } = useData();
+  const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData, updateLoadingStatus, updateDataCount, localNoticias, mergeWithLocal } = useData();
 
   useEffect(() => {
     const fetchData = async (start_date, end_date) => {
@@ -79,18 +79,28 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
           features: features
         };
         logger.log('Noticias GeoJSON generated:', geojsonData);
+        
+        const mergedGeoJSON = mergeWithLocal(geojsonData, localNoticias, 'noticia');
 
         const noticiasLayout = {
           'circle-radius': 8,
           'circle-color': '#e11d48', // Sleek rose/red for news
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': [
+            'case',
+            ['==', ['get', 'isLocal'], true], 3,
+            2
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['==', ['get', 'isLocal'], true], '#6366f1',
+            '#ffffff'
+          ],
           'circle-opacity': 0.9
         };
 
         logger.log('Updating map layer noticiasLayer...');
-        updateLayerData('noticiasLayer', geojsonData, noticiasLayout);
-        updateDataCount('noticias', features.length);
+        updateLayerData('noticiasLayer', mergedGeoJSON, noticiasLayout);
+        updateDataCount('noticias', mergedGeoJSON.features.length);
 
       } catch (error) {
         logger.error('Error fetching noticias:', error);

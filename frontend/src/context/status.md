@@ -1,9 +1,9 @@
-# Estado: Fase 1 (Autenticación)
+# Estado: Fase 4 (Unificación de Estados)
 
 ## Cambios Realizados
-- **[NEW] `AuthContext.jsx`**: Se implementó el contexto de autenticación que gestiona el estado del usuario (`user`, `session`) utilizando el cliente de Supabase.
-- Se implementaron los métodos `signIn`, `signUp`, `signOut` y `getAccessToken`.
-- Se incluyó un `useEffect` para escuchar los cambios de estado en la sesión (listener de Supabase).
+- **[MODIFY] `DataContext.jsx`**: Se integró el hook `useLocalData` para obtener los datos de la base local y se expusieron bajo los estados `localFosas`, `localNoticias`, `localCedulas` y `localVinculos`.
+- Se creó la función `mergeWithLocal` encargada de estandarizar el formato de los registros de IndexedDB (convirtiéndolos a *Features* GeoJSON con la propiedad `isLocal: true`) e inyectarlos transparentemente en el conjunto de datos remoto.
+- Se actualizaron las expresiones de estilo (`circle-stroke-color` y `circle-stroke-width` de Mapbox/MapLibre) para los layout de `sexoLayout` (cédulas) y `fosasLayout` (fosas), dibujando un borde violeta grueso a los marcadores locales.
 
 ## Resultado
-El manejo de estado de autenticación de la aplicación ahora depende íntegramente de Supabase, proporcionando a los componentes de la interfaz acceso a la sesión actual y funciones de control de acceso.
+El `DataContext` ahora opera de manera **híbrida**, garantizando que cualquier componente o capa que dependa de los datos maestros (mapa principal, gráficos, KPIs) contabilice y pinte de inmediato la información de la base de datos local.

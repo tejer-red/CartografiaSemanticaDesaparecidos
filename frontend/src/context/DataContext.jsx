@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import * as layerManager from './layerManager';
+import { useLocalData } from '../hooks/useLocalData';
+import { useLinks } from '../hooks/useLinks';
 
 import createLogger from '../utils/logger';
 const logger = createLogger('DataContext');
@@ -12,6 +14,14 @@ export const DataProvider = ({ children }) => {
   const [map, setMap] = useState(null);
   const [fetchedRecords, setFetchedRecords] = useState([]);
   const [forenseRecords, setForenseRecords] = useState([]);
+  
+  const { getLocalFosas, getLocalNoticias, getLocalCedulas } = useLocalData();
+  const { getLinksGraph } = useLinks();
+
+  const [localFosas, setLocalFosas] = useState([]);
+  const [localNoticias, setLocalNoticias] = useState([]);
+  const [localCedulas, setLocalCedulas] = useState([]);
+  const [localVinculos, setLocalVinculos] = useState([]);
   const [mergedRecords, setMergedRecords] = useState([]);
   const [cedulaLayer, setCedulaLayer] = useState(null);
   const [forenseLayer, setForenseLayer] = useState(null);
@@ -113,6 +123,57 @@ export const DataProvider = ({ children }) => {
       visibleComponents
     });
   }, []);
+
+  const refreshLocalData = async () => {
+    try {
+      const fosas = await getLocalFosas();
+      const noticias = await getLocalNoticias();
+      const cedulas = await getLocalCedulas();
+      const vinculos = await getLinksGraph();
+      setLocalFosas(fosas);
+      setLocalNoticias(noticias);
+      setLocalCedulas(cedulas);
+      setLocalVinculos(vinculos);
+    } catch (e) {
+      logger.error('Error fetching local data:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshLocalData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const mergeWithLocal = (apiGeoJSON, localRecords, tipo) => {
+    if (!apiGeoJSON || !apiGeoJSON.features) return apiGeoJSON;
+    if (!localRecords || localRecords.length === 0) return apiGeoJSON;
+
+    const localFeatures = localRecords.map(record => {
+      let coords = [0, 0];
+      if (record.lng !== undefined && record.lat !== undefined) {
+        coords = [parseFloat(record.lng), parseFloat(record.lat)];
+      }
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: coords
+        },
+        properties: {
+          ...record,
+          tipo_marcador: tipo,
+          isLocal: true,
+          timestamp: record.timestamp || record.created_at,
+          color: tipo === 'cedula_busqueda' ? (record.sexo === 'MUJER' ? COLORS.MUJER : COLORS.HOMBRE) : undefined,
+        }
+      };
+    });
+
+    return {
+      ...apiGeoJSON,
+      features: [...apiGeoJSON.features, ...localFeatures]
+    };
+  };
 
   useEffect(() => {
     logger.log('DataContext initialized with:', {
@@ -407,11 +468,16 @@ export const DataProvider = ({ children }) => {
     ],
     'circle-stroke-color': [
       'case',
+      ['==', ['get', 'isLocal'], true], '#6366f1',
       ['==', ['get', 'sexo'], 'MUJER'], COLORS.MUJER.opacity100,
       ['==', ['get', 'sexo'], 'HOMBRE'], COLORS.HOMBRE.opacity100,
       COLORS.UNKNOWN.opacity100,
     ],
-    'circle-stroke-width': 2,
+    'circle-stroke-width': [
+      'case',
+      ['==', ['get', 'isLocal'], true], 3,
+      2
+    ],
     'circle-opacity': 0.8,
     'circle-stroke-opacity': 1,
   };
@@ -456,8 +522,16 @@ export const DataProvider = ({ children }) => {
       100, 22
     ],
     'circle-color': COLORS.FOSA.opacity30,
-    'circle-stroke-color': COLORS.FOSA.opacity100,
-    'circle-stroke-width': 2.5,
+    'circle-stroke-color': [
+      'case',
+      ['==', ['get', 'isLocal'], true], '#6366f1',
+      COLORS.FOSA.opacity100
+    ],
+    'circle-stroke-width': [
+      'case',
+      ['==', ['get', 'isLocal'], true], 3,
+      2.5
+    ],
     'circle-opacity': 0.8,
     'circle-stroke-opacity': 1,
   };
@@ -697,6 +771,12 @@ export const DataProvider = ({ children }) => {
     updateLayerData,
     filterMarkersByDate,
     mergeRecords,
+    mergeWithLocal,
+    refreshLocalData,
+    localFosas,
+    localNoticias,
+    localCedulas,
+    localVinculos,
     updateTimelineData,
     avoidLayerOverlap,
     selectedSexo, setSelectedSexo,

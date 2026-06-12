@@ -17,7 +17,9 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
     map,
     mapLoaded,
     updateLoadingStatus,
-    updateDataCount
+    updateDataCount,
+    localFosas,
+    mergeWithLocal
   } = useData();
 
   useEffect(() => {
@@ -93,9 +95,11 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
           features: formattedRecords
         };
 
+        const mergedGeoJSON = mergeWithLocal(geojsonData, localFosas, 'fosa');
+
         if (map && map.isStyleLoaded()) {
-          updateLayerData('fosaLayer', geojsonData, fosasLayout);
-          updateDataCount('fosas', formattedRecords.length);
+          updateLayerData('fosaLayer', mergedGeoJSON, fosasLayout);
+          updateDataCount('fosas', mergedGeoJSON.features.length);
         } else {
           logger.error('Map is not initialized or style is not loaded');
         }
