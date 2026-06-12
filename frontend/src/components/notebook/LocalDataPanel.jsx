@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, Info } from 'lucide-react';
 import LinkModal from '../shared/LinkModal';
+import SemanticLinkInfoModal from '../shared/SemanticLinkInfoModal';
+import MiniNetworkModal from '../shared/MiniNetworkModal';
 import '../../styles/LocalDataPanel.css';
 
 const AccordionItem = ({ title, count, icon: Icon, children, defaultOpen = false, onAdd }) => {
@@ -41,10 +43,13 @@ const AccordionItem = ({ title, count, icon: Icon, children, defaultOpen = false
 
 const LocalDataPanel = () => {
   const { user } = useAuth();
-  const { localFosas, localNoticias, localCedulas, localVinculos } = useData();
+  const { localFosas, localNoticias, localCedulas, localVinculos, fetchedRecords, forenseRecords } = useData();
   
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkSource, setLinkSource] = useState(null);
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [networkModalOpen, setNetworkModalOpen] = useState(false);
+  const [selectedVinculo, setSelectedVinculo] = useState(null);
 
   const openLinkModal = (item, type) => {
     let title = 'Entidad';
@@ -140,7 +145,28 @@ const LocalDataPanel = () => {
         </AccordionItem>
 
         <AccordionItem 
-          title="Vínculos Semánticos" 
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Relaciones y Etiquetas
+              <button 
+                onClick={(e) => { e.stopPropagation(); setInfoModalOpen(true); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: '#6366f1' }}
+                title="¿Qué son las relaciones y etiquetas?"
+              >
+                <Info size={14} />
+              </button>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setSelectedVinculo(null);
+                  setNetworkModalOpen(true); 
+                }}
+                style={{ background: '#4f46e5', border: 'none', cursor: 'pointer', display: 'flex', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}
+              >
+                Ver Red Global
+              </button>
+            </div>
+          }
           count={localVinculos?.length || 0} 
           icon={Link2}
         >
@@ -149,10 +175,24 @@ const LocalDataPanel = () => {
           ) : (
             <ul className="local-list">
               {localVinculos?.map(vinculo => (
-                <li key={vinculo.uuid} className="local-list-item">
+                <li 
+                  key={vinculo.uuid} 
+                  className="local-list-item" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedVinculo(vinculo);
+                    setNetworkModalOpen(true);
+                  }}
+                  title="Ver visualización en red"
+                >
                   <div className="local-item-content" style={{ fontSize: '11px' }}>
-                    <strong>{vinculo.tipo_relacion.replace(/_/g, ' ')}</strong>
-                    <span style={{ wordBreak: 'break-all' }}>{vinculo.source_uuid.substring(0,6)}... ➔ {vinculo.target_uuid.substring(0,6)}...</span>
+                    <strong>{vinculo.tipo_relacion === 'ETIQUETA' ? 'ETIQUETA' : vinculo.tipo_relacion.replace(/_/g, ' ')}</strong>
+                    <span style={{ wordBreak: 'break-all' }}>
+                      {vinculo.tipo_relacion === 'ETIQUETA' 
+                        ? `${vinculo.source_uuid.substring(0,6)}... ⟷ ${vinculo.target_uuid.replace('TAG-', '')}`
+                        : `${vinculo.source_uuid.substring(0,6)}... ➔ ${vinculo.target_uuid.substring(0,6)}...`
+                      }
+                    </span>
                   </div>
                 </li>
               ))}
@@ -172,6 +212,27 @@ const LocalDataPanel = () => {
           onClose={() => setLinkModalOpen(false)} 
           sourceEntity={linkSource}
           sourceTitle={linkSource.title}
+        />
+      )}
+
+      {infoModalOpen && (
+        <SemanticLinkInfoModal 
+          isOpen={infoModalOpen} 
+          onClose={() => setInfoModalOpen(false)} 
+        />
+      )}
+
+      {networkModalOpen && (
+        <MiniNetworkModal
+          isOpen={networkModalOpen}
+          onClose={() => setNetworkModalOpen(false)}
+          vinculo={selectedVinculo}
+          allVinculos={!selectedVinculo ? localVinculos : []}
+          localFosas={localFosas}
+          localNoticias={localNoticias}
+          localCedulas={localCedulas}
+          fetchedRecords={fetchedRecords}
+          forenseRecords={forenseRecords}
         />
       )}
     </div>

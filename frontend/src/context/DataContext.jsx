@@ -141,8 +141,7 @@ export const DataProvider = ({ children }) => {
 
   useEffect(() => {
     refreshLocalData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getLocalFosas, getLocalNoticias, getLocalCedulas, getLinksGraph]);
 
   const mergeWithLocal = (apiGeoJSON, localRecords, tipo) => {
     if (!apiGeoJSON || !apiGeoJSON.features) return apiGeoJSON;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLinks, RELATION_TYPES } from '../../hooks/useLinks';
 import { useData } from '../../context/DataContext';
-import { X, Link as LinkIcon, Search } from 'lucide-react';
+import { X, Link as LinkIcon, Search, Tag } from 'lucide-react';
 import '../../styles/FilterForm.css'; // Reusing general form styles
 
 const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
@@ -9,7 +9,9 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
   // In the future this will read local and remote datasets from context to search for targets
   const { fetchedRecords, forenseRecords, localFosas, localNoticias, localCedulas } = useData();
   
+  const [mode, setMode] = useState('ENTIDAD'); // 'ENTIDAD' | 'ETIQUETA'
   const [targetUuid, setTargetUuid] = useState('');
+  const [tagName, setTagName] = useState('');
   const [relationType, setRelationType] = useState(RELATION_TYPES.RELACIONADO_CON);
   const [description, setDescription] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,11 +57,16 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!targetUuid) return;
+    if (mode === 'ENTIDAD' && !targetUuid) return;
+    if (mode === 'ETIQUETA' && !tagName.trim()) return;
     
     setLoading(true);
     try {
-      await createLink(sourceEntity.uuid || sourceEntity.id, targetUuid, relationType, description);
+      if (mode === 'ETIQUETA') {
+        await createLink(sourceEntity.uuid || sourceEntity.id, `TAG-${tagName.trim()}`, 'ETIQUETA', description);
+      } else {
+        await createLink(sourceEntity.uuid || sourceEntity.id, targetUuid, relationType, description);
+      }
       onClose();
     } catch (err) {
       console.error(err);
@@ -78,7 +85,7 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
         
         <h2 className="login-title">
           <LinkIcon size={24} />
-          Crear Vínculo Semántico
+          Crear Relación o Etiqueta
         </h2>
 
         <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
@@ -86,46 +93,77 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
           <strong style={{ color: '#111827' }}>{sourceTitle || 'Entidad seleccionada'}</strong>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Tipo de Relación</label>
-          <select 
-            value={relationType}
-            onChange={(e) => setRelationType(e.target.value)}
-            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+          <button 
+            onClick={() => setMode('ENTIDAD')}
+            style={{ flex: 1, padding: '8px', border: '1px solid #6366f1', background: mode === 'ENTIDAD' ? '#6366f1' : 'transparent', color: mode === 'ENTIDAD' ? 'white' : '#6366f1', borderRadius: '6px', cursor: 'pointer' }}
           >
-            {Object.keys(RELATION_TYPES).map(key => (
-              <option key={key} value={key}>{key.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
+            Conectar Entidad
+          </button>
+          <button 
+            onClick={() => setMode('ETIQUETA')}
+            style={{ flex: 1, padding: '8px', border: '1px solid #10b981', background: mode === 'ETIQUETA' ? '#10b981' : 'transparent', color: mode === 'ETIQUETA' ? 'white' : '#10b981', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            <Tag size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+            Crear Etiqueta
+          </button>
+        </div>
 
-          <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151', marginTop: '10px' }}>Buscar Destino</label>
-          <div className="input-wrapper">
-            <Search size={18} style={{ position: 'absolute', left: '12px', color: '#9ca3af' }} />
-            <input
-              type="text"
-              placeholder="Escribe para buscar (ej. título de noticia)"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="login-form">
+          {mode === 'ENTIDAD' ? (
+            <>
+              <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Tipo de Relación</label>
+              <select 
+                value={relationType}
+                onChange={(e) => setRelationType(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
+              >
+                {Object.keys(RELATION_TYPES).map(key => (
+                  <option key={key} value={key}>{key.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
 
-          {searchResults.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, border: '1px solid #d1d5db', borderRadius: '6px', maxHeight: '150px', overflowY: 'auto' }}>
-              {searchResults.map(result => (
-                <li 
-                  key={result.id} 
-                  onClick={() => {
-                    setTargetUuid(result.id);
-                    setSearchTerm(result.label);
-                    setSearchResults([]);
-                  }}
-                  style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', backgroundColor: targetUuid === result.id ? '#eff6ff' : 'white' }}
-                >
-                  <div style={{ fontWeight: 500 }}>{result.label}</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{result.type}</div>
-                </li>
-              ))}
-            </ul>
+              <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151', marginTop: '10px' }}>Buscar Destino</label>
+              <div className="input-wrapper">
+                <Search size={18} style={{ position: 'absolute', left: '12px', color: '#9ca3af' }} />
+                <input
+                  type="text"
+                  placeholder="Escribe para buscar (ej. título de noticia)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {searchResults.length > 0 && (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, border: '1px solid #d1d5db', borderRadius: '6px', maxHeight: '150px', overflowY: 'auto' }}>
+                  {searchResults.map(result => (
+                    <li 
+                      key={result.id} 
+                      onClick={() => {
+                        setTargetUuid(result.id);
+                        setSearchTerm(result.label);
+                        setSearchResults([]);
+                      }}
+                      style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', backgroundColor: targetUuid === result.id ? '#eff6ff' : 'white' }}
+                    >
+                      <div style={{ fontWeight: 500 }}>{result.label}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{result.type}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <>
+              <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Nombre de la Etiqueta</label>
+              <input
+                type="text"
+                placeholder="Ej. Cartel Jalisco, Caso Ayotzinapa, Bimestre 1"
+                value={tagName}
+                onChange={(e) => setTagName(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
+              />
+            </>
           )}
 
           <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151', marginTop: '10px' }}>Descripción (Opcional)</label>
@@ -136,8 +174,8 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
             style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', boxSizing: 'border-box' }}
           />
 
-          <button type="submit" className="submit-button" disabled={loading || !targetUuid} style={{ marginTop: '20px' }}>
-            {loading ? 'Guardando...' : 'Confirmar Vínculo'}
+          <button type="submit" className="submit-button" disabled={loading || (mode === 'ENTIDAD' && !targetUuid) || (mode === 'ETIQUETA' && !tagName.trim())} style={{ marginTop: '20px' }}>
+            {loading ? 'Guardando...' : (mode === 'ETIQUETA' ? 'Añadir Etiqueta' : 'Confirmar Relación')}
           </button>
         </form>
       </div>
