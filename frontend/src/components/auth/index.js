@@ -1,1 +1,1 @@
-export { default as PasswordCheck } from './PasswordCheck';
+export { default as LoginScreen } from './LoginScreen';

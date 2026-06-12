@@ -19,8 +19,3 @@ const getApiBaseUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
-
-// Set to true to enable the "Restricted Access" password screen in production
-// Default: false (no password required)
-export const USE_PASSWORD = false;
-

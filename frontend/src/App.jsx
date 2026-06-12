@@ -1,10 +1,11 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
-import { API_BASE_URL, USE_PASSWORD } from './config';
+import { useAuth } from './context/AuthContext';
+import { API_BASE_URL } from './config';
 import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './components/data';
 import { MapComponent } from './components/map';
-import { PasswordCheck } from './components/auth';
+import { LoginScreen } from './components/auth';
 import { AppLayout, LoadingOverlay } from './components/layout';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
@@ -20,8 +21,8 @@ const App = () => {
   const [fetchNoticias, setFetchNoticias] = useState(true);
   const [fetchId, setFetchId] = useState(0);
   const [isFormsVisible, setIsFormsVisible] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(!USE_PASSWORD);
   const [toolbarTab, setToolbarTab] = useState('tab1'); // State for toolbar tabs
+  const { user, loading: authLoading } = useAuth();
 
   const {
     startDate,
@@ -80,12 +81,6 @@ const App = () => {
   useEffect(() => {
     logger.log('App: endDate updated:', endDate);
   }, [endDate]);
-
-  useEffect(() => {
-    if (window.location.hostname === 'localhost') {
-      setIsAuthenticated(true);
-    }
-  }, []);
 
   useEffect(() => {
     logger.log('App: Context values from useData():', {
@@ -150,8 +145,10 @@ const App = () => {
           }
         `}
       </style>
-      {!isAuthenticated ? (
-        <PasswordCheck onAuthenticated={() => setIsAuthenticated(true)} />
+      {authLoading ? (
+        <LoadingOverlay />
+      ) : !user ? (
+        <LoginScreen />
       ) : (
         <>
           <LoadingOverlay />
