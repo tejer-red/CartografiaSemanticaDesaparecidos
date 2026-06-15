@@ -1,12 +1,13 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
 import { useAuth } from './context/AuthContext';
 import { API_BASE_URL } from './config';
 import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './components/data';
-import { MapComponent, LocalDataFAB } from './components/map';
+import { MapComponent } from './components/map';
 import { LoginScreen } from './components/auth';
 import { AppLayout, LoadingOverlay } from './components/layout';
+import LinkModal from './components/shared/LinkModal';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 import createLogger from './utils/logger';
@@ -19,7 +20,6 @@ const App = () => {
   const [fetchForense, setFetchForense] = useState(true);
   const [fetchFosas, setFetchFosas] = useState(true);
   const [fetchNoticias, setFetchNoticias] = useState(true);
-  const [fetchId, setFetchId] = useState(0);
   const [isFormsVisible, setIsFormsVisible] = useState(true);
   const [toolbarTab, setToolbarTab] = useState('tab1'); // State for toolbar tabs
   const { user, loading: authLoading } = useAuth();
@@ -37,6 +37,10 @@ const App = () => {
     colorScheme,
     setTimelineData,
     setShowLoadingScreen,
+    globalLinkModal,
+    setGlobalLinkModal,
+    fetchId,
+    setFetchId
   } = useData(); // Use DataContext for shared state
 
   // State for NotebookLoad modal in Tab 5
@@ -178,48 +182,54 @@ const App = () => {
             <MapComponent />
           </div>
           <Suspense fallback={<div>Loading...</div>}>
-            <Router basename="/dist">
-              <Routes>
-                <Route path="/cuaderno/:id" element={
-                  <AppLayout
-                    isNotebookRoute={true}
-                    visibleComponents={visibleComponents}
-                    toggleComponent={toggleComponent}
-                    handleSubmit={handleSubmit}
-                    loading={loading}
-                    fetchCedulas={fetchCedulas}
-                    setFetchCedulas={setFetchCedulas}
-                    fetchForense={fetchForense}
-                    setFetchForense={setFetchForense}
-                    fetchFosas={fetchFosas}
-                    setFetchFosas={setFetchFosas}
-                    fetchNoticias={fetchNoticias}
-                    setFetchNoticias={setFetchNoticias}
-                    listNotebooksApp={listNotebooksApp}
-                  />
-                } />
-                <Route path="/" element={
-                  <AppLayout
-                    isNotebookRoute={false}
-                    visibleComponents={visibleComponents}
-                    toggleComponent={toggleComponent}
-                    handleSubmit={handleSubmit}
-                    loading={loading}
-                    fetchCedulas={fetchCedulas}
-                    setFetchCedulas={setFetchCedulas}
-                    fetchForense={fetchForense}
-                    setFetchForense={setFetchForense}
-                    fetchFosas={fetchFosas}
-                    setFetchFosas={setFetchFosas}
-                    fetchNoticias={fetchNoticias}
-                    setFetchNoticias={setFetchNoticias}
-                    listNotebooksApp={listNotebooksApp}
-                  />
-                } />
-              </Routes>
-            </Router>
+            <Routes>
+              <Route path="/cuaderno/:id" element={
+                <AppLayout
+                  isNotebookRoute={true}
+                  visibleComponents={visibleComponents}
+                  toggleComponent={toggleComponent}
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  fetchCedulas={fetchCedulas}
+                  setFetchCedulas={setFetchCedulas}
+                  fetchForense={fetchForense}
+                  setFetchForense={setFetchForense}
+                  fetchFosas={fetchFosas}
+                  setFetchFosas={setFetchFosas}
+                  fetchNoticias={fetchNoticias}
+                  setFetchNoticias={setFetchNoticias}
+                  listNotebooksApp={listNotebooksApp}
+                />
+              } />
+              <Route path="/" element={
+                <AppLayout
+                  isNotebookRoute={false}
+                  visibleComponents={visibleComponents}
+                  toggleComponent={toggleComponent}
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  fetchCedulas={fetchCedulas}
+                  setFetchCedulas={setFetchCedulas}
+                  fetchForense={fetchForense}
+                  setFetchForense={setFetchForense}
+                  fetchFosas={fetchFosas}
+                  setFetchFosas={setFetchFosas}
+                  fetchNoticias={fetchNoticias}
+                  setFetchNoticias={setFetchNoticias}
+                  listNotebooksApp={listNotebooksApp}
+                />
+              } />
+            </Routes>
           </Suspense>
-          <LocalDataFAB />
+          
+          {globalLinkModal?.isOpen && globalLinkModal?.sourceEntity && (
+            <LinkModal 
+              isOpen={globalLinkModal.isOpen}
+              onClose={() => setGlobalLinkModal({ isOpen: false, sourceEntity: null })}
+              sourceEntity={globalLinkModal.sourceEntity}
+              sourceTitle={globalLinkModal.sourceEntity.title}
+            />
+          )}
         </>
       )}
     </>

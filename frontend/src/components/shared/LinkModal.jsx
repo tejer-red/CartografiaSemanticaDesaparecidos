@@ -5,8 +5,7 @@ import { X, Link as LinkIcon, Search, Tag } from 'lucide-react';
 import '../../styles/FilterForm.css'; // Reusing general form styles
 
 const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
-  const { createLink } = useLinks();
-  // In the future this will read local and remote datasets from context to search for targets
+  const { createLink, getLinksForEntity, deleteLink } = useLinks();
   const { fetchedRecords, forenseRecords, localFosas, localNoticias, localCedulas } = useData();
   
   const [mode, setMode] = useState('ENTIDAD'); // 'ENTIDAD' | 'ETIQUETA'
@@ -17,6 +16,37 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [existingLinks, setExistingLinks] = useState([]);
+
+  const resolveEntityName = (uuid) => {
+    if (uuid.startsWith('TAG-')) return uuid.replace('TAG-', '');
+    let found = localNoticias?.find(n => n.uuid === uuid);
+    if (found) return found.titular;
+    found = localFosas?.find(f => f.uuid === uuid);
+    if (found) return `Fosa en ${found.municipio}`;
+    found = localCedulas?.find(c => c.uuid === uuid);
+    if (found) return found.nombre_completo;
+    found = fetchedRecords?.features?.find(f => (f.properties.uuid || f.properties.id) === uuid);
+    if (found) return found.properties.titular || `Fosa en ${found.properties.municipio}`;
+    found = forenseRecords?.features?.find(f => (f.properties.uuid || f.properties.id) === uuid);
+    if (found) return found.properties.nombre_completo;
+    return 'Entidad Desconocida';
+  };
+
+  const loadLinks = async () => {
+    if (sourceEntity && isOpen) {
+      try {
+        const links = await getLinksForEntity(sourceEntity.uuid || sourceEntity.id);
+        setExistingLinks(links);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadLinks();
+  }, [isOpen, sourceEntity, getLinksForEntity]);
 
   // Mock search logic (will be refined when DataContext hybrid logic is fully connected in Phase 4)
   useEffect(() => {
@@ -47,11 +77,41 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
         });
       }
 
-      setSearchResults(results.slice(0, 5)); // Limit results
+      if (localCedulas) {
+        localCedulas.forEach(c => {
+          if (c.nombre_completo && c.nombre_completo.toLowerCase().includes(term)) {
+            results.push({ id: c.uuid, label: c.nombre_completo, type: 'Cédula (Local)' });
+          }
+        });
+      }
+
+      if (fetchedRecords && fetchedRecords.features) {
+        fetchedRecords.features.forEach(f => {
+          const props = f.properties;
+          if (!props) return;
+          if (props.tipo_marcador === 'noticia' && props.titular && props.titular.toLowerCase().includes(term)) {
+            results.push({ id: props.uuid || props.id, label: props.titular, type: 'Noticia (Remota)' });
+          } else if (props.municipio && props.municipio.toLowerCase().includes(term)) {
+            results.push({ id: props.uuid || props.id, label: `Fosa en ${props.municipio}`, type: 'Fosa (Remota)' });
+          }
+        });
+      }
+
+      if (forenseRecords && forenseRecords.features) {
+        forenseRecords.features.forEach(f => {
+          const props = f.properties;
+          if (!props) return;
+          if (props.nombre_completo && props.nombre_completo.toLowerCase().includes(term)) {
+            results.push({ id: props.uuid || props.id, label: props.nombre_completo, type: 'Cédula (Remota)' });
+          }
+        });
+      }
+
+      setSearchResults(results.slice(0, 8)); // Limit results
     };
 
     searchLocalEntities();
-  }, [searchTerm, localNoticias, localFosas, localCedulas]);
+  }, [searchTerm, localNoticias, localFosas, localCedulas, fetchedRecords, forenseRecords]);
 
   if (!isOpen) return null;
 
@@ -67,7 +127,11 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
       } else {
         await createLink(sourceEntity.uuid || sourceEntity.id, targetUuid, relationType, description);
       }
-      onClose();
+      setTagName('');
+      setTargetUuid('');
+      setSearchTerm('');
+      setDescription('');
+      loadLinks(); // Reload existing links
     } catch (err) {
       console.error(err);
       alert('Error al crear el vínculo');
@@ -89,10 +153,36 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
         </h2>
 
         <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
-          <span style={{ fontSize: '12px', color: '#6b7280', display: 'block' }}>Vincular desde:</span>
+          <span style={{ fontSize: '12px', color: '#6b7280', display: 'block' }}>Entidad Principal:</span>
           <strong style={{ color: '#111827' }}>{sourceTitle || 'Entidad seleccionada'}</strong>
         </div>
 
+        {existingLinks.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '14px', marginBottom: '8px', color: '#374151' }}>Relaciones y Etiquetas Actuales</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '120px', overflowY: 'auto' }}>
+              {existingLinks.map(link => {
+                const isSource = link.source_uuid === (sourceEntity.uuid || sourceEntity.id);
+                const otherUuid = isSource ? link.target_uuid : link.source_uuid;
+                const isTag = link.tipo_relacion === 'ETIQUETA' || otherUuid.startsWith('TAG-');
+                return (
+                  <li key={link.uuid} style={{ fontSize: '12px', background: isTag ? '#ede9fe' : '#f0fdf4', padding: '6px 10px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      <strong style={{ color: isTag ? '#6d28d9' : '#166534' }}>{isTag ? 'Etiqueta:' : link.tipo_relacion}</strong>{' '}
+                      {resolveEntityName(otherUuid)}
+                    </span>
+                    <button 
+                      onClick={async () => { await deleteLink(link.uuid); loadLinks(); }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}
+                    >&times;</button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        <h3 style={{ fontSize: '14px', marginBottom: '10px', color: '#374151', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>Añadir Nueva Relación o Etiqueta</h3>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
           <button 
             onClick={() => setMode('ENTIDAD')}

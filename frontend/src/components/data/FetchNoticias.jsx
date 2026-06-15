@@ -3,12 +3,14 @@ import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
 
+import { getCachedData, setCachedData } from '../../utils/cache';
+
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchNoticias');
 
 
 const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
-  const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData, updateLoadingStatus, updateDataCount, localNoticias, mergeWithLocal } = useData();
+  const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData, updateLoadingStatus, updateDataCount, localNoticias, mergeWithLocal, setRemoteNoticias } = useData();
 
   useEffect(() => {
     const fetchData = async (start_date, end_date) => {
@@ -24,15 +26,22 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
       try {
         updateLoadingStatus('noticias', true);
         logger.log('Fetching noticias with params:', { start_date, end_date });
-        const response = await axios.get(`${API_BASE_URL}/noticias`, {
-          params: {
-            start_date,
-            end_date,
-            limit: 1000
-          }
-        });
 
-        const records = response.data || [];
+        const cacheParams = { start_date, end_date };
+        let records = getCachedData('noticias', cacheParams);
+
+        if (!records) {
+          const response = await axios.get(`${API_BASE_URL}/noticias`, {
+            params: {
+              start_date,
+              end_date,
+              limit: 1000
+            }
+          });
+          records = response.data || [];
+          setCachedData('noticias', cacheParams, records);
+        }
+
         logger.log(`Fetched ${records.length} noticias. Raw response:`, records);
 
         const features = records
@@ -80,6 +89,7 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
         };
         logger.log('Noticias GeoJSON generated:', geojsonData);
         
+        setRemoteNoticias(geojsonData);
         const mergedGeoJSON = mergeWithLocal(geojsonData, localNoticias, 'noticia');
 
         const noticiasLayout = {
@@ -115,7 +125,7 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
     if (mapLoaded && map && fetchId > 0) {
       fetchData(startDate, endDate);
     }
-  }, [fetchId, mapLoaded, map, fetchNoticias]);
+  }, [fetchId, mapLoaded, map, fetchNoticias, startDate, endDate]);
 
   return null;
 };

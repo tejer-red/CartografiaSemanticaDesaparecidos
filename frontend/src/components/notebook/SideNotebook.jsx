@@ -118,52 +118,50 @@ const SideNotebook = ({
         }}
       >
         <>
-          {activeTab === 'notebook' ? (
-            <>
-              <div>
-                <DateFormCompact
-                  handleSubmit={handleSubmit}
-                  loading={loading}
-                  fetchCedulas={fetchCedulas}
-                  setFetchCedulas={setFetchCedulas}
-                  fetchForense={fetchForense}
-                  setFetchForense={setFetchForense}
-                  fetchFosas={fetchFosas}
-                  setFetchFosas={setFetchFosas}
-                  fetchNoticias={fetchNoticias}
-                  setFetchNoticias={setFetchNoticias}
-                />
-              </div>
-              <div
-                style={{
-                  minWidth: PANEL_WIDTH,
-                  maxWidth: 600,
-                  height: "100vh",
-                  background: "#fff",
-                  display: "flex",
-                  flexDirection: "column",
-                  boxSizing: "border-box",
-                }}
-              >
-                <Notebook />
-              </div>
-            </>
-          ) : (
+          <div style={{ display: activeTab === 'notebook' ? 'block' : 'none', height: '100%', display: activeTab === 'notebook' ? 'flex' : 'none', flexDirection: 'column' }}>
+            <div>
+              <DateFormCompact
+                handleSubmit={handleSubmit}
+                loading={loading}
+                fetchCedulas={fetchCedulas}
+                setFetchCedulas={setFetchCedulas}
+                fetchForense={fetchForense}
+                setFetchForense={setFetchForense}
+                fetchFosas={fetchFosas}
+                setFetchFosas={setFetchFosas}
+                fetchNoticias={fetchNoticias}
+                setFetchNoticias={setFetchNoticias}
+              />
+            </div>
             <div
               style={{
                 minWidth: PANEL_WIDTH,
                 maxWidth: 600,
                 height: "100vh",
-                background: "#f9fafb", // slightly different background for ingesta
+                background: "#fff",
                 display: "flex",
                 flexDirection: "column",
                 boxSizing: "border-box",
-                overflowY: "auto"
               }}
             >
-              <LocalDataPanel />
+              <Notebook />
             </div>
-          )}
+          </div>
+
+          <div
+            style={{
+              display: activeTab === 'ingesta' ? 'flex' : 'none',
+              minWidth: PANEL_WIDTH,
+              maxWidth: 600,
+              height: "100vh",
+              background: "#f9fafb", // slightly different background for ingesta
+              flexDirection: "column",
+              boxSizing: "border-box",
+              overflowY: "auto"
+            }}
+          >
+            <LocalDataPanel />
+          </div>
         </>
       </div>
     </div>

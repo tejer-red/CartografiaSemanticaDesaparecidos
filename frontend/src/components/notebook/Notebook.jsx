@@ -4,14 +4,17 @@ import { useData } from '../../context/DataContext';
 import '../../styles/Notebook.css';
 import { useNotebook } from '../../utils/notebook';
 import NotebookNotes from './NotebookNotes';
-import NotebookLoad from './NotebookLoad';
+import NotebookListModal from './NotebookListModal';
 import GlobalTimeGraphData from '../timeline/GlobalTimeGraphData';
-import { MapPin, ArrowLeft } from 'lucide-react';
+import { MapPin, ArrowLeft, Info, X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Notebook = () => {
   const dataContext = useData();
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showInfoModal, setShowInfoModal] = React.useState(false);
 
   const {
     notes,
@@ -30,8 +33,24 @@ const Notebook = () => {
     notebookList,
   } = useNotebook(dataContext, id, navigate);
 
+  React.useEffect(() => {
+    const handleSave = (e) => saveNotesToBackend(e.detail?.name);
+    const handleLoad = (e) => loadNotesFromBackend(e.detail?.id);
+    const handleList = () => listNotebooks();
+
+    window.addEventListener('saveNotebookRequested', handleSave);
+    window.addEventListener('loadNotebookRequested', handleLoad);
+    window.addEventListener('listNotebooksRequested', handleList);
+
+    return () => {
+      window.removeEventListener('saveNotebookRequested', handleSave);
+      window.removeEventListener('loadNotebookRequested', handleLoad);
+      window.removeEventListener('listNotebooksRequested', handleList);
+    };
+  }, [saveNotesToBackend, loadNotesFromBackend, listNotebooks]);
+
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <div
         style={{
           display: 'flex',
@@ -48,6 +67,7 @@ const Notebook = () => {
           Bitácora de navegación
         </h2>
       </div>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
         <GlobalTimeGraphData
           map={dataContext.map}
@@ -143,9 +163,7 @@ const Notebook = () => {
             ))
           )}
         </div>
-        <NotebookLoad
-          saveNotesToBackend={saveNotesToBackend}
-          loadNotesFromBackend={loadNotesFromBackend}
+        <NotebookListModal
           listNotebooks={listNotebooks}
           isModalOpen={isModalOpen}
           setIsModalOpen={setIsModalOpen}

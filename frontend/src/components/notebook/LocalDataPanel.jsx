@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, Info } from 'lucide-react';
+import { useLocalData } from '../../hooks/useLocalData';
+import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, Info, Search } from 'lucide-react';
 import LinkModal from '../shared/LinkModal';
 import SemanticLinkInfoModal from '../shared/SemanticLinkInfoModal';
 import MiniNetworkModal from '../shared/MiniNetworkModal';
@@ -42,14 +43,21 @@ const AccordionItem = ({ title, count, icon: Icon, children, defaultOpen = false
 };
 
 const LocalDataPanel = () => {
-  const { user } = useAuth();
-  const { localFosas, localNoticias, localCedulas, localVinculos, fetchedRecords, forenseRecords } = useData();
+  const { user, signOut } = useAuth();
+  const { localFosas, localNoticias, localCedulas, localVinculos, fetchedRecords, forenseRecords, refreshLocalData } = useData();
+  const { addLocalFosa, addLocalNoticia, addLocalCedula, clearAllLocalData } = useLocalData();
   
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkSource, setLinkSource] = useState(null);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
   const [selectedVinculo, setSelectedVinculo] = useState(null);
+
+  const notebookId = window.location.pathname.match(/\/cuaderno\/([^\/]+)/)?.[1];
+  const filteredFosas = localFosas?.filter(f => f.notebook_id === notebookId) || [];
+  const filteredNoticias = localNoticias?.filter(n => n.notebook_id === notebookId) || [];
+  const filteredCedulas = localCedulas?.filter(c => c.notebook_id === notebookId) || [];
+  const filteredVinculos = localVinculos?.filter(v => v.notebook_id === notebookId) || [];
 
   const openLinkModal = (item, type) => {
     let title = 'Entidad';
@@ -61,26 +69,93 @@ const LocalDataPanel = () => {
     setLinkModalOpen(true);
   };
 
+  const handleAddFosa = async () => {
+    const lat = 20.6 + Math.random() * 0.5;
+    const lng = -103.3 - Math.random() * 0.5;
+    try {
+      await addLocalFosa({ lat, lng, municipio: 'Zapopan (Local)', estado: 'Jalisco', fecha_hallazgo: new Date().toISOString().split('T')[0], notebook_id: notebookId });
+      refreshLocalData();
+    } catch (e) { console.error(e); }
+  };
+
+  const handleAddNoticia = async () => {
+    const lat = 20.6 + Math.random() * 0.5;
+    const lng = -103.3 - Math.random() * 0.5;
+    try {
+      await addLocalNoticia({ lat, lng, titular: 'Hallazgo reportado localmente', url: 'https://ejemplo.com', fecha: new Date().toISOString().split('T')[0], notebook_id: notebookId });
+      refreshLocalData();
+    } catch (e) { console.error(e); }
+  };
+
+  const [cedulaSearchTerm, setCedulaSearchTerm] = useState('');
+  const [showCedulaSearch, setShowCedulaSearch] = useState(false);
+  const [cedulaSearchResults, setCedulaSearchResults] = useState([]);
+
+  const handleSearchCedula = (e) => {
+    const term = e.target.value;
+    setCedulaSearchTerm(term);
+    if (term.length < 3) {
+      setCedulaSearchResults([]);
+      return;
+    }
+    const results = [];
+    if (forenseRecords && forenseRecords.features) {
+      forenseRecords.features.forEach(f => {
+        const props = f.properties;
+        if (props && props.nombre_completo && props.nombre_completo.toLowerCase().includes(term.toLowerCase())) {
+          results.push(props);
+        }
+      });
+    }
+    setCedulaSearchResults(results.slice(0, 5));
+  };
+
+  const handleAddRemoteCedulaToLocal = async (cedula) => {
+    try {
+      await addLocalCedula({
+        ...cedula,
+        isLocal: true,
+        original_uuid: cedula.uuid || cedula.id,
+        notebook_id: notebookId
+      });
+      refreshLocalData();
+      setCedulaSearchTerm('');
+      setCedulaSearchResults([]);
+      setShowCedulaSearch(false);
+    } catch (e) { console.error(e); }
+  };
+
   return (
     <div className="local-data-panel">
       <div className="local-panel-header">
         <h3>Información de {user?.email?.split('@')[0] || 'Usuario'}</h3>
         <p className="local-panel-desc">Datos guardados localmente en este dispositivo.</p>
+        <button 
+          onClick={async () => {
+            if (window.confirm('¿Seguro que deseas borrar todos los datos de la sesión local (IndexedDB)? Esto no cerrará tu sesión.')) {
+              await clearAllLocalData();
+              refreshLocalData();
+            }
+          }}
+          style={{ marginTop: '10px', width: '100%', padding: '6px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+        >
+          Borrar base local
+        </button>
       </div>
 
       <div className="local-accordion-container">
         <AccordionItem 
           title="Fosas" 
-          count={localFosas?.length || 0} 
+          count={filteredFosas.length} 
           icon={MapPin} 
           defaultOpen={true}
-          onAdd={() => alert('Para añadir una fosa, haz clic en el botón flotante del mapa +')}
+          onAdd={handleAddFosa}
         >
-          {localFosas?.length === 0 ? (
+          {filteredFosas.length === 0 ? (
             <p className="local-empty-text">No hay fosas locales registradas.</p>
           ) : (
             <ul className="local-list">
-              {localFosas?.map(fosa => (
+              {filteredFosas.map(fosa => (
                 <li key={fosa.uuid} className="local-list-item">
                   <div className="local-item-content">
                     <strong>Fosa en {fosa.municipio || 'Ubicación desconocida'}</strong>
@@ -98,14 +173,15 @@ const LocalDataPanel = () => {
 
         <AccordionItem 
           title="Noticias" 
-          count={localNoticias?.length || 0} 
+          count={filteredNoticias.length} 
           icon={Newspaper}
+          onAdd={handleAddNoticia}
         >
-          {localNoticias?.length === 0 ? (
+          {filteredNoticias.length === 0 ? (
             <p className="local-empty-text">No hay noticias locales registradas.</p>
           ) : (
             <ul className="local-list">
-              {localNoticias?.map(noticia => (
+              {filteredNoticias.map(noticia => (
                 <li key={noticia.uuid} className="local-list-item">
                   <div className="local-item-content">
                     <strong>{noticia.titular || 'Sin titular'}</strong>
@@ -122,14 +198,39 @@ const LocalDataPanel = () => {
 
         <AccordionItem 
           title="Cédulas" 
-          count={localCedulas?.length || 0} 
+          count={filteredCedulas.length} 
           icon={FileText}
+          onAdd={() => setShowCedulaSearch(!showCedulaSearch)}
         >
-          {localCedulas?.length === 0 ? (
+          {showCedulaSearch && (
+            <div style={{ padding: '10px', background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
+              <div className="input-wrapper" style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: '#9ca3af' }} />
+                <input 
+                  type="text" 
+                  placeholder="Buscar cédula remota para importar..." 
+                  value={cedulaSearchTerm}
+                  onChange={handleSearchCedula}
+                  style={{ width: '100%', padding: '8px 8px 8px 30px', borderRadius: '4px', border: '1px solid #d1d5db', boxSizing: 'border-box', fontSize: '12px' }}
+                />
+              </div>
+              {cedulaSearchResults.length > 0 && (
+                <ul style={{ listStyle: 'none', padding: 0, margin: '5px 0 0 0', border: '1px solid #d1d5db', borderRadius: '4px', maxHeight: '100px', overflowY: 'auto', background: 'white' }}>
+                  {cedulaSearchResults.map((res, i) => (
+                    <li key={i} onClick={() => handleAddRemoteCedulaToLocal(res)} style={{ padding: '8px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', fontSize: '11px' }}>
+                      <strong>{res.nombre_completo}</strong>
+                      <span style={{ display: 'block', color: '#6b7280' }}>Pinchar para importar a local</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          {filteredCedulas.length === 0 ? (
             <p className="local-empty-text">No hay cédulas locales registradas.</p>
           ) : (
             <ul className="local-list">
-              {localCedulas?.map(cedula => (
+              {filteredCedulas.map(cedula => (
                 <li key={cedula.uuid} className="local-list-item">
                   <div className="local-item-content">
                     <strong>{cedula.nombre_completo || 'Desconocido'}</strong>
@@ -167,14 +268,14 @@ const LocalDataPanel = () => {
               </button>
             </div>
           }
-          count={localVinculos?.length || 0} 
+          count={filteredVinculos?.length || 0} 
           icon={Link2}
         >
-          {localVinculos?.length === 0 ? (
+          {filteredVinculos?.length === 0 ? (
             <p className="local-empty-text">No has creado relaciones aún.</p>
           ) : (
             <ul className="local-list">
-              {localVinculos?.map(vinculo => (
+              {filteredVinculos?.map(vinculo => (
                 <li 
                   key={vinculo.uuid} 
                   className="local-list-item" 
@@ -227,7 +328,7 @@ const LocalDataPanel = () => {
           isOpen={networkModalOpen}
           onClose={() => setNetworkModalOpen(false)}
           vinculo={selectedVinculo}
-          allVinculos={!selectedVinculo ? localVinculos : []}
+          allVinculos={!selectedVinculo ? filteredVinculos : []}
           localFosas={localFosas}
           localNoticias={localNoticias}
           localCedulas={localCedulas}

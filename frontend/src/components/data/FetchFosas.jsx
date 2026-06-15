@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
 
+import { getCachedData, setCachedData } from '../../utils/cache';
+
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchFosas');
 
@@ -19,7 +21,8 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
     updateLoadingStatus,
     updateDataCount,
     localFosas,
-    mergeWithLocal
+    mergeWithLocal,
+    setRemoteFosas
   } = useData();
 
   useEffect(() => {
@@ -46,15 +49,22 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
       try {
         setLoading(true);
         updateLoadingStatus('fosas', true);
-        const response = await axios.get(`${API_BASE_URL}/fosas`, {
-          params: {
-            start_date,
-            end_date,
-            limit: 1000 // Get all graves
-          }
-        });
+        
+        const cacheParams = { start_date, end_date };
+        let records = getCachedData('fosas', cacheParams);
 
-        const records = response.data || [];
+        if (!records) {
+          const response = await axios.get(`${API_BASE_URL}/fosas`, {
+            params: {
+              start_date,
+              end_date,
+              limit: 1000 // Get all graves
+            }
+          });
+          records = response.data || [];
+          setCachedData('fosas', cacheParams, records);
+        }
+
         const formattedRecords = records
           .filter(record => record.coordenadas)
           .map(record => {
@@ -95,13 +105,19 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
           features: formattedRecords
         };
 
+        setRemoteFosas(geojsonData);
         const mergedGeoJSON = mergeWithLocal(geojsonData, localFosas, 'fosa');
 
+        updateDataCount('fosas', mergedGeoJSON.features.length);
         if (map && map.isStyleLoaded()) {
           updateLayerData('fosaLayer', mergedGeoJSON, fosasLayout);
-          updateDataCount('fosas', mergedGeoJSON.features.length);
         } else {
-          logger.error('Map is not initialized or style is not loaded');
+          logger.warn('Map style not loaded yet for fosaLayer, registering listener');
+          if (map) {
+            map.once('style.load', () => {
+              updateLayerData('fosaLayer', mergedGeoJSON, fosasLayout);
+            });
+          }
         }
         logger.log('Fetched Fosas records:', formattedRecords);
       } catch (error) {
@@ -113,7 +129,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
       }
     };
 
-    if (fetchId) {
+    if (fetchId > 0) {
       logger.log('FetchFosas: fetching graves...');
       fetchData(startDate, endDate);
     }

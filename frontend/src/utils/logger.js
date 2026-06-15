@@ -2,7 +2,7 @@
 // To enable/disable logs for a specific component, change its value here.
 export const DEBUG_CONFIG = {
   MarkersForense: false,
-  FetchForense: true,
+  FetchForense: false,
   TabsComponent: false,
   GlobalTimeGraphData: false,
   ExampleComponent: false,
@@ -10,9 +10,9 @@ export const DEBUG_CONFIG = {
   HeaderCompact: false,
   InitialModal: false,
   BottomTimelinePanel: false,
-  FetchFosas: true,
-  FetchCedulas: true,
-  FetchNoticias: true,
+  FetchFosas: false,
+  FetchCedulas: false,
+  FetchNoticias: false,
   LayerManager: false,
   AppLayout: false,
   NotebookList: false,
@@ -24,7 +24,18 @@ export const DEBUG_CONFIG = {
   FilterForm: false,
   MarkersFosas: false,
   DataContext: true,
-  layerManager: true,
+  layerManager: false,
+  
+  // Relaciones, Etiquetas e Ingesta
+  LinkModal: true,
+  LocalDataPanel: true,
+  MiniNetworkModal: true,
+  useLinks: true,
+  useLocalData: true,
+};
+
+export const SESSION_STATUS = {
+  current: 'sesión vacía'
 };
 
 class Logger {
@@ -39,31 +50,31 @@ class Logger {
 
   log(...args) {
     if (this.shouldLog()) {
-      console.log(`[${this.componentName}]`, ...args);
+      console.log(`[${this.componentName}] [${SESSION_STATUS.current}]`, ...args);
     }
   }
 
   error(...args) {
     if (this.shouldLog()) {
-      console.error(`[${this.componentName}]`, ...args);
+      console.error(`[${this.componentName}] [${SESSION_STATUS.current}]`, ...args);
     }
   }
 
   warn(...args) {
     if (this.shouldLog()) {
-      console.warn(`[${this.componentName}]`, ...args);
+      console.warn(`[${this.componentName}] [${SESSION_STATUS.current}]`, ...args);
     }
   }
 
   info(...args) {
     if (this.shouldLog()) {
-      console.info(`[${this.componentName}]`, ...args);
+      console.info(`[${this.componentName}] [${SESSION_STATUS.current}]`, ...args);
     }
   }
 
   debug(...args) {
     if (this.shouldLog()) {
-      console.debug(`[${this.componentName}]`, ...args);
+      console.debug(`[${this.componentName}] [${SESSION_STATUS.current}]`, ...args);
     }
   }
 }

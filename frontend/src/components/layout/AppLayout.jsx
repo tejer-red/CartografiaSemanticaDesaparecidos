@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useData } from '../../context/DataContext';
 import InitialModal from './InitialModal';
 import LeftSideBar from './LeftSideBar';
 import HeaderCompact from './HeaderCompact';
@@ -22,7 +23,7 @@ const AppLayout = ({
   listNotebooksApp
 }) => {
   const [activePanel, setActivePanel] = useState(null);
-  const [isInitialModalOpen, setIsInitialModalOpen] = useState(true);
+  const { isInitialModalOpen, setIsInitialModalOpen } = useData();
 
   const handlePanelHover = (panelName) => {
     setActivePanel(panelName);

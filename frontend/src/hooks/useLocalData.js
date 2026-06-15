@@ -112,12 +112,26 @@ export const useLocalData = () => {
   const deleteLocalRecord = useCallback(async (table, uuid) => {
     try {
       await db[table].where('uuid').equals(uuid).delete();
-      logger.log(`Registro eliminado en ${table}:`, uuid);
+      logger.log(`Registro eliminado de ${table}:`, uuid);
     } catch (error) {
-      logger.error(`Error al eliminar en ${table}:`, error);
+      logger.error(`Error al eliminar registro de ${table}:`, error);
       throw error;
     }
   }, []);
+
+  const clearAllLocalData = useCallback(async () => {
+    if (!user) return;
+    try {
+      await db.local_fosas.where('user_id').equals(user.id).delete();
+      await db.local_noticias.where('user_id').equals(user.id).delete();
+      await db.local_cedulas.where('user_id').equals(user.id).delete();
+      await db.local_vinculos.where('user_id').equals(user.id).delete();
+      logger.log('Todos los datos locales han sido borrados');
+    } catch (error) {
+      logger.error('Error al borrar datos locales:', error);
+      throw error;
+    }
+  }, [user]);
 
   return {
     addLocalFosa,
@@ -130,5 +144,6 @@ export const useLocalData = () => {
     getLocalPFSIForFosa,
     updateLocalRecord,
     deleteLocalRecord,
+    clearAllLocalData
   };
 };

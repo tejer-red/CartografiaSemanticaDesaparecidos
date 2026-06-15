@@ -19,43 +19,31 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
   // Obtiene estados y setters globales desde el contexto
   const {
     map,
+    mapLoaded,
+    showLoadingScreen,
     COLORS,
     selectedDate,
     timeScale,
     setSelectedDate,
     setTimeScale,
     setDaysRange,
-    newDataFetched,
-    newForenseDataFetched,
     selectedSexo,          // Use these states instead of filters
     selectedCondicion      // Use these states instead of filters
   } = useData();
 
   const [processedData, setProcessedData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = !map || !mapLoaded;
 
   useEffect(() => {
-    if (!map) {
-      setIsLoading(true);
+    console.log('[GlobalTimeGraph] checking update. mapExists:', !!map, 'mapLoaded:', mapLoaded, 'showLoadingScreen:', showLoadingScreen, 'timeScale:', timeScale);
+    if (isLoading || showLoadingScreen) {
+      console.log('[GlobalTimeGraph] skipped processing (map loading or overlay is visible)');
       return;
     }
-    const handleMapLoad = () => setIsLoading(false);
-    if (!map.isStyleLoaded()) {
-      map.once('load', handleMapLoad);
-    } else {
-      handleMapLoad();
-    }
-    return () => {
-      if (map) map.off('load', handleMapLoad);
-    };
-  }, [map]);
-
-  useEffect(() => {
-    if (isLoading || !map || (!newDataFetched && !newForenseDataFetched)) {
-      return;
-    }
-    setProcessedData(processMapData(map, timeScale));
-  }, [map, timeScale, newDataFetched, newForenseDataFetched, isLoading]);
+    const data = processMapData(map, timeScale);
+    console.log('[GlobalTimeGraph] processed map data features. Data points count:', data.length);
+    setProcessedData(data);
+  }, [map, mapLoaded, timeScale, showLoadingScreen, isLoading]);
 
   if (isLoading) {
     return <div>Cargando GlobalTimeGraph...</div>;

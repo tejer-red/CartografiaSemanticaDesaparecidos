@@ -8,7 +8,8 @@ export const LoadingOverlay = () => {
     autoStart, 
     setAutoStart,
     showLoadingScreen,
-    setShowLoadingScreen
+    setShowLoadingScreen,
+    setIsInitialModalOpen
   } = useData();
 
   const [verboseMode, setVerboseMode] = useState(false);
@@ -16,12 +17,18 @@ export const LoadingOverlay = () => {
   // Check if everything is loaded
   const isAnyLoading = Object.values(loadingStatus).some(status => status);
 
+  // Sum of all loaded markers
+  const totalCount = (dataCounts.cedulas || 0) + (dataCounts.fosas || 0) + (dataCounts.noticias || 0) + (dataCounts.forense || 0);
+
+  // Can start only if nothing is loading and we have at least 1 record
+  const canStart = !isAnyLoading && totalCount > 0;
+
   useEffect(() => {
-    // If autoStart is true and nothing is loading anymore, automatically hide the overlay
-    if (autoStart && !isAnyLoading && showLoadingScreen) {
+    // If autoStart is true, nothing is loading anymore, and we have records, automatically hide the overlay
+    if (autoStart && canStart && showLoadingScreen) {
       setShowLoadingScreen(false);
     }
-  }, [autoStart, isAnyLoading, showLoadingScreen, setShowLoadingScreen]);
+  }, [autoStart, canStart, showLoadingScreen, setShowLoadingScreen]);
 
   if (!showLoadingScreen) return null;
 
@@ -107,7 +114,7 @@ export const LoadingOverlay = () => {
           fontWeight: 600,
           color: 'var(--text-color)'
         }}>
-          Sistema de Cartografía Semántica
+          Carga de Información
         </h2>
         
         <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -155,27 +162,83 @@ export const LoadingOverlay = () => {
             fontSize: '0.8em',
             fontFamily: 'monospace',
             color: 'var(--text-muted)',
-            maxHeight: '100px',
+            maxHeight: '120px',
             overflowY: 'auto'
           }}>
-            {Object.entries(loadingStatus).map(([key, isLoading]) => (
-              <div key={key}>
-                [{new Date().toLocaleTimeString()}] {key}: {isLoading ? 'fetching...' : 'complete'}
-              </div>
-            ))}
+            {Object.entries(loadingStatus).map(([key, isLoading]) => {
+              const count = dataCounts[key];
+              const countSuffix = (!isLoading && key !== 'map' && count !== undefined) ? ` (${count})` : '';
+              return (
+                <div key={key}>
+                  [{new Date().toLocaleTimeString()}] {key}: {isLoading ? 'fetching...' : `complete${countSuffix}`}
+                </div>
+              );
+            })}
           </div>
         )}
 
-        <button 
-          onClick={() => setShowLoadingScreen(false)}
-          disabled={isAnyLoading && !autoStart}
-          style={{
-            marginTop: '24px',
-            width: '100%',
-          }}
-        >
-          {isAnyLoading ? 'Cargando...' : 'Iniciar'}
-        </button>
+        {!isAnyLoading && totalCount === 0 && (
+          <div style={{ marginTop: '16px', color: '#dc3545', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}>
+            No se encontraron marcadores en este rango de fechas.
+          </div>
+        )}
+
+        {isAnyLoading ? (
+          <button 
+            disabled
+            style={{
+              marginTop: '24px',
+              width: '100%',
+              backgroundColor: '#9ca3af',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '12px',
+              fontWeight: 600,
+              cursor: 'not-allowed'
+            }}
+          >
+            Descargando Datos...
+          </button>
+        ) : totalCount > 0 ? (
+          <button 
+            onClick={() => setShowLoadingScreen(false)}
+            style={{
+              marginTop: '24px',
+              width: '100%',
+              backgroundColor: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
+            }}
+          >
+            Iniciar Carga de Información
+          </button>
+        ) : (
+          <button 
+            onClick={() => {
+              setShowLoadingScreen(false);
+              setIsInitialModalOpen(true);
+            }}
+            style={{
+              marginTop: '16px',
+              width: '100%',
+              backgroundColor: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '12px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Volver a Selección de Fechas
+          </button>
+        )}
       </div>
     </div>
   );

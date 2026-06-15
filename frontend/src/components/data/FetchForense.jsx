@@ -37,7 +37,9 @@ const FetchForense = ({ fetchForense, fetchId, onFetchComplete }) => {
       }
     };
 
-    fetchData();
+    if (fetchId > 0) {
+      fetchData();
+    }
   }, [fetchId, fetchForense, map, mapLoaded, startDate, endDate]);
 
   return null;

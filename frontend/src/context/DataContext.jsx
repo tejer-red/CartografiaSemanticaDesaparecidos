@@ -3,6 +3,8 @@ import maplibregl from 'maplibre-gl';
 import * as layerManager from './layerManager';
 import { useLocalData } from '../hooks/useLocalData';
 import { useLinks } from '../hooks/useLinks';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { SESSION_STATUS } from '../utils/logger';
 
 import createLogger from '../utils/logger';
 const logger = createLogger('DataContext');
@@ -12,24 +14,37 @@ const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
   const [map, setMap] = useState(null);
-  const [fetchedRecords, setFetchedRecords] = useState([]);
-  const [forenseRecords, setForenseRecords] = useState([]);
+  const mapRef = useRef(null);
   
-  const { getLocalFosas, getLocalNoticias, getLocalCedulas } = useLocalData();
+  useEffect(() => {
+    mapRef.current = map;
+  }, [map]);
+
+  const [fetchedRecords, setFetchedRecords] = useState({ type: 'FeatureCollection', features: [] });
+  const [forenseRecords, setForenseRecords] = useState({ type: 'FeatureCollection', features: [] });
+
+  const { getLocalFosas, getLocalNoticias, getLocalCedulas, addLocalFosa, addLocalNoticia, addLocalCedula } = useLocalData();
   const { getLinksGraph } = useLinks();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [globalLinkModal, setGlobalLinkModal] = useState({ isOpen: false, sourceEntity: null });
+  const [fetchId, setFetchId] = useState(0);
 
   const [localFosas, setLocalFosas] = useState([]);
   const [localNoticias, setLocalNoticias] = useState([]);
   const [localCedulas, setLocalCedulas] = useState([]);
   const [localVinculos, setLocalVinculos] = useState([]);
   const [mergedRecords, setMergedRecords] = useState([]);
-  const [cedulaLayer, setCedulaLayer] = useState(null);
-  const [forenseLayer, setForenseLayer] = useState(null);
+  const [remoteFosas, setRemoteFosas] = useState({ type: 'FeatureCollection', features: [] });
+  const [remoteNoticias, setRemoteNoticias] = useState({ type: 'FeatureCollection', features: [] });
+
   const [timelineData, setTimelineData] = useState([]);
   const [timeline, setTimeline] = useState(null);
   const [timelineControl, setTimelineControl] = useState(null);
   const [newDataFetched, setNewDataFetched] = useState(false);
   const [newForenseDataFetched, setNewForenseDataFetched] = useState(false);
+  const [cedulaLayer, setCedulaLayer] = useState(null);
+  const [forenseLayer, setForenseLayer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [daysRange, setDaysRange] = useState(30); // Default to 5 days range
@@ -48,8 +63,8 @@ export const DataProvider = ({ children }) => {
     //timeGraph: false,
     //crossRef: false,
   });
-  const [startDate, setStartDate] = useState('2023-01-01'); // Default start date
-  const [endDate, setEndDate] = useState('2024-01-01'); // Default end date
+  const [startDate, setStartDate] = useState(sessionStorage.getItem('startDate') || '2023-01-01'); // Default fallback
+  const [endDate, setEndDate] = useState(sessionStorage.getItem('endDate') || '2024-01-01'); // Default fallback
   const [timelinePanelOpen, setTimelinePanelOpen] = useState(true);
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [timelineVelocity, setTimelineVelocity] = useState(1000);
@@ -70,8 +85,26 @@ export const DataProvider = ({ children }) => {
     noticias: 0,
     forense: 0
   });
-  const [autoStart, setAutoStart] = useState(true);
+  const [notebookCache, setNotebookCache] = useState({});
+
+  const addToNotebookCache = (type, record) => {
+    const timestamp = Date.now();
+    setNotebookCache(prev => ({
+      ...prev,
+      [timestamp]: { type, record }
+    }));
+    // Also persist to localStorage for later retrieval
+    try {
+      const existing = JSON.parse(localStorage.getItem('notebookCache') || '{}');
+      const updated = { ...existing, [timestamp]: { type, record } };
+      localStorage.setItem('notebookCache', JSON.stringify(updated));
+    } catch (e) {
+      logger.error('Error saving notebook cache', e);
+    }
+  };
+  const [autoStart, setAutoStart] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+  const [isInitialModalOpen, setIsInitialModalOpen] = useState(true);
 
   const updateLoadingStatus = (key, status) => {
     setLoadingStatus(prev => ({ ...prev, [key]: status }));
@@ -79,6 +112,73 @@ export const DataProvider = ({ children }) => {
   const updateDataCount = (key, count) => {
     setDataCounts(prev => ({ ...prev, [key]: count }));
   };
+
+  const [sessionStatus, setSessionStatus] = useState('sesión vacía');
+
+  const resetContext = () => {
+    logger.log('Resetting context variables to defaults');
+    setStartDate('2023-01-01');
+    setEndDate('2024-01-01');
+    setSelectedDate(null);
+    setDaysRange(30);
+    setSelectedSexo(['HOMBRE', 'MUJER']);
+    setSelectedCondicion(['CON VIDA', 'SIN VIDA', 'NO APLICA']);
+    setEdadRange([0, 100]);
+    setsumScoreRange([0.5, 20]);
+    setTimeScale('monthly');
+    setMapType('point');
+    setColorScheme('sexo');
+    setVisibleComponents({
+      filterForm: true,
+      currentState: true,
+    });
+    setSelectedMarkerTypes(['cedula_busqueda', 'fosa', 'noticia']);
+    setFetchedRecords({ type: 'FeatureCollection', features: [] });
+    setRemoteFosas({ type: 'FeatureCollection', features: [] });
+    setRemoteNoticias({ type: 'FeatureCollection', features: [] });
+    setLoadingStatus({
+      map: true,
+      cedulas: true,
+      fosas: true,
+      noticias: true,
+      forense: false
+    });
+    setDataCounts({
+      cedulas: 0,
+      fosas: 0,
+      noticias: 0,
+      forense: 0
+    });
+    
+    if (map) {
+      const layers = ['cedulaLayer', 'fosaLayer', 'noticiasLayer'];
+      layers.forEach(layer => {
+        try {
+          if (map.getLayer(layer)) map.removeLayer(layer);
+          if (map.getSource(layer)) map.removeSource(layer);
+        } catch (e) {
+          logger.warn(`Error removing layer ${layer} on reset`, e);
+        }
+      });
+    }
+
+    setMapLoaded(false);
+    setFetchId(0);
+  };
+
+  useEffect(() => {
+    const isNotebook = location.pathname.includes('/cuaderno/');
+    if (!isNotebook) {
+      SESSION_STATUS.current = 'sesión vacía';
+      setSessionStatus('sesión vacía');
+      resetContext();
+    } else {
+      const match = location.pathname.match(/\/cuaderno\/([^\/]+)/);
+      const notebookId = match ? match[1] : 'desconocido';
+      SESSION_STATUS.current = `sesión de cuaderno: ${notebookId}`;
+      setSessionStatus(`sesión de cuaderno: ${notebookId}`);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!map) return;
@@ -111,14 +211,32 @@ export const DataProvider = ({ children }) => {
     }
   }, [selectedMarkerTypes, map]);
 
-  // Update map loading status when mapLoaded changes
   useEffect(() => {
     updateLoadingStatus('map', !mapLoaded);
   }, [mapLoaded]);
 
+  // Reset loading status and data counts when a new fetch is triggered
   useEffect(() => {
-    logger.log('DataContext state initialized:', { 
-      mapType, setMapType, 
+    if (fetchId > 0) {
+      setLoadingStatus({
+        map: !mapLoaded,
+        cedulas: true,
+        fosas: true,
+        noticias: true,
+        forense: false
+      });
+      setDataCounts({
+        cedulas: 0,
+        fosas: 0,
+        noticias: 0,
+        forense: 0
+      });
+    }
+  }, [fetchId]);
+
+  useEffect(() => {
+    logger.log('DataContext state initialized:', {
+      mapType, setMapType,
       colorScheme, setColorScheme,
       visibleComponents
     });
@@ -130,10 +248,22 @@ export const DataProvider = ({ children }) => {
       const noticias = await getLocalNoticias();
       const cedulas = await getLocalCedulas();
       const vinculos = await getLinksGraph();
-      setLocalFosas(fosas);
-      setLocalNoticias(noticias);
-      setLocalCedulas(cedulas);
-      setLocalVinculos(vinculos);
+      
+      const match = location.pathname.match(/\/cuaderno\/([^\/]+)/);
+      if (match) {
+        const notebookId = match[1];
+        logger.log(`Filtering local data for active notebook: ${notebookId}`);
+        setLocalFosas(fosas.filter(f => f.notebook_id === notebookId));
+        setLocalNoticias(noticias.filter(n => n.notebook_id === notebookId));
+        setLocalCedulas(cedulas.filter(c => c.notebook_id === notebookId));
+        setLocalVinculos(vinculos.filter(v => v.notebook_id === notebookId));
+      } else {
+        logger.log('Root session: clearing local data');
+        setLocalFosas([]);
+        setLocalNoticias([]);
+        setLocalCedulas([]);
+        setLocalVinculos([]);
+      }
     } catch (e) {
       logger.error('Error fetching local data:', e);
     }
@@ -141,7 +271,7 @@ export const DataProvider = ({ children }) => {
 
   useEffect(() => {
     refreshLocalData();
-  }, [getLocalFosas, getLocalNoticias, getLocalCedulas, getLinksGraph]);
+  }, [location.pathname, getLocalFosas, getLocalNoticias, getLocalCedulas, getLinksGraph]);
 
   const mergeWithLocal = (apiGeoJSON, localRecords, tipo) => {
     if (!apiGeoJSON || !apiGeoJSON.features) return apiGeoJSON;
@@ -175,6 +305,106 @@ export const DataProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    window.handlePopupAction = async (action, id, tipo) => {
+      logger.log(`\n=== EVENTO POPUP CLICK ===`);
+      logger.log(`Action solicitada: ${action}`);
+      logger.log(`Tipo entidad: ${tipo}`);
+      logger.log(`ID recibido: ${id}`);
+
+      const stringId = String(id);
+
+      const extract = (data) => Array.isArray(data) ? data : (data?.features || []);
+
+      // Asegurarse de que layerData de cada feature también se busque (noticias etc)
+      // Como mapLayer data no está expuesto tan fácilmente, busquemos en los objetos fuente
+      const allFeatures = [
+        ...extract(mergedRecords),
+        ...extract(forenseRecords),
+        ...extract(fetchedRecords),
+        ...extract(remoteFosas),
+        ...extract(remoteNoticias),
+        ...localFosas.map(f => ({ properties: f })),
+        ...localNoticias.map(n => ({ properties: n })),
+        ...localCedulas.map(c => ({ properties: c }))
+      ];
+
+      const feature = allFeatures.find(f =>
+        String(f?.properties?.uuid) === stringId ||
+        String(f?.properties?.id) === stringId ||
+        String(f?.id) === stringId
+      );
+
+      logger.log(`Total features escaneados en memoria: ${allFeatures.length}`);
+      if (!feature) {
+        logger.error('ERROR: Feature NO encontrada para la acción', action, id);
+        // Log what we DO have for debugging
+        logger.log('Muestra de IDs disponibles en memoria:', allFeatures.slice(0, 5).map(f => f?.properties?.id || f?.properties?.uuid || f?.id));
+        return;
+      }
+      logger.log(`Feature encontrada:`, feature.properties?.titular || feature.properties?.municipio || feature.properties?.nombre_completo || 'Sin nombre');
+
+      if (action === 'import') {
+        let notebookId = null;
+        const match = window.location.pathname.match(/\/cuaderno\/([^\/]+)/);
+        if (match) {
+          notebookId = match[1];
+        } else {
+          notebookId = Date.now().toString();
+        }
+
+        if (tipo === 'fosa') {
+          const record = { ...feature.properties, original_uuid: id, notebook_id: notebookId };
+          await addLocalFosa(record);
+          addToNotebookCache('fosa', record);
+        }
+        if (tipo === 'noticia') {
+          const record = { ...feature.properties, original_uuid: id, notebook_id: notebookId };
+          await addLocalNoticia(record);
+          addToNotebookCache('noticia', record);
+        }
+        if (tipo === 'cedula_busqueda' || tipo === 'cedula') {
+          const record = { ...feature.properties, original_uuid: id, notebook_id: notebookId };
+          await addLocalCedula(record);
+          addToNotebookCache('cedula', record);
+        }
+
+        logger.log('--- EMPEZANDO IMPORTACION ---');
+        logger.log('Action:', action, 'Tipo:', tipo, 'ID:', id);
+        logger.log('Cuaderno activo/Generado con ID:', notebookId);
+
+        try {
+          logger.log('Ejecutando navigate() hacia /cuaderno/' + notebookId);
+          navigate(`/cuaderno/${notebookId}`);
+          logger.log('navigate() ejecutado sin errores');
+
+          // Fallback en caso de que navigate no actualice la URL por estar fuera del ciclo de React
+          if (!window.location.pathname.includes(notebookId.toString())) {
+            logger.warn('navigate() no cambió la URL. Forzando pushState...');
+            window.history.pushState({}, '', `/cuaderno/${notebookId}`);
+            // Dispatch a popstate event so React Router detects the manual change
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }
+        } catch (e) {
+          logger.error('Error al ejecutar navigate():', e);
+        }
+
+        logger.log('Refrescando datos locales...');
+        await refreshLocalData();
+        logger.log('Registro importado a base de datos local exitosamente. Datos locales refrescados.');
+      } else if (action === 'link') {
+        setGlobalLinkModal({
+          isOpen: true,
+          sourceEntity: {
+            ...feature.properties,
+            type: tipo,
+            title: feature.properties.titular || feature.properties.municipio || feature.properties.nombre_completo
+          }
+        });
+      }
+    };
+  }, [mergedRecords, forenseRecords, fetchedRecords]);
+
+  useEffect(() => {
     logger.log('DataContext initialized with:', {
       visibleComponents,
       setVisibleComponents: typeof setVisibleComponents === 'function' ? 'function' : typeof setVisibleComponents
@@ -186,8 +416,9 @@ export const DataProvider = ({ children }) => {
   }, [startDate]);
 
   useEffect(() => {
-    logger.log('DataContext: endDate updated:', endDate);
-  }, [endDate]);
+    sessionStorage.setItem('startDate', startDate);
+    sessionStorage.setItem('endDate', endDate);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     logger.log('DataProvider initialized with context values:', {
@@ -210,7 +441,7 @@ export const DataProvider = ({ children }) => {
         UNKNOWN: "rgba(128, 128, 128, 1)",
         FOSA: "rgba(210, 105, 30, 1)"
       }[key];
-  
+
       return [
         key,
         Object.assign(new String(fullColor), {
@@ -220,7 +451,7 @@ export const DataProvider = ({ children }) => {
       ];
     })
   );
-  
+
   const POINT_RADIUS = 30;
 
   const addTooltip = (layerId) => {
@@ -228,7 +459,7 @@ export const DataProvider = ({ children }) => {
       logger.error('Map not initialized or layer not found');
       return;
     }
-  
+
     const popup = new maplibregl.Popup({
       closeButton: true,
       closeOnClick: false,
@@ -239,6 +470,15 @@ export const DataProvider = ({ children }) => {
 
     // Shared function to generate popup content
     const generatePopupContent = (properties) => {
+      const id = properties.uuid || properties.id;
+      const tipo = properties.tipo_marcador;
+      const actionButtons = `
+        <div style="margin-top: 10px; display: flex; gap: 5px; flex-direction: column;">
+          <button onclick="window.handlePopupAction('import', '${id}', '${tipo}')" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; width: 100%;">↓ Importar a Local</button>
+          <button onclick="window.handlePopupAction('link', '${id}', '${tipo}')" style="background: #6366f1; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; width: 100%;">+ Añadir Relación / Etiqueta</button>
+        </div>
+      `;
+
       if (properties.tipo_marcador === 'fosa') {
         return `
           <div style="font-family: inherit; color: #333; padding: 5px;">
@@ -249,6 +489,7 @@ export const DataProvider = ({ children }) => {
             <p style="margin: 4px 0;"><strong>Total de Fosas:</strong> ${properties.total_fosas || 0}</p>
             <p style="margin: 4px 0;"><strong>Cuerpos recuperados:</strong> ${properties.total_cuerpos || 0}</p>
             <p style="margin: 4px 0;"><strong>Restos/Fragmentos:</strong> ${properties.total_restos_fragmentos || 0}</p>
+            ${actionButtons}
           </div>
         `;
       }
@@ -259,6 +500,7 @@ export const DataProvider = ({ children }) => {
             <p style="margin: 4px 0;"><strong>Fecha:</strong> ${properties.fecha || 'Desconocido'}</p>
             <p style="margin: 6px 0; font-style: italic; font-weight: 500;">"${properties.titular}"</p>
             ${properties.url ? `<p style="margin: 8px 0 0 0;"><a href="${properties.url}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline; font-weight: bold;">Ver noticia completa</a></p>` : ''}
+            ${actionButtons}
           </div>
         `;
       }
@@ -271,15 +513,16 @@ export const DataProvider = ({ children }) => {
           ${properties.edad_momento_desaparicion ? `<p>Edad al momento desaparecer: ${properties.edad_momento_desaparicion}</p>` : '<p>Edad desconocida</p>'}
           ${properties.condicion_localizacion ? `<p>Condición localización: ${properties.condicion_localizacion}</p>` : '<p>Condición no especificada</p>'}
           ${properties.descripcion_desaparicion ? `<p>Descripción desaparición: ${properties.descripcion_desaparicion}</p>` : '<p>Sin descripción disponible</p>'}
+          ${actionButtons}
         </div>
       `;
     };
-  
+
     // Show popup on hover
-    
+
     map.on('mouseenter', layerId, (e) => {
       if (!e.features || e.features.length === 0) return;
-      
+
       map.getCanvas().style.cursor = 'pointer';
       /*
       const feature = e.features[0];
@@ -292,20 +535,20 @@ export const DataProvider = ({ children }) => {
         .addTo(map);
         */
     });
-  
+
     // Remove pointer cursor on mouseleave but don't remove popup
     map.on('mouseleave', layerId, () => {
       map.getCanvas().style.cursor = '';
     });
-    
-  
+
+
     map.on('click', layerId, (e) => {
       if (!e.features || e.features.length === 0) return;
-  
+
       const feature = e.features[0];
       const coordinates = feature.geometry.coordinates.slice();
       const properties = feature.properties;
-  
+
       // Calcular nueva posición del mapa para centrar el feature
       const centerOffset = map.getCenter().lng - coordinates[0];
       const centerOffsetlat = map.getCenter().lat - coordinates[1];
@@ -313,21 +556,21 @@ export const DataProvider = ({ children }) => {
         coordinates[0] + centerOffset * 0.2, // Ajuste horizontal
         coordinates[1] - (1 / Math.pow(2, map.getZoom() - 1))  // Ajuste vertical (~200px)
       ];
-  
+
       // Mover el mapa suavemente
       map.easeTo({
         center: newCenter,
         duration: 500,
         essential: true
       });
-  
+
       // Mostrar popup en la posición original
       popup
         .setLngLat(coordinates)
         .setHTML(generatePopupContent(properties))
         .addTo(map);
     });
-  
+
     // Close popup when clicking elsewhere on the map
     map.on('click', (e) => {
       if (!map.queryRenderedFeatures(e.point, { layers: [layerId] }).length) {
@@ -336,6 +579,11 @@ export const DataProvider = ({ children }) => {
     });
   };
   const updateLayerData = (layerId, data, layoutConfig) => {
+    if (map !== mapRef.current) {
+      logger.warn(`[updateLayerData] Aborting layer update for ${layerId} because the map instance has changed.`);
+      return;
+    }
+    
     logger.log(`[updateLayerData] called for: ${layerId}. map exists: ${!!map}, style loaded: ${map?.isStyleLoaded()}`);
     if (!map) {
       logger.warn(`[updateLayerData] Warning: map is null for layer ${layerId}`);
@@ -346,12 +594,12 @@ export const DataProvider = ({ children }) => {
       setTimeout(() => updateLayerData(layerId, data, layoutConfig), 200);
       return;
     }
-  
+
     if (!data || !data.type || data.type !== 'FeatureCollection') {
       logger.error(`[updateLayerData] Error: Input data given to ${layerId} is not a valid GeoJSON object:`, data);
       return;
     }
-  
+
     let markerType = null;
     if (layerId === 'cedulaLayer') markerType = 'cedula_busqueda';
     else if (layerId === 'fosaLayer') markerType = 'fosa';
@@ -363,26 +611,26 @@ export const DataProvider = ({ children }) => {
     // Delegate caching and overlap detection to layerManager
     logger.log(`[updateLayerData] Storing layer data for ${layerId}. Current cached layers: ${Array.from(layerDataRef.current.keys()).join(', ')}`);
     layerManager.storeLayerData(layerDataRef.current, layerId, data);
-    
+
     logger.log(`[updateLayerData] Running detectAndJitterOverlaps...`);
     const overlaps = layerManager.detectAndJitterOverlaps(layerDataRef.current);
 
     if (overlaps.length > 0) {
       logger.warn(`[Overlap Detector] Adjusted ${overlaps.length} overlapping point groups`, overlaps);
-      
+
       // Update OTHER layers if they were modified by the jittering
       const affectedLayers = new Set();
       overlaps.forEach(overlap => {
         overlap.items.slice(1).forEach(item => affectedLayers.add(item.layer));
       });
-      
+
       logger.log(`[updateLayerData] Affected layers by jittering:`, Array.from(affectedLayers));
-      
+
       affectedLayers.forEach(affectedLayerId => {
-         if (affectedLayerId !== layerId && map.getSource(affectedLayerId)) {
-             logger.log(`[updateLayerData] Also updating map source for affected layer: ${affectedLayerId}`);
-             map.getSource(affectedLayerId).setData(layerDataRef.current.get(affectedLayerId).data);
-         }
+        if (affectedLayerId !== layerId && map.getSource(affectedLayerId)) {
+          logger.log(`[updateLayerData] Also updating map source for affected layer: ${affectedLayerId}`);
+          map.getSource(affectedLayerId).setData(layerDataRef.current.get(affectedLayerId).data);
+        }
       });
     } else {
       logger.log(`[Overlap Detector] Verified: 0 coordinate overlaps found between active layers.`);
@@ -398,27 +646,27 @@ export const DataProvider = ({ children }) => {
         type: 'geojson',
         data: data,
       });
-  
+
       map.addLayer({
         id: layerId,
         type: 'circle',
         source: layerId,
         paint: layoutConfig
       });
-  
+
       addTooltip(layerId);
       layerManager.applyVisibility(map, layerId, markerType, selectedMarkerTypes);
     }
-  
+
     if (layoutConfig === clusteringLayout) {
       logger.log(`[updateLayerData] Clustering layout detected for ${layerId}, skipping timeline update`);
       return;
     }
-    
+
     // Delegate timeline entry generation
     const timelineEntries = layerManager.generateTimelineEntries(data);
     logger.log(`[updateLayerData] Adding ${timelineEntries.length} timeline entries for ${layerId}`);
-  
+
     updateTimelineData(timelineEntries, false);
 
     if (selectedDate) {
@@ -596,7 +844,7 @@ export const DataProvider = ({ children }) => {
 
   const filterMarkersByDate = (selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {
     if (!map || !selectedDate) return;
-  
+
     //logger.log('Filtering markers by date...');
     //logger.log('Selected Date:', selectedDate);
     //logger.log('Days Range:', daysRange);
@@ -604,17 +852,17 @@ export const DataProvider = ({ children }) => {
     //logger.log('Selected Condicion:', selectedCondicion);
     //logger.log('Edad Range:', edadRange);
     //logger.log('Sum Score Range:', sumScoreRange);
-  
+
     const endDate = new Date(selectedDate);
     endDate.setDate(selectedDate.getDate() + daysRange);
-  
+
     // Convert dates to timestamps for easier filtering
     const selectedTimestamp = selectedDate.getTime();
     const endTimestamp = endDate.getTime();
-  
+
     //logger.log('Selected Timestamp:', selectedTimestamp);
     //logger.log('End Timestamp:', endTimestamp);
-  
+
     // Attribute filters
     const attributeFilters = [];
     if (selectedSexo.length > 0) {
@@ -628,23 +876,23 @@ export const DataProvider = ({ children }) => {
 
     attributeFilters.push([">=", ["to-number", ["get", "sum_score"]], sumScoreRange[0]]);
     attributeFilters.push(["<=", ["to-number", ["get", "sum_score"]], sumScoreRange[1]]);
-  
+
 
     //logger.log('Attribute Filters:', attributeFilters);
-  
+
     // Date filters
     const dateFilters = [
       [">=", ["to-number", ["get", "timestamp"], 0], selectedTimestamp],
       ["<=", ["to-number", ["get", "timestamp"], 0], endTimestamp]
     ];
-  
+
     //logger.log('Date Filters:', dateFilters);
-  
+
     // Combined filters
     const combinedFilter = ['all', ...attributeFilters, ...dateFilters];
-  
+
     //logger.log('Combined Filter:', combinedFilter);
-  
+
     // Apply the combined filter to the "cedulaLayer"
     if (map.getLayer("cedulaLayer")) {
       try {
@@ -680,7 +928,7 @@ export const DataProvider = ({ children }) => {
         logger.error("Error applying filter to noticiasLayer:", e);
       }
     }
-  
+
     // Update heatmap layers
     activeHeatmapCategories.forEach(category => {
       const layerId = `cedulaLayer-${category}`;
@@ -699,15 +947,15 @@ export const DataProvider = ({ children }) => {
       }
     });
   };
-  
+
   const avoidLayerOverlap = (records, tipo_marcador, selectedTimestamp, endTimestamp) => {
     ////logger.log('Clustering nodes with the same position');
-  
+
     if (!Array.isArray(records)) {
-        logger.error("Records should be an array");
-        return [];
+      logger.error("Records should be an array");
+      return [];
     }
-  
+
     const clusterMap = new Map();
 
     ////logger.log(tipo_marcador, selectedTimestamp, endTimestamp)
@@ -715,15 +963,15 @@ export const DataProvider = ({ children }) => {
       const { timestamp, tipo_marcador: recordTipoMarcador } = record.properties;
       const coordinates = record.geometry.coordinates.join(',');
       if (record.properties.tipo_marcador === tipo_marcador) {
-       // //logger.log('Record:', record);
+        // //logger.log('Record:', record);
         if (!clusterMap.has(coordinates)) {
-          clusterMap.set(coordinates, { 
-            type: 'Feature', 
-            geometry: record.geometry, 
+          clusterMap.set(coordinates, {
+            type: 'Feature',
+            geometry: record.geometry,
             properties: {
-              tipo_marcador: "cluster", 
-              count: 0, 
-              originalNodes: [], 
+              tipo_marcador: "cluster",
+              count: 0,
+              originalNodes: [],
               timestamp: timestamp
             }
           });
@@ -733,9 +981,9 @@ export const DataProvider = ({ children }) => {
         cluster.properties.originalNodes.push(record);
         // Ensure the timestamp is the minimum among the clustered nodes
         cluster.properties.timestamp = Math.min(cluster.properties.timestamp, timestamp);
-      } 
+      }
     });
-    
+
     const clusterFeatures = Array.from(clusterMap.values());
     ////logger.log('Cluster features', clusterFeatures);
     const geojsonData = {
@@ -743,12 +991,14 @@ export const DataProvider = ({ children }) => {
       features: clusterFeatures
     }
     updateLayerData('forenseLayer', geojsonData, clusteringLayout);
-};
+  };
 
   const value = {
     map, setMap,
     fetchedRecords, setFetchedRecords,
     forenseRecords, setForenseRecords,
+    remoteFosas, setRemoteFosas,
+    remoteNoticias, setRemoteNoticias,
     cedulaLayer, setCedulaLayer,
     forenseLayer, setForenseLayer,
     timelineData, setTimelineData,
@@ -805,6 +1055,13 @@ export const DataProvider = ({ children }) => {
     setAutoStart,
     showLoadingScreen,
     setShowLoadingScreen,
+    isInitialModalOpen,
+    setIsInitialModalOpen,
+    globalLinkModal,
+    setGlobalLinkModal,
+    fetchId,
+    setFetchId,
+    sessionStatus
   };
 
   return (

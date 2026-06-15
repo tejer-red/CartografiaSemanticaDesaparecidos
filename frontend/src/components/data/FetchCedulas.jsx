@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
 
+import { getCachedData, setCachedData } from '../../utils/cache';
+
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchCedulas');
 
@@ -44,18 +46,25 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
         setTimelineData([]);
         setLoading(true);
         updateLoadingStatus('cedulas', true);
-        const response = await axios.get(`${API_BASE_URL}/casos`, {
-          headers: {
-            'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
-            'Content-Type': 'application/json'
-          },
-          params: {
-            start_date,
-            end_date
-          }
-        });
 
-        const records = response.data.records || [];
+        const cacheParams = { start_date, end_date };
+        let records = getCachedData('cedulas', cacheParams);
+
+        if (!records) {
+          const response = await axios.get(`${API_BASE_URL}/casos`, {
+            headers: {
+              'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
+              'Content-Type': 'application/json'
+            },
+            params: {
+              start_date,
+              end_date
+            }
+          });
+          records = response.data.records || [];
+          setCachedData('cedulas', cacheParams, records);
+        }
+
         const formattedRecordsCedula = records.map(record => {
           const [lat, lon] = record.lat_long ? record.lat_long.split(',').map(coord => parseFloat(coord)) : [null, null];
           return {
@@ -84,11 +93,16 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
         setFetchedRecords(mergedGeoJSON);
         setNewDataFetched(true);
+        updateDataCount('cedulas', mergedGeoJSON.features.length);
         if (map && map.isStyleLoaded()) {
           updateLayerData('cedulaLayer', mergedGeoJSON, sexoLayout);
-          updateDataCount('cedulas', mergedGeoJSON.features.length);
         } else {
-          logger.error('Map is not initialized or style is not loaded');
+          logger.warn('Map style not loaded yet for cedulaLayer, registering listener');
+          if (map) {
+            map.once('style.load', () => {
+              updateLayerData('cedulaLayer', mergedGeoJSON, sexoLayout);
+            });
+          }
         }
         logger.log('Fetched Cedulas records:', formattedRecordsCedula);
       } catch (error) {
@@ -100,7 +114,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
       }
     };
 
-    if (fetchCedulas && fetchId) {
+    if (fetchCedulas && fetchId > 0) {
       logger.log('FetchCedulas: Using startDate and endDate for fetching:', {
         startDate,
         endDate,

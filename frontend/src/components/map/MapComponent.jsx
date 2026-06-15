@@ -54,6 +54,7 @@ const MapComponent = () => {
       if (map) {
         map.remove();
         setMap(null);
+        setMapLoaded(false);
       }
     };
   }, [map, setMap, setMapLoaded]);
