@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from .. import models, schemas, database
@@ -11,63 +12,75 @@ def get_casos(
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     db: Session = Depends(database.get_db)
 ):
-    query = db.query(models.Caso).options(
-        joinedload(models.Caso.inferencia),
-        joinedload(models.Caso.senas)
-    )
-    
+    where_clause = ""
+    params = {}
     if start_date and end_date:
-        query = query.filter(models.Caso.fecha_desaparicion.between(start_date, end_date))
+        where_clause = "WHERE c.fecha_desaparicion BETWEEN :start_date AND :end_date"
+        params = {"start_date": start_date, "end_date": end_date}
         
-    records = query.all()
+    sql_cases = text(f"""
+        SELECT c.*, i.tipo_loc, i.loc, i.lat_long, i.fecha, i.sum_score, i.violence_score, i.violence_terms
+        FROM cedulas_anonimizadas c
+        LEFT JOIN repd_vp_inferencia3 i ON c.id_cedula_busqueda = i.id_cedula_busqueda
+        {where_clause}
+    """)
+    cases = db.execute(sql_cases, params).mappings().all()
+    case_ids = [c["id_cedula_busqueda"] for c in cases]
     
-    # We want to format the output similarly to legacy specificDate.php
+    tatuajes_by_case = {}
+    if case_ids:
+        sql_senas = text("""
+            SELECT id_cedula_busqueda, descripcion, parte_cuerpo
+            FROM repd_vp_cedulas_senas
+            WHERE tipo_sena = 'TATUAJES' AND id_cedula_busqueda IN :ids
+        """)
+        # Postgres supports tuples for IN queries when bound properly
+        senas = db.execute(sql_senas, {"ids": tuple(case_ids)}).mappings().all()
+        for s in senas:
+            cid = s["id_cedula_busqueda"]
+            if cid not in tatuajes_by_case:
+                tatuajes_by_case[cid] = []
+            tatuajes_by_case[cid].append({
+                "descripcion": s["descripcion"],
+                "parte_cuerpo": s["parte_cuerpo"]
+            })
+            
     formatted_records = []
-    for r in records:
-        # Get inferencia fields
+    for row in cases:
         inferencia_data = {}
-        if r.inferencia:
+        if row["tipo_loc"] is not None or row["loc"] is not None or row["lat_long"] is not None:
             inferencia_data = {
-                "tipo_loc": r.inferencia.tipo_loc,
-                "loc": r.inferencia.loc,
-                "lat_long": r.inferencia.lat_long,
-                "fecha": r.inferencia.fecha,
-                "sum_score": r.inferencia.sum_score,
-                "violence_score": r.inferencia.violence_score,
-                "violence_terms": r.inferencia.violence_terms
+                "tipo_loc": row["tipo_loc"],
+                "loc": row["loc"],
+                "lat_long": row["lat_long"],
+                "fecha": row["fecha"],
+                "sum_score": row["sum_score"],
+                "violence_score": row["violence_score"],
+                "violence_terms": row["violence_terms"]
             }
             
-        # Get tatuajes (repd_vp_cedulas_senas)
-        tatuajes = []
-        for s in r.senas:
-            if s.tipo_sena == "TATUAJES":
-                tatuajes.append({
-                    "descripcion": s.descripcion,
-                    "parte_cuerpo": s.parte_cuerpo
-                })
-                
-        # Merge all fields
+        tatuajes = tatuajes_by_case.get(row["id_cedula_busqueda"], [])
+        
         record_dict = {
-            "id_cedula_busqueda": r.id_cedula_busqueda,
-            "autorizacion_informacion_publica": r.autorizacion_informacion_publica,
-            "condicion_localizacion": r.condicion_localizacion,
-            "nombre_completo": r.nombre_completo,
-            "edad_momento_desaparicion": r.edad_momento_desaparicion,
-            "sexo": r.sexo,
-            "genero": r.genero,
-            "complexion": r.complexion,
-            "estatura": r.estatura,
-            "tez": r.tez,
-            "cabello": r.cabello,
-            "ojos_color": r.ojos_color,
-            "municipio": r.municipio,
-            # include compatibility field for municipio_desaparicion
-            "municipio_desaparicion": r.municipio,
-            "estado": r.estado,
-            "fecha_desaparicion": r.fecha_desaparicion,
-            "estatus_persona_desaparecida": r.estatus_persona_desaparecida,
-            "descripcion_desaparicion": r.descripcion_desaparicion,
-            "ruta_foto": r.ruta_foto,
+            "id_cedula_busqueda": row["id_cedula_busqueda"],
+            "autorizacion_informacion_publica": row["autorizacion_informacion_publica"],
+            "condicion_localizacion": row["condicion_localizacion"],
+            "nombre_completo": row["nombre_completo"],
+            "edad_momento_desaparicion": row["edad_momento_desaparicion"],
+            "sexo": row["sexo"],
+            "genero": row["genero"],
+            "complexion": row["complexion"],
+            "estatura": row["estatura"],
+            "tez": row["tez"],
+            "cabello": row["cabello"],
+            "ojos_color": row["ojos_color"],
+            "municipio": row["municipio"],
+            "municipio_desaparicion": row["municipio"],
+            "estado": row["estado"],
+            "fecha_desaparicion": row["fecha_desaparicion"],
+            "estatus_persona_desaparecida": row["estatus_persona_desaparecida"],
+            "descripcion_desaparicion": row["descripcion_desaparicion"],
+            "ruta_foto": row["ruta_foto"],
             "tatuajes": tatuajes,
             **inferencia_data
         }

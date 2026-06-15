@@ -28,7 +28,7 @@ class Caso(Base):
     ojos_color = Column(String(12), nullable=True)
     municipio = Column(String(29), nullable=True)
     estado = Column(String(19), nullable=True)
-    fecha_desaparicion = Column(String(10), nullable=True)
+    fecha_desaparicion = Column(String(10), nullable=True, index=True)
     estatus_persona_desaparecida = Column(String(20), nullable=True)
     descripcion_desaparicion = Column(String(2292), nullable=True)
     ruta_foto = Column(String(94), nullable=True)
