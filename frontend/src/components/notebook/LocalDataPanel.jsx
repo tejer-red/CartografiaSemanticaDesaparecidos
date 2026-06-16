@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLocalData } from '../../hooks/useLocalData';
-import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, Info, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, Info, Search, Tag } from 'lucide-react';
 import LinkModal from '../shared/LinkModal';
 import SemanticLinkInfoModal from '../shared/SemanticLinkInfoModal';
 import MiniNetworkModal from '../shared/MiniNetworkModal';
@@ -66,13 +66,28 @@ const LocalDataPanel = () => {
   const filteredCedulas = localCedulas?.filter(c => c.notebook_id === notebookId) || [];
   const filteredVinculos = localVinculos?.filter(v => v.notebook_id === notebookId) || [];
 
+  const uniqueTags = React.useMemo(() => {
+    const tags = new Set();
+    filteredVinculos.forEach(v => {
+      if (String(v.target_uuid).startsWith('TAG-')) {
+        tags.add(String(v.target_uuid).replace('TAG-', ''));
+      }
+      if (String(v.source_uuid).startsWith('TAG-')) {
+        tags.add(String(v.source_uuid).replace('TAG-', ''));
+      }
+    });
+    return Array.from(tags);
+  }, [filteredVinculos]);
+
   const openLinkModal = (item, type) => {
     let title = 'Entidad';
     if (type === 'fosa') title = `Fosa en ${item.municipio}`;
     if (type === 'noticia') title = `Noticia: ${item.titular}`;
     if (type === 'cedula') title = `Cédula: ${item.nombre_completo}`;
+    if (type === 'etiqueta') title = `Etiqueta: ${item}`;
     
-    setLinkSource({ ...item, type, title });
+    const entity = type === 'etiqueta' ? { id: `TAG-${item}` } : item;
+    setLinkSource({ ...entity, type, title });
     setLinkModalOpen(true);
   };
 
@@ -249,6 +264,43 @@ const LocalDataPanel = () => {
                   </div>
                   <div className="local-item-actions">
                     <button onClick={() => openLinkModal(cedula, 'cedula')} title="Vincular"><Link2 size={14} /></button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </AccordionItem>
+
+        <AccordionItem title="Etiquetas" count={uniqueTags.length} icon={Tag}>
+          {uniqueTags.length === 0 ? (
+            <p className="local-empty-text">No hay etiquetas creadas en esta bitácora.</p>
+          ) : (
+            <ul className="local-list">
+              {uniqueTags.map(tag => (
+                <li 
+                  key={tag} 
+                  className="local-list-item"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedVinculo({ target_uuid: `TAG-${tag}`, tipo_relacion: 'ETIQUETA' }); 
+                    setNetworkModalOpen(true);
+                  }}
+                  title="Ver visualización en red"
+                >
+                  <div className="local-item-content">
+                    <strong style={{ color: '#8b5cf6' }}>{tag}</strong>
+                    <span>Etiqueta de Semántica</span>
+                  </div>
+                  <div className="local-item-actions">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLinkModal(tag, 'etiqueta');
+                      }} 
+                      title="Vincular a esta etiqueta"
+                    >
+                      <Link2 size={14} />
+                    </button>
                   </div>
                 </li>
               ))}
