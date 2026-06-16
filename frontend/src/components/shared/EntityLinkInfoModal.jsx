@@ -11,7 +11,7 @@ const EntityLinkInfoModal = ({ isOpen, onClose }) => {
         <button onClick={onClose} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
           <X size={20} color="#6b7280" />
         </button>
-        
+
         <h2 className="login-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4f46e5' }}>
           <Network size={24} />
           ¿Qué es un Vínculo Semántico?

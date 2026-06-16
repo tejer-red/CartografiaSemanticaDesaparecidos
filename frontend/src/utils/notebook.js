@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
+import { db } from '../lib/localDatabase';
 
 import createLogger from '../utils/logger';
 const logger = createLogger('notebook');
@@ -41,9 +42,29 @@ export function useNotebook(dataContext, id, navigate) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notebookList, setNotebookList] = useState([]);
 
-  const storageKey = id ? `datades-notebook-${id}` : 'datades-notebook';
-
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const loadLogs = useCallback(async () => {
+    if (!id) {
+      setNotes([]);
+      return;
+    }
+    try {
+      const logs = await db.navigation_logs
+        .where('notebook_id')
+        .equals(id)
+        .sortBy('timestamp');
+      // Format notes for backward compatibility
+      setNotes(logs.reverse().map(l => ({
+        id: l.id,
+        text: l.note || l.text, // support old text field or new note field
+        timestamp: l.timestamp,
+        state: l.state
+      })));
+    } catch (e) {
+      logger.error('Error loading navigation logs:', e);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) {
@@ -53,100 +74,96 @@ export function useNotebook(dataContext, id, navigate) {
     }
     const loadData = async () => {
       setIsLoaded(false);
-      const savedData = localStorage.getItem(storageKey);
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          logger.log('Loaded notebook from localStorage:', parsed);
-          if (Array.isArray(parsed)) {
-            // Backward compatibility: it was just notes array
-            setNotes(parsed);
-          } else {
-            // Unified schema
-            setNotes(parsed.notes || []);
-            if (parsed.startDate) setStartDate(parsed.startDate);
-            if (parsed.endDate) setEndDate(parsed.endDate);
-            if (parsed.selectedDate) setSelectedDate(new Date(parsed.selectedDate));
-            if (parsed.daysRange !== undefined) setDaysRange(parsed.daysRange);
-            if (parsed.selectedSexo) setSelectedSexo(parsed.selectedSexo);
-            if (parsed.selectedCondicion) setSelectedCondicion(parsed.selectedCondicion);
-            if (parsed.edadRange) setEdadRange(parsed.edadRange);
-            if (parsed.sumScoreRange) setsumScoreRange(parsed.sumScoreRange);
-            if (parsed.timeScale) setTimeScale(parsed.timeScale);
-            if (parsed.mapType) setMapType(parsed.mapType);
-            if (parsed.colorScheme) setColorScheme(parsed.colorScheme);
-            if (parsed.visibleComponents) setVisibleComponents(parsed.visibleComponents);
-          }
+      try {
+        const nb = await db.notebooks.where('name').equals(id).first();
+        if (nb && nb.configJSON) {
+          const parsed = JSON.parse(nb.configJSON);
+          logger.log('Loaded notebook config from IndexedDB:', parsed);
+          if (parsed.startDate) setStartDate(parsed.startDate);
+          if (parsed.endDate) setEndDate(parsed.endDate);
+          if (parsed.selectedDate) setSelectedDate(new Date(parsed.selectedDate));
+          if (parsed.daysRange !== undefined) setDaysRange(parsed.daysRange);
+          if (parsed.selectedSexo) setSelectedSexo(parsed.selectedSexo);
+          if (parsed.selectedCondicion) setSelectedCondicion(parsed.selectedCondicion);
+          if (parsed.edadRange) setEdadRange(parsed.edadRange);
+          if (parsed.sumScoreRange) setsumScoreRange(parsed.sumScoreRange);
+          if (parsed.timeScale) setTimeScale(parsed.timeScale);
+          if (parsed.mapType) setMapType(parsed.mapType);
+          if (parsed.colorScheme) setColorScheme(parsed.colorScheme);
+          if (parsed.visibleComponents) setVisibleComponents(parsed.visibleComponents);
+          
           setFetchId(prev => prev + 1);
-          setIsLoaded(true);
-          return;
-        } catch (e) {
-          logger.error('Error loading notebook from localStorage:', e);
         }
+      } catch (e) {
+        logger.error('Error loading notebook from IndexedDB:', e);
       }
       
-      // Fallback: Try loading from backend if it existed
-      let backendLoaded = false;
-      if (id) {
-        backendLoaded = await loadNotesFromBackend(id);
-      }
+      await loadLogs();
       setIsLoaded(true);
     };
     
     loadData();
     // eslint-disable-next-line
-  }, [id, storageKey]);
+  }, [id]);
 
-  // Unified effect to persist everything to localStorage
+  // Unified effect to persist everything to IndexedDB
   useEffect(() => {
     if (!id || !isLoaded) return;
-    const configPayload = {
-      notes,
-      startDate,
-      endDate,
-      selectedDate: selectedDate ? selectedDate.toISOString() : null,
-      daysRange,
-      selectedSexo,
-      selectedCondicion,
-      edadRange,
-      sumScoreRange,
-      timeScale,
-      mapType,
-      colorScheme,
-      visibleComponents
+    const saveConfig = async () => {
+      const configPayload = {
+        startDate,
+        endDate,
+        selectedDate: selectedDate ? selectedDate.toISOString() : null,
+        daysRange,
+        selectedSexo,
+        selectedCondicion,
+        edadRange,
+        sumScoreRange,
+        timeScale,
+        mapType,
+        colorScheme,
+        visibleComponents
+      };
+      
+      try {
+        const nb = await db.notebooks.where('name').equals(id).first();
+        if (nb) {
+          await db.notebooks.update(nb.id, { configJSON: JSON.stringify(configPayload), updated_at: new Date().toISOString() });
+        } else {
+          await db.notebooks.add({ name: id, configJSON: JSON.stringify(configPayload), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+        }
+        logger.log('Persisting notebook config to IndexedDB:', configPayload);
+      } catch (e) {
+        logger.error('Error persisting notebook to IndexedDB:', e);
+      }
     };
-    logger.log('Persisting notebook state to localStorage:', configPayload);
-    localStorage.setItem(storageKey, JSON.stringify(configPayload));
+    saveConfig();
   }, [
-    id, storageKey, isLoaded, notes, startDate, endDate, selectedDate, daysRange,
+    id, isLoaded, startDate, endDate, selectedDate, daysRange,
     selectedSexo, selectedCondicion, edadRange, sumScoreRange,
     timeScale, mapType, colorScheme, visibleComponents
   ]);
 
   const captureCurrentState = useCallback(() => {
-    const timestamp = new Date().toISOString();
     const mapState = map ? {
       center: map.getCenter(),
       zoom: map.getZoom()
     } : null;
 
     return {
-      timestamp,
-      state: {
-        selectedDate: selectedDate ? selectedDate.toISOString() : null,
-        daysRange,
-        selectedSexo: [...selectedSexo],
-        selectedCondicion: [...selectedCondicion],
-        edadRange: [...edadRange],
-        sumScoreRange: [...sumScoreRange],
-        timeScale,
-        mapState,
-        mapType,
-        colorScheme,
-        visibleComponents: visibleComponents ? { ...visibleComponents } : null,
-        startDate,
-        endDate
-      }
+      selectedDate: selectedDate ? selectedDate.toISOString() : null,
+      daysRange,
+      selectedSexo: [...selectedSexo],
+      selectedCondicion: [...selectedCondicion],
+      edadRange: [...edadRange],
+      sumScoreRange: [...sumScoreRange],
+      timeScale,
+      mapState,
+      mapType,
+      colorScheme,
+      visibleComponents: visibleComponents ? { ...visibleComponents } : null,
+      startDate,
+      endDate
     };
     // eslint-disable-next-line
   }, [
@@ -154,29 +171,40 @@ export function useNotebook(dataContext, id, navigate) {
     timeScale, map, mapType, colorScheme, visibleComponents, startDate, endDate
   ]);
 
-  const addNote = useCallback(() => {
-    if (!newNote.trim()) return;
+  const addNote = useCallback(async () => {
+    if (!newNote.trim() || !id) return;
     const stateSnapshot = captureCurrentState();
     const newNoteEntry = {
-      id: Date.now(),
+      notebook_id: id,
       text: newNote,
-      ...stateSnapshot
+      timestamp: new Date().toISOString(),
+      state: stateSnapshot
     };
-    setNotes(prev => [newNoteEntry, ...prev]);
-    setNewNote('');
-  }, [newNote, captureCurrentState]);
+    try {
+      await db.navigation_logs.add(newNoteEntry);
+      await loadLogs();
+      setNewNote('');
+    } catch(e) {
+      logger.error('Error adding note:', e);
+    }
+  }, [newNote, captureCurrentState, id, loadLogs]);
 
-  const addTextOnlyNote = useCallback(() => {
-    if (!newNote.trim()) return;
+  const addTextOnlyNote = useCallback(async () => {
+    if (!newNote.trim() || !id) return;
     const newNoteEntry = {
-      id: Date.now(),
+      notebook_id: id,
       text: newNote,
       timestamp: new Date().toISOString(),
       state: null
     };
-    setNotes(prev => [newNoteEntry, ...prev]);
-    setNewNote('');
-  }, [newNote]);
+    try {
+      await db.navigation_logs.add(newNoteEntry);
+      await loadLogs();
+      setNewNote('');
+    } catch(e) {
+      logger.error('Error adding text note:', e);
+    }
+  }, [newNote, id, loadLogs]);
 
   const restoreState = useCallback((savedState) => {
     if (!savedState) return;
@@ -206,9 +234,14 @@ export function useNotebook(dataContext, id, navigate) {
     map, setStartDate, setEndDate
   ]);
 
-  const deleteNote = useCallback((id) => {
-    setNotes(prev => prev.filter(note => note.id !== id));
-  }, []);
+  const deleteNote = useCallback(async (noteId) => {
+    try {
+      await db.navigation_logs.delete(noteId);
+      await loadLogs();
+    } catch (e) {
+      logger.error('Error deleting note:', e);
+    }
+  }, [loadLogs]);
 
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString();
@@ -221,16 +254,31 @@ export function useNotebook(dataContext, id, navigate) {
         alert('Notebook name is required to save.');
         return;
       }
+      
+      const configPayload = {
+        startDate: startDate || '',
+        endDate: endDate || '',
+        selectedDate: selectedDate ? selectedDate.toISOString() : null,
+        daysRange,
+        selectedSexo,
+        selectedCondicion,
+        edadRange,
+        sumScoreRange,
+        timeScale,
+        mapType,
+        colorScheme,
+        visibleComponents
+      };
+
       const payload = {
         id, // pass id so backend knows which one to update if supported
         notes,
         name,
         startDate: startDate || '',
         endDate: endDate || ''
+        // we can also pass configJSON but backend might not support it yet
       };
       logger.log('Saving notes to the backend...');
-      // Log the payload being sent to backend
-      logger.log('Saving notebook payload:', payload);
       console.log('Saving notebook payload:', payload);
       const response = await fetch(`${API_BASE_URL}/notebooks`, {
         method: 'POST',
@@ -243,24 +291,29 @@ export function useNotebook(dataContext, id, navigate) {
       }
       const saveResult = await response.json();
       logger.log('Backend save successful. Response:', saveResult);
-      console.log('Backend save successful. Response:', saveResult);
       alert('Notes saved successfully!');
 
       
       if (name !== id) {
         logger.log(`Name changed from ${id} to ${name}. Migrating local storage and IndexedDB...`);
-        localStorage.setItem(`datades-notebook-${name}`, JSON.stringify(notes));
         
         try {
-          // Dynamically import db to avoid circular deps if any, or just normal import
-          const { db } = await import('../lib/localDatabase');
+          // create new or update name in IndexedDB
+          const existingNb = await db.notebooks.where('name').equals(id).first();
+          if (existingNb) {
+            await db.notebooks.update(existingNb.id, { name: name, updated_at: new Date().toISOString() });
+          } else {
+             await db.notebooks.add({ name: name, configJSON: JSON.stringify(configPayload), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+          }
+
           logger.log('Executing Dexie transaction for migration...');
-          await db.transaction('rw', db.local_fosas, db.local_noticias, db.local_cedulas, db.local_vinculos, async () => {
+          await db.transaction('rw', db.local_fosas, db.local_noticias, db.local_cedulas, db.local_vinculos, db.navigation_logs, async () => {
             const fC = await db.local_fosas.filter(f => f.notebook_id === id).modify({ notebook_id: name });
             const nC = await db.local_noticias.filter(n => n.notebook_id === id).modify({ notebook_id: name });
             const cC = await db.local_cedulas.filter(c => c.notebook_id === id).modify({ notebook_id: name });
             const vC = await db.local_vinculos.filter(v => v.notebook_id === id).modify({ notebook_id: name });
-            logger.log(`Migration stats: Fosas(${fC}), Noticias(${nC}), Cedulas(${cC}), Vinculos(${vC})`);
+            const lC = await db.navigation_logs.filter(l => l.notebook_id === id).modify({ notebook_id: name });
+            logger.log(`Migration stats: Fosas(${fC}), Noticias(${nC}), Cedulas(${cC}), Vinculos(${vC}), Logs(${lC})`);
           });
           logger.log(`IndexedDB records successfully migrated to new notebook_id: ${name}`);
         } catch(e) {
@@ -277,7 +330,7 @@ export function useNotebook(dataContext, id, navigate) {
       alert('Error saving notes to backend.');
       logger.error('Error saving notes to backend:', error);
     }
-  }, [id, notes, startDate, endDate, navigate]);
+  }, [id, notes, startDate, endDate, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange, timeScale, mapType, colorScheme, visibleComponents, navigate]);
 
   const loadNotesFromBackend = useCallback(async (notebookId) => {
     try {
@@ -290,12 +343,10 @@ export function useNotebook(dataContext, id, navigate) {
         throw new Error('Failed to load notes from backend: ' + response.statusText);
       }
       const data = await response.json();
-      // Debug output of loaded notebook data
       logger.log('Loaded notebook data from backend:', data);
-      console.log('Loaded notebook data from backend:', data);
-      setNotes(data.notes || []);
       
-      // Automatically apply the dates and trigger fetch
+      // Save backend notes to IndexedDB if they don't exist? For now just populate context dates
+      
       let dateChanged = false;
       if (data.startDate) {
         setStartDate(data.startDate);
@@ -319,26 +370,45 @@ export function useNotebook(dataContext, id, navigate) {
       logger.error('Notebook: Error loading notes from backend:', error);
       return false;
     }
-  }, [setNotes, setStartDate, setEndDate, setSelectedDate, setTimeScale, setFetchId]);
+  }, [setStartDate, setEndDate, setSelectedDate, setTimeScale, setFetchId]);
 
   const listNotebooks = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/notebooks`);
-      if (!response.ok) throw new Error('Failed to fetch notebooks');
-      const data = await response.json();
-      if (data.success) {
-        setNotebookList(data.notebooks);
-        setIsModalOpen(true);
-      } else {
-        alert('No notebooks found.');
+      // First gather local notebooks
+      const localNbs = await db.notebooks.toArray();
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/notebooks`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // merge local and remote?
+            const merged = [...data.notebooks];
+            for (let l of localNbs) {
+               if (!merged.find(m => m.name === l.name)) {
+                  merged.push({ id: l.name, name: l.name, created_at: l.created_at, isLocal: true });
+               }
+            }
+            setNotebookList(merged);
+            setIsModalOpen(true);
+            return;
+          }
+        }
+      } catch (e) {
+        logger.error('Failed to fetch remote notebooks:', e);
       }
+      
+      // fallback to local only
+      const mappedLocal = localNbs.map(l => ({ id: l.name, name: l.name, created_at: l.created_at, isLocal: true }));
+      setNotebookList(mappedLocal);
+      setIsModalOpen(true);
+      
     } catch (error) {
       alert('Error fetching notebooks.');
       logger.error('Error fetching notebooks:', error);
     }
   }, []);
 
-  // Optionally, expose setIsModalOpen for closing modal from Notebook
   return {
     notes,
     newNote,

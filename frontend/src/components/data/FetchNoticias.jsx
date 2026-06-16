@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
 
-import { getCachedData, setCachedData } from '../../utils/cache';
+
 
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchNoticias');
@@ -24,23 +24,18 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
       }
 
       try {
+        logger.log('[FetchNoticias] Setting loading to true');
         updateLoadingStatus('noticias', true);
-        logger.log('Fetching noticias with params:', { start_date, end_date });
-
-        const cacheParams = { start_date, end_date };
-        let records = getCachedData('noticias', cacheParams);
-
-        if (!records) {
-          const response = await axios.get(`${API_BASE_URL}/noticias`, {
-            params: {
-              start_date,
-              end_date,
-              limit: 1000
-            }
-          });
-          records = response.data || [];
-          setCachedData('noticias', cacheParams, records);
-        }
+        logger.log('[FetchNoticias] Calling axios.get');
+        const response = await axios.get(`${API_BASE_URL}/noticias`, {
+          params: {
+            start_date,
+            end_date,
+            limit: 1000
+          }
+        });
+        const records = response.data || [];
+        logger.log(`[FetchNoticias] Axios returned ${records.length} records.`);
 
         logger.log(`Fetched ${records.length} noticias. Raw response:`, records);
 
@@ -108,17 +103,21 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
           'circle-opacity': 0.9
         };
 
-        logger.log('Updating map layer noticiasLayer...');
+        logger.log(`[FetchNoticias] Updating map layer noticiasLayer... map exists: ${!!map}, isStyleLoaded: ${map?.isStyleLoaded()}`);
         updateLayerData('noticiasLayer', mergedGeoJSON, noticiasLayout);
         updateDataCount('noticias', mergedGeoJSON.features.length);
+        logger.log('[FetchNoticias] Try block finished successfully');
 
       } catch (error) {
-        logger.error('Error fetching noticias:', error);
+        logger.error('[FetchNoticias] Error fetching noticias:', error);
       } finally {
+        logger.log('[FetchNoticias] Inside FINALLY block. Calling updateLoadingStatus(noticias, false)');
         updateLoadingStatus('noticias', false);
+        logger.log('[FetchNoticias] Calling onFetchComplete');
         if (typeof onFetchComplete === 'function') {
           onFetchComplete();
         }
+        logger.log('[FetchNoticias] FINALLY block complete');
       }
     };
 

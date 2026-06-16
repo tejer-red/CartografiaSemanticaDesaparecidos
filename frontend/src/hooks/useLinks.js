@@ -43,16 +43,11 @@ export const useLinks = () => {
   }, [user]);
 
   const getLinksForEntity = useCallback(async (entityUuid) => {
-    if (!user) return [];
-    
-    // Dexie doesn't support logical OR directly in basic queries well without compound indexes or doing it in memory.
-    // Since local data is relatively small, we query all user links and filter in memory for max flexibility.
-    const allUserLinks = await db.local_vinculos.where('user_id').equals(user.id).toArray();
-    
-    return allUserLinks.filter(
+    const allLinks = await db.local_vinculos.toArray();
+    return allLinks.filter(
       link => link.source_uuid === entityUuid || link.target_uuid === entityUuid
     );
-  }, [user]);
+  }, []);
 
   const deleteLink = useCallback(async (uuid) => {
     try {
@@ -65,9 +60,10 @@ export const useLinks = () => {
   }, []);
 
   const getLinksGraph = useCallback(async () => {
-    if (!user) return [];
-    return await db.local_vinculos.where('user_id').equals(user.id).toArray();
-  }, [user]);
+    const res = await db.local_vinculos.toArray(); 
+    logger.log('[useLinks] getLinksGraph result:', res);
+    return res;
+  }, []);
 
   return {
     createLink,

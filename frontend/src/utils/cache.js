@@ -14,8 +14,15 @@ export const getCachedData = (endpoint, params) => {
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
+      const parsedData = JSON.parse(cached);
+      // Force re-fetch if cache is an empty array
+      if (Array.isArray(parsedData) && parsedData.length === 0) {
+        logger.log(`Cache ignored for ${endpoint} because it was an empty array`, params);
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
       logger.log(`Cache hit for ${endpoint}`, params);
-      return JSON.parse(cached);
+      return parsedData;
     }
   } catch (e) {
     logger.error('Error reading from cache', e);
@@ -28,6 +35,12 @@ export const setCachedData = (endpoint, params, data) => {
   if (!cuadernoId) return;
 
   const cacheKey = `cuaderno_${cuadernoId}_${endpoint}_${JSON.stringify(params)}`;
+  
+  if (Array.isArray(data) && data.length === 0) {
+    logger.log(`Skipping cache for ${endpoint} because data is empty array`, params);
+    return;
+  }
+
   try {
     localStorage.setItem(cacheKey, JSON.stringify(data));
     logger.log(`Cached data for ${endpoint}`, params);

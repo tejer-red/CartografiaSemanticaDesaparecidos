@@ -122,6 +122,7 @@ export const LoadingOverlay = () => {
           <StatusItem label="Cédulas de Búsqueda" isLoading={loadingStatus.cedulas} count={dataCounts.cedulas} />
           <StatusItem label="Fosas Clandestinas" isLoading={loadingStatus.fosas} count={dataCounts.fosas} />
           <StatusItem label="Reportes de Prensa (Noticias)" isLoading={loadingStatus.noticias} count={dataCounts.noticias} />
+          <StatusItem label="Datos y Relaciones Locales" isLoading={loadingStatus.localData} />
         </div>
 
         <div style={{ 

@@ -32,6 +32,9 @@ export const DEBUG_CONFIG = {
   MiniNetworkModal: true,
   useLinks: true,
   useLocalData: true,
+  notebook: true,
+  useNavigationLog: true,
+  ImportContextModal: true,
 };
 
 export const SESSION_STATUS = {

@@ -63,3 +63,19 @@ Se logró consolidar una infraestructura "Local-First" donde los usuarios pueden
 ## Resultado
 La aplicación ahora cuenta con una inicialización totalmente determinista y un backend optimizado para búsquedas masivas. La navegación por la raíz carga un mapa libre de marcadores y espera de forma limpia la acción del usuario. La carga de cuadernos sincroniza de forma inmediata todas las fechas y filtros directamente desde el almacenamiento local. A nivel de base de datos y backend, el endpoint de casos mejoró su tiempo de respuesta en un **400% (reducción de 62s a 15s)** para consultas masivas de rango amplio, eliminando por completo los cuellos de botella en la visualización de la cartografía semántica.
 
+# Estado: Fase 6 (Resolución de Sincronización y Caché en Ingesta de Datos)
+
+## Cambios Realizados
+- **[MODIFY] `ImportContextModal.jsx`**:
+  - Se previno un error crítico (`DexieError2 ConstraintError`) al importar entidades desde el mapa hacia la base de datos local (IndexedDB). Se extrajo el `id` originario de las entidades para evitar colisiones con la llave primaria autoincremental `++id` de Dexie, renombrándolo como `remote_id`.
+- **[MODIFY] `DataContext.jsx` / `LoadingOverlay.jsx`**:
+  - Se añadió la clave `localData` a la ventana de carga para representar y dar seguimiento visual explícito a la carga de datos locales desde Dexie. 
+  - Se corrigió un bug donde el cambio de `fetchId` sobrescribía el objeto de `loadingStatus`, eliminando el estado de seguimiento del `localData`.
+- **[MODIFY] `FetchFosas.jsx`, `FetchNoticias.jsx`, `FetchCedulas.jsx`**:
+  - Se implementó *verbose logging* milimétrico dentro de los bloques `try/catch` para depurar problemas de concurrencia al cargar el mapa.
+  - Se eliminó por completo el uso de caché del lado del cliente (`getCachedData`/`setCachedData`) para estos componentes, asegurando que las peticiones XHR siempre se disparen al backend. Esto elimina las inconsistencias visuales donde un array vacío `[]` simulaba cargas infinitas o rompía el flujo esperado de las peticiones en vivo.
+- **[MODIFY] `utils/cache.js`**:
+  - Se previno el almacenamiento en caché de arreglos vacíos `[]` y se invalidaron activamente las entradas de caché antiguas para obligar a que el explorador recupere nuevos datos en la siguiente consulta.
+
+## Resultado
+El flujo de ingesta de datos y cuadernos ha quedado robustecido: importar entidades remanentes es seguro y sin colisiones de base de datos, y las peticiones al backend están garantizadas para ejecutarse en cada inicio de "Carga de Información", resolviendo falsos positivos de bloqueo asíncrono y proveyendo un control de estado determinista.

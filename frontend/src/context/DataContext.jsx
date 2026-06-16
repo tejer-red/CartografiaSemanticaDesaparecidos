@@ -141,7 +141,8 @@ export const DataProvider = ({ children }) => {
       cedulas: true,
       fosas: true,
       noticias: true,
-      forense: false
+      forense: false,
+      localData: true
     });
     setDataCounts({
       cedulas: 0,
@@ -218,13 +219,14 @@ export const DataProvider = ({ children }) => {
   // Reset loading status and data counts when a new fetch is triggered
   useEffect(() => {
     if (fetchId > 0) {
-      setLoadingStatus({
+      setLoadingStatus(prev => ({
+        ...prev,
         map: !mapLoaded,
         cedulas: true,
         fosas: true,
         noticias: true,
         forense: false
-      });
+      }));
       setDataCounts({
         cedulas: 0,
         fosas: 0,
@@ -244,6 +246,7 @@ export const DataProvider = ({ children }) => {
 
   const refreshLocalData = async () => {
     try {
+      updateLoadingStatus('localData', true);
       const fosas = await getLocalFosas();
       const noticias = await getLocalNoticias();
       const cedulas = await getLocalCedulas();
@@ -265,7 +268,9 @@ export const DataProvider = ({ children }) => {
         setLocalVinculos([]);
       }
     } catch (e) {
-      logger.error('Error fetching local data:', e);
+      logger.error('Error in refreshLocalData:', e);
+    } finally {
+      updateLoadingStatus('localData', false);
     }
   };
 
@@ -344,53 +349,20 @@ export const DataProvider = ({ children }) => {
       logger.log(`Feature encontrada:`, feature.properties?.titular || feature.properties?.municipio || feature.properties?.nombre_completo || 'Sin nombre');
 
       if (action === 'import') {
-        let notebookId = null;
-        const match = window.location.pathname.match(/\/cuaderno\/([^\/]+)/);
-        if (match) {
-          notebookId = match[1];
-        } else {
-          notebookId = Date.now().toString();
-        }
+        const entityData = { ...feature.properties, original_uuid: id };
+        let importType = tipo;
+        if (tipo === 'cedula_busqueda') importType = 'cedula';
+        
+        logger.log('--- EMPEZANDO IMPORTACION VIA EVENTO ---');
+        logger.log('Action:', action, 'Tipo original:', tipo, 'Tipo a modal:', importType, 'ID:', id);
+        
+        window.dispatchEvent(new CustomEvent('openImportModal', { 
+          detail: { 
+            type: importType, 
+            data: entityData 
+          } 
+        }));
 
-        if (tipo === 'fosa') {
-          const record = { ...feature.properties, original_uuid: id, notebook_id: notebookId };
-          await addLocalFosa(record);
-          addToNotebookCache('fosa', record);
-        }
-        if (tipo === 'noticia') {
-          const record = { ...feature.properties, original_uuid: id, notebook_id: notebookId };
-          await addLocalNoticia(record);
-          addToNotebookCache('noticia', record);
-        }
-        if (tipo === 'cedula_busqueda' || tipo === 'cedula') {
-          const record = { ...feature.properties, original_uuid: id, notebook_id: notebookId };
-          await addLocalCedula(record);
-          addToNotebookCache('cedula', record);
-        }
-
-        logger.log('--- EMPEZANDO IMPORTACION ---');
-        logger.log('Action:', action, 'Tipo:', tipo, 'ID:', id);
-        logger.log('Cuaderno activo/Generado con ID:', notebookId);
-
-        try {
-          logger.log('Ejecutando navigate() hacia /cuaderno/' + notebookId);
-          navigate(`/cuaderno/${notebookId}`);
-          logger.log('navigate() ejecutado sin errores');
-
-          // Fallback en caso de que navigate no actualice la URL por estar fuera del ciclo de React
-          if (!window.location.pathname.includes(notebookId.toString())) {
-            logger.warn('navigate() no cambió la URL. Forzando pushState...');
-            window.history.pushState({}, '', `/cuaderno/${notebookId}`);
-            // Dispatch a popstate event so React Router detects the manual change
-            window.dispatchEvent(new PopStateEvent('popstate'));
-          }
-        } catch (e) {
-          logger.error('Error al ejecutar navigate():', e);
-        }
-
-        logger.log('Refrescando datos locales...');
-        await refreshLocalData();
-        logger.log('Registro importado a base de datos local exitosamente. Datos locales refrescados.');
       } else if (action === 'link') {
         setGlobalLinkModal({
           isOpen: true,

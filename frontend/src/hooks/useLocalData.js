@@ -14,16 +14,16 @@ export const useLocalData = () => {
     return user.id;
   };
 
-  const createBaseRecord = () => ({
-    uuid: uuidv4(),
+  const createBaseRecord = (existingData = {}) => ({
+    uuid: existingData.uuid || uuidv4(),
     user_id: getUserId(),
-    created_at: new Date().getTime(), // Usar timestamp para consistencia con frontend actual
+    created_at: existingData.created_at || new Date().getTime(), // Usar timestamp para consistencia con frontend actual
   });
 
   // FOSAS
   const addLocalFosa = useCallback(async (data) => {
     try {
-      const record = { ...data, ...createBaseRecord() };
+      const record = { ...createBaseRecord(data), ...data };
       await db.local_fosas.add(record);
       logger.log('Fosa local creada:', record);
       return record.uuid;
@@ -34,14 +34,13 @@ export const useLocalData = () => {
   }, [user]);
 
   const getLocalFosas = useCallback(async () => {
-    if (!user) return [];
-    return await db.local_fosas.where('user_id').equals(user.id).toArray();
-  }, [user]);
+    return await db.local_fosas.toArray();
+  }, []);
 
   // NOTICIAS
   const addLocalNoticia = useCallback(async (data) => {
     try {
-      const record = { ...data, ...createBaseRecord() };
+      const record = { ...createBaseRecord(data), ...data };
       await db.local_noticias.add(record);
       logger.log('Noticia local creada:', record);
       return record.uuid;
@@ -52,14 +51,13 @@ export const useLocalData = () => {
   }, [user]);
 
   const getLocalNoticias = useCallback(async () => {
-    if (!user) return [];
-    return await db.local_noticias.where('user_id').equals(user.id).toArray();
-  }, [user]);
+    return await db.local_noticias.toArray();
+  }, []);
 
   // CEDULAS
   const addLocalCedula = useCallback(async (data) => {
     try {
-      const record = { ...data, ...createBaseRecord() };
+      const record = { ...createBaseRecord(data), ...data };
       await db.local_cedulas.add(record);
       logger.log('Cédula local creada:', record);
       return record.uuid;
@@ -70,14 +68,13 @@ export const useLocalData = () => {
   }, [user]);
 
   const getLocalCedulas = useCallback(async () => {
-    if (!user) return [];
-    return await db.local_cedulas.where('user_id').equals(user.id).toArray();
-  }, [user]);
+    return await db.local_cedulas.toArray();
+  }, []);
 
   // PFSI (Restos Forenses en Fosas)
   const addLocalPFSI = useCallback(async (fosaUuid, data) => {
     try {
-      const record = { ...data, fosa_uuid: fosaUuid, ...createBaseRecord() };
+      const record = { ...createBaseRecord(data), ...data, fosa_uuid: fosaUuid };
       await db.local_pfsi.add(record);
       logger.log('PFSI local creado:', record);
       return record.uuid;
@@ -88,12 +85,8 @@ export const useLocalData = () => {
   }, [user]);
 
   const getLocalPFSIForFosa = useCallback(async (fosaUuid) => {
-    if (!user) return [];
-    return await db.local_pfsi
-      .where('fosa_uuid').equals(fosaUuid)
-      .and(record => record.user_id === user.id)
-      .toArray();
-  }, [user]);
+    return await db.local_pfsi.where('fosa_uuid').equals(fosaUuid).toArray();
+  }, []);
 
   // OPERACIONES GENÉRICAS
   const updateLocalRecord = useCallback(async (table, uuid, data) => {

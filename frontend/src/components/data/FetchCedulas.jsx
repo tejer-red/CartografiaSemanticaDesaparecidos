@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
 
-import { getCachedData, setCachedData } from '../../utils/cache';
+
 
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchCedulas');
@@ -47,23 +47,17 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
         setLoading(true);
         updateLoadingStatus('cedulas', true);
 
-        const cacheParams = { start_date, end_date };
-        let records = getCachedData('cedulas', cacheParams);
-
-        if (!records) {
-          const response = await axios.get(`${API_BASE_URL}/casos`, {
-            headers: {
-              'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
-              'Content-Type': 'application/json'
-            },
-            params: {
-              start_date,
-              end_date
-            }
-          });
-          records = response.data.records || [];
-          setCachedData('cedulas', cacheParams, records);
-        }
+        const response = await axios.get(`${API_BASE_URL}/casos`, {
+          headers: {
+            'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
+            'Content-Type': 'application/json'
+          },
+          params: {
+            start_date,
+            end_date
+          }
+        });
+        const records = response.data.records || [];
 
         const formattedRecordsCedula = records.map(record => {
           const [lat, lon] = record.lat_long ? record.lat_long.split(',').map(coord => parseFloat(coord)) : [null, null];

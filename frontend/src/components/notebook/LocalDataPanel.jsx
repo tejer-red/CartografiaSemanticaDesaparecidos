@@ -6,7 +6,11 @@ import { ChevronDown, ChevronRight, Plus, MapPin, Newspaper, FileText, Link2, In
 import LinkModal from '../shared/LinkModal';
 import SemanticLinkInfoModal from '../shared/SemanticLinkInfoModal';
 import MiniNetworkModal from '../shared/MiniNetworkModal';
+import ImportContextModal from './ImportContextModal';
+import createLogger from '../../utils/logger';
 import '../../styles/LocalDataPanel.css';
+
+const logger = createLogger('LocalDataPanel');
 
 const AccordionItem = ({ title, count, icon: Icon, children, defaultOpen = false, onAdd }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -52,6 +56,9 @@ const LocalDataPanel = () => {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
   const [selectedVinculo, setSelectedVinculo] = useState(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importEntityData, setImportEntityData] = useState(null);
+  const [importEntityType, setImportEntityType] = useState(null);
 
   const notebookId = window.location.pathname.match(/\/cuaderno\/([^\/]+)/)?.[1];
   const filteredFosas = localFosas?.filter(f => f.notebook_id === notebookId) || [];
@@ -69,22 +76,33 @@ const LocalDataPanel = () => {
     setLinkModalOpen(true);
   };
 
-  const handleAddFosa = async () => {
-    const lat = 20.6 + Math.random() * 0.5;
-    const lng = -103.3 - Math.random() * 0.5;
-    try {
-      await addLocalFosa({ lat, lng, municipio: 'Zapopan (Local)', estado: 'Jalisco', fecha_hallazgo: new Date().toISOString().split('T')[0], notebook_id: notebookId });
-      refreshLocalData();
-    } catch (e) { console.error(e); }
+  React.useEffect(() => {
+    const handleOpenImportModal = (e) => {
+      logger.log('Recibido evento openImportModal:', e.detail);
+      if (e.detail && e.detail.type && e.detail.data) {
+        openImportModal(e.detail.type, e.detail.data);
+      }
+    };
+    window.addEventListener('openImportModal', handleOpenImportModal);
+    return () => window.removeEventListener('openImportModal', handleOpenImportModal);
+  }, []);
+
+  const openImportModal = (type, data) => {
+    setImportEntityType(type);
+    setImportEntityData(data);
+    setImportModalOpen(true);
   };
 
-  const handleAddNoticia = async () => {
+  const handleAddFosa = () => {
     const lat = 20.6 + Math.random() * 0.5;
     const lng = -103.3 - Math.random() * 0.5;
-    try {
-      await addLocalNoticia({ lat, lng, titular: 'Hallazgo reportado localmente', url: 'https://ejemplo.com', fecha: new Date().toISOString().split('T')[0], notebook_id: notebookId });
-      refreshLocalData();
-    } catch (e) { console.error(e); }
+    openImportModal('fosa', { lat, lng, municipio: 'Zapopan (Local)', estado: 'Jalisco', fecha_hallazgo: new Date().toISOString().split('T')[0] });
+  };
+
+  const handleAddNoticia = () => {
+    const lat = 20.6 + Math.random() * 0.5;
+    const lng = -103.3 - Math.random() * 0.5;
+    openImportModal('noticia', { lat, lng, titular: 'Hallazgo reportado localmente', url: 'https://ejemplo.com', fecha: new Date().toISOString().split('T')[0] });
   };
 
   const [cedulaSearchTerm, setCedulaSearchTerm] = useState('');
@@ -110,19 +128,12 @@ const LocalDataPanel = () => {
     setCedulaSearchResults(results.slice(0, 5));
   };
 
-  const handleAddRemoteCedulaToLocal = async (cedula) => {
-    try {
-      await addLocalCedula({
-        ...cedula,
-        isLocal: true,
-        original_uuid: cedula.uuid || cedula.id,
-        notebook_id: notebookId
-      });
-      refreshLocalData();
-      setCedulaSearchTerm('');
-      setCedulaSearchResults([]);
-      setShowCedulaSearch(false);
-    } catch (e) { console.error(e); }
+  const handleAddRemoteCedulaToLocal = (cedula) => {
+    openImportModal('cedula', {
+      ...cedula,
+      isLocal: true,
+      original_uuid: cedula.uuid || cedula.id
+    });
   };
 
   return (
@@ -334,6 +345,23 @@ const LocalDataPanel = () => {
           localCedulas={localCedulas}
           fetchedRecords={fetchedRecords}
           forenseRecords={forenseRecords}
+        />
+      )}
+
+      {importModalOpen && importEntityData && (
+        <ImportContextModal
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          entityData={importEntityData}
+          entityType={importEntityType}
+          onImportComplete={() => {
+            refreshLocalData();
+            if (importEntityType === 'cedula') {
+              setCedulaSearchTerm('');
+              setCedulaSearchResults([]);
+              setShowCedulaSearch(false);
+            }
+          }}
         />
       )}
     </div>

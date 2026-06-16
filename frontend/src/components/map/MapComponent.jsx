@@ -11,9 +11,10 @@ const MapComponent = () => {
   const { map, setMap, setMapLoaded } = useData();
   const mapContainer = useRef(null);
   const contextLostRef = useRef(false);
+  const localMapRef = useRef(null);
 
   useEffect(() => {
-    if (!map && !contextLostRef.current) {
+    if (!localMapRef.current && !contextLostRef.current) {
       try {
         const newMap = new maplibregl.Map({
           container: mapContainer.current,
@@ -24,6 +25,8 @@ const MapComponent = () => {
           antialias: false,
           maxParallelImageRequests: 4
         });
+
+        localMapRef.current = newMap;
 
         // Handle WebGL context events
         newMap.on('webglcontextlost', () => {
@@ -51,13 +54,14 @@ const MapComponent = () => {
     }
 
     return () => {
-      if (map) {
-        map.remove();
+      if (localMapRef.current) {
+        localMapRef.current.remove();
+        localMapRef.current = null;
         setMap(null);
         setMapLoaded(false);
       }
     };
-  }, [map, setMap, setMapLoaded]);
+  }, []);
 
   return (
     <div className="map-wrapper">
