@@ -87,3 +87,4 @@ Los archivos en `src/utils/` contienen lógica extraída de componentes:
 4. **Mantener los principios CUPID**: un componente = una responsabilidad clara.
 5. **Tests**: Verificar con `npx vite build` que no haya imports rotos después de cambios estructurales.
 6. **Commit y Push**: NUNCA ejecutar `git commit`, `git push`, u otros comandos que modifiquen el control de versiones a menos que el usuario lo solicite explícitamente.
+7. **Logging Inteligente (Debugging)**: Siempre que vayas a trabajar en investigar y solucionar un problema particular, modifica `frontend/src/utils/logger.js` para habilitar temporalmente en `true` el registro de eventos de los componentes involucrados. Esto facilitará visualizar el flujo de datos y detectar errores ocultos.

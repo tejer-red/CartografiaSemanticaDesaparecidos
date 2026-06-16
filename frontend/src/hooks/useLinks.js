@@ -24,12 +24,14 @@ export const useLinks = () => {
 
   const createLink = useCallback(async (sourceUuid, targetUuid, tipoRelacion, descripcion = '') => {
     try {
+      const notebookId = window.location.pathname.match(/\/cuaderno\/([^\/]+)/)?.[1];
       const record = {
         uuid: uuidv4(),
         source_uuid: sourceUuid,
         target_uuid: targetUuid,
         tipo_relacion: tipoRelacion,
         descripcion,
+        notebook_id: notebookId, // Important: without this, LocalDataPanel filters it out
         user_id: getUserId(),
         created_at: new Date().getTime(),
       };

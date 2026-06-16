@@ -19,16 +19,17 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
   const [existingLinks, setExistingLinks] = useState([]);
 
   const resolveEntityName = (uuid) => {
-    if (uuid.startsWith('TAG-')) return uuid.replace('TAG-', '');
-    let found = localNoticias?.find(n => n.uuid === uuid);
+    const strUuid = String(uuid);
+    if (strUuid.startsWith('TAG-')) return strUuid.replace('TAG-', '');
+    let found = localNoticias?.find(n => String(n.uuid) === strUuid || String(n.id) === strUuid);
     if (found) return found.titular;
-    found = localFosas?.find(f => f.uuid === uuid);
+    found = localFosas?.find(f => String(f.uuid) === strUuid || String(f.id) === strUuid);
     if (found) return `Fosa en ${found.municipio}`;
-    found = localCedulas?.find(c => c.uuid === uuid);
+    found = localCedulas?.find(c => String(c.uuid) === strUuid || String(c.id) === strUuid);
     if (found) return found.nombre_completo;
-    found = fetchedRecords?.features?.find(f => (f.properties.uuid || f.properties.id) === uuid);
+    found = fetchedRecords?.features?.find(f => String(f.properties.uuid || f.properties.id) === strUuid);
     if (found) return found.properties.titular || `Fosa en ${found.properties.municipio}`;
-    found = forenseRecords?.features?.find(f => (f.properties.uuid || f.properties.id) === uuid);
+    found = forenseRecords?.features?.find(f => String(f.properties.uuid || f.properties.id) === strUuid);
     if (found) return found.properties.nombre_completo;
     return 'Entidad Desconocida';
   };

@@ -24,22 +24,23 @@ const MiniNetworkModal = ({ isOpen, onClose, vinculo, allVinculos = [], localFos
     const g = new Graph();
 
     const findEntity = (uuid) => {
-      if (uuid.startsWith('TAG-')) {
+      if (String(uuid).startsWith('TAG-')) {
         return { label: uuid.replace('TAG-', ''), color: '#8b5cf6', size: 20 }; // Etiquetas son moradas y grandes
       }
 
-      const fosa = localFosas?.find(f => f.uuid === uuid || f.id === uuid);
+      const strUuid = String(uuid);
+      const fosa = localFosas?.find(f => String(f.uuid) === strUuid || String(f.id) === strUuid);
       if (fosa) return { label: `Fosa en ${fosa.municipio}`, color: '#6366f1' };
       
-      const noticia = localNoticias?.find(n => n.uuid === uuid || n.id === uuid);
+      const noticia = localNoticias?.find(n => String(n.uuid) === strUuid || String(n.id) === strUuid);
       if (noticia) return { label: noticia.titular, color: '#e11d48' };
 
-      const cedula = localCedulas?.find(c => c.uuid === uuid || c.id === uuid);
+      const cedula = localCedulas?.find(c => String(c.uuid) === strUuid || String(c.id) === strUuid);
       if (cedula) return { label: cedula.nombre_completo, color: '#10b981' };
 
       // Búsqueda en registros remotos (fetchedRecords -> Fosas/Noticias en GeoJSON, forenseRecords -> Cédulas)
       if (fetchedRecords && fetchedRecords.features) {
-        const remoteFosa = fetchedRecords.features.find(f => f.properties?.uuid === uuid || f.properties?.id === uuid);
+        const remoteFosa = fetchedRecords.features.find(f => String(f.properties?.uuid) === strUuid || String(f.properties?.id) === strUuid);
         if (remoteFosa) {
           if (remoteFosa.properties?.tipo_marcador === 'noticia') {
             return { label: `(Remoto) ${remoteFosa.properties.titular || 'Noticia'}`, color: '#f43f5e' };
@@ -49,13 +50,13 @@ const MiniNetworkModal = ({ isOpen, onClose, vinculo, allVinculos = [], localFos
       }
 
       if (forenseRecords && forenseRecords.features) {
-        const remoteCedula = forenseRecords.features.find(f => f.properties?.uuid === uuid || f.properties?.id === uuid);
+        const remoteCedula = forenseRecords.features.find(f => String(f.properties?.uuid) === strUuid || String(f.properties?.id) === strUuid);
         if (remoteCedula) {
           return { label: `(Remoto) ${remoteCedula.properties.nombre_completo || 'Cédula'}`, color: '#34d399' };
         }
       }
 
-      return { label: `Resto Forense / ID (${uuid.substring(0, 5)})`, color: '#f59e0b' };
+      return { label: `Resto Forense / ID (${String(uuid).substring(0, 5)})`, color: '#f59e0b' };
     };
 
     linksToGraph.forEach(v => {

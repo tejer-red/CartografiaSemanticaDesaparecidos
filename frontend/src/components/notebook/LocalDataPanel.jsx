@@ -301,8 +301,8 @@ const LocalDataPanel = () => {
                     <strong>{vinculo.tipo_relacion === 'ETIQUETA' ? 'ETIQUETA' : vinculo.tipo_relacion.replace(/_/g, ' ')}</strong>
                     <span style={{ wordBreak: 'break-all' }}>
                       {vinculo.tipo_relacion === 'ETIQUETA' 
-                        ? `${vinculo.source_uuid.substring(0,6)}... ⟷ ${vinculo.target_uuid.replace('TAG-', '')}`
-                        : `${vinculo.source_uuid.substring(0,6)}... ➔ ${vinculo.target_uuid.substring(0,6)}...`
+                        ? `${String(vinculo.source_uuid).substring(0,6)}... ⟷ ${String(vinculo.target_uuid).replace('TAG-', '')}`
+                        : `${String(vinculo.source_uuid).substring(0,6)}... ➔ ${String(vinculo.target_uuid).substring(0,6)}...`
                       }
                     </span>
                   </div>
