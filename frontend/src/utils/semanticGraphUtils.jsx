@@ -57,6 +57,8 @@ export function useSemanticGraph() {
   const [showSigma, setShowSigma] = useState(false);
 
   const graph = useMemo(() => {
+    if (!showSigma) return null;
+
     const graph = new Graph();
     const features = getFilteredFeatures(
       map, 
@@ -117,7 +119,7 @@ export function useSemanticGraph() {
     });
 
     return graph;
-  }, [map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange]);
+  }, [showSigma, map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange]);
 
   const handleNodeClick = useCallback((nodeId) => {
     const nodeAttrs = graph.getNodeAttributes(nodeId);
@@ -137,6 +139,8 @@ export function useSemanticGraph() {
   }, [selectedCase, currentRoot]);
 
   const displayGraph = useMemo(() => {
+    if (!graph) return null;
+
     if (!currentRoot) {
       return React.createElement(
         React.Fragment,

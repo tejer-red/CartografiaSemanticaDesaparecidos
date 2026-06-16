@@ -21,7 +21,7 @@ const MapComponent = () => {
           style: 'https://tiles.stadiamaps.com/styles/osm_bright.json?api_key=cf6b8388-7d50-4714-8aac-6ecb7fedd428',
           center: [-103.349609, 20.659698],
           zoom: 8,
-          preserveDrawingBuffer: true,
+          preserveDrawingBuffer: false,
           antialias: false,
           maxParallelImageRequests: 4
         });
@@ -29,9 +29,11 @@ const MapComponent = () => {
         localMapRef.current = newMap;
 
         // Handle WebGL context events
-        newMap.on('webglcontextlost', () => {
+        newMap.on('webglcontextlost', (e) => {
+          if (e && e.originalEvent) e.originalEvent.preventDefault();
           logger.log('WebGL context lost');
           contextLostRef.current = true;
+          setMapLoaded(false);
         });
 
         newMap.on('webglcontextrestored', () => {

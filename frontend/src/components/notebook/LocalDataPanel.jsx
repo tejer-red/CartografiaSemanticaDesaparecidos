@@ -275,7 +275,7 @@ const LocalDataPanel = () => {
                 }}
                 style={{ background: '#4f46e5', border: 'none', cursor: 'pointer', display: 'flex', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}
               >
-                Ver Red Global
+                Visualizar Red
               </button>
             </div>
           }
@@ -334,7 +334,6 @@ const LocalDataPanel = () => {
         />
       )}
 
-      {networkModalOpen && (
         <MiniNetworkModal
           isOpen={networkModalOpen}
           onClose={() => setNetworkModalOpen(false)}
@@ -346,7 +345,6 @@ const LocalDataPanel = () => {
           fetchedRecords={fetchedRecords}
           forenseRecords={forenseRecords}
         />
-      )}
 
       {importModalOpen && importEntityData && (
         <ImportContextModal

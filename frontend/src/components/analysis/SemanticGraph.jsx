@@ -46,15 +46,15 @@ const SemanticGraph = () => {
               cursor: "pointer"
             }}
           >
-            Iniciar grafo
+            Visualizar Red
           </button>
         </div>
       )}
 
-      {showSigma && (
-        <div
+      <div
           className="violence-cases__graph-wrapper"
           style={{
+            display: showSigma ? "block" : "none",
             width: "25rem",
             height: "23rem",
             minWidth: 300,
@@ -81,7 +81,6 @@ const SemanticGraph = () => {
             {displayGraph}
           </SigmaContainer>
         </div>
-      )}
 
       {selectedCase && (
         <div className="violence-cases__modal">

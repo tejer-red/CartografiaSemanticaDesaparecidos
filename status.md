@@ -33,3 +33,17 @@ Se logró un flujo offline-first completo: la raíz de la aplicación siempre in
 ## Resultado
 Se redujo el tiempo de respuesta del endpoint de casos de un rango promedio de **62 segundos a solo 15 segundos** (una mejora de más del 300% / 4x en velocidad) para peticiones masivas (1999-2024, ~4,500 registros y 6.7MB de payload). La base de datos ahora procesa las búsquedas en milisegundos usando índices, y el frontend tiene un ciclo de vida limpio y predecible.
 
+
+# Estado: Fase 6 (Resolución de Conflictos de Contexto WebGL MapLibre y Sigma)
+
+## Cambios Realizados
+- **[MODIFY] `frontend/src/utils/semanticGraphUtils.jsx`**:
+  - Se modificó el hook `useMemo` de generación del grafo para que solo se ejecute cuando `showSigma` es `true`.
+  - Se previno el bloqueo del hilo principal (main thread) que ocurría al ejecutar iteraciones síncronas de ForceAtlas2 en segundo plano durante cambios de filtros en el mapa.
+  - Se añadió lógica para renderizar limpiamente cuando el grafo es nulo.
+- **[MODIFY] `frontend/src/components/shared/MiniNetworkModal.jsx`**:
+  - Se implementó un retorno anticipado (`early return`) en el `useMemo` del grafo para evitar su procesamiento computacional pesado cuando el modal está cerrado (`!isOpen`).
+  - Se añadió `isOpen` al arreglo de dependencias para controlar estrictamente el ciclo de vida de Sigma.
+
+## Resultado
+Se eliminó la pérdida de contexto WebGL en MapLibre y los congelamientos de interfaz que ocurrían al interactuar con el mapa. Los cálculos pesados de renderizado de red (ForceAtlas2) ahora solo se ejecutan cuando el usuario abre explícitamente las visualizaciones de grafos semánticos, garantizando que los marcadores del mapa y las interacciones de filtrado permanezcan 100% fluidas y responsivas.

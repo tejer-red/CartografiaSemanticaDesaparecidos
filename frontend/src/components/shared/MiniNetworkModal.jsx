@@ -17,6 +17,7 @@ const LoadGraph = ({ graph }) => {
 
 const MiniNetworkModal = ({ isOpen, onClose, vinculo, allVinculos = [], localFosas, localNoticias, localCedulas, fetchedRecords, forenseRecords }) => {
   const graph = useMemo(() => {
+    if (!isOpen) return null;
     const linksToGraph = allVinculos.length > 0 ? allVinculos : (vinculo ? [vinculo] : []);
     if (linksToGraph.length === 0) return null;
 
@@ -105,12 +106,12 @@ const MiniNetworkModal = ({ isOpen, onClose, vinculo, allVinculos = [], localFos
     }
 
     return g;
-  }, [vinculo, allVinculos, localFosas, localNoticias, localCedulas, fetchedRecords, forenseRecords]);
+  }, [isOpen, vinculo, allVinculos, localFosas, localNoticias, localCedulas, fetchedRecords, forenseRecords]);
 
-  if (!isOpen || (!vinculo && allVinculos.length === 0)) return null;
+  const isVisible = isOpen && (vinculo || allVinculos.length > 0);
 
   return (
-    <div className="login-screen-overlay" style={{ zIndex: 6000 }}>
+    <div className="login-screen-overlay" style={{ zIndex: 6000, display: isVisible ? 'flex' : 'none' }}>
       <div className="login-screen-content" style={{ maxWidth: '900px', width: '90%' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
           <X size={20} color="#6b7280" />
@@ -122,24 +123,22 @@ const MiniNetworkModal = ({ isOpen, onClose, vinculo, allVinculos = [], localFos
         </h2>
 
         <div style={{ marginTop: '20px', height: '600px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', position: 'relative' }}>
-          {graph && (
-            <SigmaContainer 
-              style={{ width: '100%', height: '100%' }}
-              settings={{
-                renderLabels: true,
-                renderEdgeLabels: true,
-                defaultEdgeType: 'arrow',
-                labelSize: 14,
-                edgeLabelSize: 12,
-                allowInvalidContainer: true,
-              }}
-            >
-              <LoadGraph graph={graph} />
-              <ControlsContainer position={"bottom-right"}>
-                <ZoomControl />
-              </ControlsContainer>
-            </SigmaContainer>
-          )}
+          <SigmaContainer 
+            style={{ width: '100%', height: '100%' }}
+            settings={{
+              renderLabels: true,
+              renderEdgeLabels: true,
+              defaultEdgeType: 'arrow',
+              labelSize: 14,
+              edgeLabelSize: 12,
+              allowInvalidContainer: true,
+            }}
+          >
+            <LoadGraph graph={graph} />
+            <ControlsContainer position={"bottom-right"}>
+              <ZoomControl />
+            </ControlsContainer>
+          </SigmaContainer>
         </div>
 
         {vinculo && allVinculos.length === 0 && (
