@@ -118,7 +118,7 @@ const SideNotebook = ({
         }}
       >
         <>
-          <div style={{ display: activeTab === 'notebook' ? 'block' : 'none', height: '100%', display: activeTab === 'notebook' ? 'flex' : 'none', flexDirection: 'column' }}>
+          <div style={{ height: '100%', display: activeTab === 'notebook' ? 'flex' : 'none', flexDirection: 'column' }}>
             <div>
               <DateFormCompact
                 handleSubmit={handleSubmit}
