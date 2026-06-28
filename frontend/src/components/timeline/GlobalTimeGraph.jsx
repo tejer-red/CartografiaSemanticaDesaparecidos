@@ -28,7 +28,9 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
     setTimeScale,
     setDaysRange,
     selectedSexo,          // Use these states instead of filters
-    selectedCondicion      // Use these states instead of filters
+    selectedCondicion,      // Use these states instead of filters
+    newDataFetched,
+    newForenseDataFetched
   } = useData();
 
   const [processedData, setProcessedData] = useState([]);
@@ -40,10 +42,17 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
       console.log('[GlobalTimeGraph] skipped processing (map loading or overlay is visible)');
       return;
     }
-    const data = processMapData(map, timeScale);
-    console.log('[GlobalTimeGraph] processed map data features. Data points count:', data.length);
-    setProcessedData(data);
-  }, [map, mapLoaded, timeScale, showLoadingScreen, isLoading]);
+    
+    // El mapa puede tardar unos ms en procesar los datos inyectados por FetchCedulas.
+    // Usamos setTimeout para asegurar que _data esté disponible en los sources.
+    const timer = setTimeout(() => {
+      const data = processMapData(map, timeScale);
+      console.log('[GlobalTimeGraph] processed map data features. Data points count:', data.length);
+      setProcessedData(data);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [map, mapLoaded, timeScale, showLoadingScreen, isLoading, newDataFetched, newForenseDataFetched]);
 
   if (isLoading) {
     return <div>Cargando GlobalTimeGraph...</div>;
@@ -56,78 +65,53 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
   };
 
   return (
-    <div
-      className="GlobalTimeLine"
-      style={{
-        width: "100%",
-        height: processedData.length > 0 ? "150px" : "40px",
-      }}
-    >
-      <div className="GlobalTimeLine" style={{ marginBottom: "20px" }}>
-        <div
-          className="SelectTimeLineRange"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            marginBottom: "5px",
-            width: "100%",
-            padding: "0 1rem",
-            flex: 1,
-            flexDirection: "row",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Calendar style={{ marginRight: "10px", color: "#555" }} /> {/* Use Lucide icon */}
-          <span style={{ fontWeight: "bold", color: "#333" }}>
-            Selecciona el formato de la línea de tiempo
-          </span>
+    <div className="GlobalTimeLine" style={{ width: '100%', minHeight: '140px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '5px', padding: '0px' }}>
+        <div className="SelectTimeLineRange" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgb(51, 51, 51)', flex: '1 1 0%' }}>
+          <Calendar size={14} style={{ color: "rgb(85, 85, 85)" }} />
+          <span style={{ fontWeight: "bold", fontSize: "0.85em", whiteSpace: "nowrap" }}>Escala</span>
+          <span style={{ fontSize: "0.75em", color: "rgb(0, 123, 255)", marginLeft: "8px", backgroundColor: "rgb(231, 241, 255)", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}> — </span>
         </div>
-
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="daily"
-            checked={timeScale === "daily"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Diario
-        </label>
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="weekly"
-            checked={timeScale === "weekly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Semanal
-        </label>
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="bi-weekly"
-            checked={timeScale === "bi-weekly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Quincenal
-        </label>
-        <label>
-          <input
-            type="radio"
-            value="monthly"
-            checked={timeScale === "monthly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Mensual
-        </label>
-        <label style={{ marginRight: "15px" }}>
-          <input
-            type="radio"
-            value="yearly"
-            checked={timeScale === "yearly"}
-            onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
-          />{" "}
-          Anual
-        </label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: '1 1 0%', justifyContent: 'flex-end' }}>
+          {[
+            { value: 'daily', label: 'Diario' },
+            { value: 'weekly', label: 'Semanal' },
+            { value: 'bi-weekly', label: 'Quincenal' },
+            { value: 'monthly', label: 'Mensual' },
+            { value: 'yearly', label: 'Anual' }
+          ].map(option => {
+            const isSelected = timeScale === option.value;
+            return (
+              <label
+                key={option.value}
+                style={{
+                  fontSize: '0.7em',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  backgroundColor: isSelected ? 'rgb(231, 241, 255)' : 'transparent',
+                  borderRadius: '6px',
+                  border: `1px solid ${isSelected ? 'rgb(0, 123, 255)' : 'rgb(221, 221, 221)'}`,
+                  transition: '0.2s',
+                  color: isSelected ? 'rgb(0, 123, 255)' : 'rgb(102, 102, 102)',
+                  fontWeight: isSelected ? 600 : 400
+                }}
+              >
+                <input
+                  type="radio"
+                  value={option.value}
+                  name="timeScale"
+                  checked={isSelected}
+                  onChange={(e) => handleTimeScaleChange(e, setTimeScale)}
+                  style={{ cursor: 'pointer', display: 'none' }}
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
       </div>
 
       {processedData.length === 0 && (
@@ -139,7 +123,8 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
       )}
 
       {processedData.length > 0 && (
-        <ResponsiveContainer>
+        <div style={{ flex: 1, minHeight: '100px' }}>
+          <ResponsiveContainer width="100%" height={100}>
           <LineChart
             data={processedData}
             margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
@@ -195,6 +180,7 @@ const GlobalTimeGraph = ({ onDateSelect }) => {
             )}
           </LineChart>
         </ResponsiveContainer>
+        </div>
       )}
       {selectedDate && (
         <div

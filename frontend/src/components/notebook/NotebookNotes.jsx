@@ -2,12 +2,31 @@ import React from 'react';
 import { Flag, StickyNote } from 'lucide-react'; // Cambiar Network por Flag
 
 const NotebookNotes = ({
+  noteTitle,
+  setNoteTitle,
   newNote,
   setNewNote,
   addNote,
   addTextOnlyNote,
 }) => (
   <div style={{ marginBottom: '12px' }}>
+    <input
+      type="text"
+      value={noteTitle}
+      onChange={(e) => setNoteTitle(e.target.value)}
+      placeholder="Título de la nota..."
+      style={{
+        width: '100%',
+        borderRadius: 6,
+        border: '1px solid #ddd',
+        padding: 8,
+        fontSize: 15,
+        fontFamily: 'inherit',
+        marginBottom: 8,
+        fontWeight: 600,
+        boxSizing: 'border-box',
+      }}
+    />
     <textarea
       value={newNote}
       onChange={(e) => setNewNote(e.target.value)}

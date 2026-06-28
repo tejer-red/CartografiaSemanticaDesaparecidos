@@ -5,7 +5,7 @@ import '../../styles/Notebook.css';
 import { useNotebook } from '../../utils/notebook';
 import NotebookNotes from './NotebookNotes';
 import NotebookListModal from './NotebookListModal';
-import GlobalTimeGraphData from '../timeline/GlobalTimeGraphData';
+import GlobalTimeGraph from '../timeline/GlobalTimeGraph';
 import { MapPin, ArrowLeft, Info, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -18,6 +18,8 @@ const Notebook = () => {
 
   const {
     notes,
+    noteTitle,
+    setNoteTitle,
     newNote,
     setNewNote,
     addNote,
@@ -69,17 +71,10 @@ const Notebook = () => {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        <GlobalTimeGraphData
-          map={dataContext.map}
-          COLORS={dataContext.COLORS}
-          selectedDate={dataContext.selectedDate}
-          timeScale={dataContext.timeScale}
-          setSelectedDate={dataContext.setSelectedDate}
-          setTimeScale={dataContext.setTimeScale}
-          newDataFetched={dataContext.newDataFetched}
-          newForenseDataFetched={dataContext.newForenseDataFetched}
-        />
+        <GlobalTimeGraph />
         <NotebookNotes
+          noteTitle={noteTitle}
+          setNoteTitle={setNoteTitle}
           newNote={newNote}
           setNewNote={setNewNote}
           addNote={addNote}

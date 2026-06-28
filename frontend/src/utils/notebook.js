@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 import { db } from '../lib/localDatabase';
+import { calculateStats } from './filteredStats';
 
 import createLogger from '../utils/logger';
 const logger = createLogger('notebook');
@@ -37,6 +38,7 @@ export function useNotebook(dataContext, id, navigate) {
   } = dataContext;
 
   const [notes, setNotes] = useState([]);
+  const [noteTitle, setNoteTitle] = useState('');
   const [newNote, setNewNote] = useState('');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,6 +146,96 @@ export function useNotebook(dataContext, id, navigate) {
     timeScale, mapType, colorScheme, visibleComponents
   ]);
 
+  const generateContextSnippet = useCallback(() => {
+    const parts = [];
+
+    if (startDate && endDate) {
+      parts.push(`Período: ${startDate} a ${endDate}`);
+    }
+
+    if (selectedDate) {
+      const dateStr = selectedDate.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      parts.push(`Fecha: ${dateStr} (${daysRange} días)`);
+    }
+
+    if (selectedSexo && selectedSexo.length > 0 && selectedSexo.length < 2) {
+      parts.push(`Sexo: ${selectedSexo.join(', ')}`);
+    }
+
+    if (selectedCondicion && selectedCondicion.length > 0 && selectedCondicion.length < 3) {
+      parts.push(`Condición: ${selectedCondicion.join(', ')}`);
+    }
+
+    if (edadRange && (edadRange[0] > 0 || edadRange[1] < 100)) {
+      parts.push(`Edad: ${edadRange[0]}-${edadRange[1]} años`);
+    }
+
+    if (mapType) {
+      const mapTypeLabel = mapType === 'heatmap' ? 'Mapa de calor' : 'Puntos';
+      parts.push(`Vista: ${mapTypeLabel}`);
+    }
+
+    if (colorScheme) {
+      const colorLabel = colorScheme === 'sexo' ? 'Por sexo' : 'Por condición';
+      parts.push(`Color: ${colorLabel}`);
+    }
+
+    if (map) {
+      const zoom = map.getZoom();
+      const center = map.getCenter();
+      parts.push(`Zoom: ${zoom.toFixed(1)}`);
+      parts.push(`Centro: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`);
+    }
+
+    const stats = calculateStats({
+      map,
+      selectedDate,
+      daysRange,
+      selectedSexo,
+      selectedCondicion,
+      edadRange,
+      sumScoreRange
+    });
+
+    const statParts = [];
+    if (stats) {
+      statParts.push(`Total: ${stats.total}`);
+      if (stats.bySexo) {
+        Object.entries(stats.bySexo).forEach(([key, val]) => {
+          statParts.push(`${key}: ${val}`);
+        });
+      }
+      if (stats.byCondicion) {
+        Object.entries(stats.byCondicion).forEach(([key, val]) => {
+          statParts.push(`${key}: ${val}`);
+        });
+      }
+      if (stats.ageStats && stats.ageStats.avg) {
+        statParts.push(`Edad promedio: ${stats.ageStats.avg}`);
+      }
+    }
+
+    if (parts.length === 0 && statParts.length === 0) return '';
+
+    const listContext = parts.map(part => `  • ${part}`).join('\n');
+    const listStats = statParts.map(part => `  • ${part}`).join('\n');
+
+    let result = `\n---\n<details>\n<summary><b>[Contexto]</b></summary>\n${listContext}\n</details>`;
+    if (listStats) {
+      result += `\n<details>\n<summary><b>[Estadísticas]</b></summary>\n${listStats}\n</details>`;
+    }
+    result += `\n---`;
+
+    return result;
+  }, [
+    startDate, endDate, selectedDate, daysRange, selectedSexo, selectedCondicion,
+    edadRange, mapType, colorScheme, map, sumScoreRange
+  ]);
+
   const captureCurrentState = useCallback(() => {
     const mapState = map ? {
       center: map.getCenter(),
@@ -172,11 +264,17 @@ export function useNotebook(dataContext, id, navigate) {
   ]);
 
   const addNote = useCallback(async () => {
-    if (!newNote.trim() || !id) return;
+    if (!noteTitle.trim() || !newNote.trim() || !id) {
+      alert('Por favor, completa tanto el título como la nota.');
+      return;
+    }
     const stateSnapshot = captureCurrentState();
+    const contextSnippet = generateContextSnippet();
+    const fullText = `# ${noteTitle.trim()}\n${newNote.trim()}${contextSnippet}`;
+    
     const newNoteEntry = {
       notebook_id: id,
-      text: newNote,
+      text: fullText,
       timestamp: new Date().toISOString(),
       state: stateSnapshot
     };
@@ -190,10 +288,14 @@ export function useNotebook(dataContext, id, navigate) {
   }, [newNote, captureCurrentState, id, loadLogs]);
 
   const addTextOnlyNote = useCallback(async () => {
-    if (!newNote.trim() || !id) return;
+    if (!noteTitle.trim() || !newNote.trim() || !id) {
+      alert('Por favor, completa tanto el título como la nota.');
+      return;
+    }
+    const fullText = `# ${noteTitle.trim()}\n${newNote.trim()}`;
     const newNoteEntry = {
       notebook_id: id,
-      text: newNote,
+      text: fullText,
       timestamp: new Date().toISOString(),
       state: null
     };
@@ -385,7 +487,7 @@ export function useNotebook(dataContext, id, navigate) {
             // merge local and remote?
             const merged = [...data.notebooks];
             for (let l of localNbs) {
-               if (!merged.find(m => m.name === l.name)) {
+               if (!merged.find(m => (typeof m === 'string' ? m : m.name) === l.name)) {
                   merged.push({ id: l.name, name: l.name, created_at: l.created_at, isLocal: true });
                }
             }
@@ -411,10 +513,12 @@ export function useNotebook(dataContext, id, navigate) {
 
   return {
     notes,
+    noteTitle,
     newNote,
     isPanelOpen,
     isModalOpen,
     notebookList,
+    setNoteTitle,
     setIsPanelOpen,
     setNewNote,
     addNote,

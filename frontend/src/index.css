@@ -128,6 +128,43 @@ label {
   top: 0;
   left: 0;
   z-index: 0;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Posiciona el mapa en la mitad derecha cuando se visualiza un cuaderno público */
+.Map.visible-view-map {
+  left: auto;
+  right: 0;
+  top: 0;
+  width: 65vw;
+  height: 100vh;
+  border-radius: 0;
+  z-index: 5;
+  box-shadow: none;
+  border: none;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .Map.visible-view-map {
+    width: 100vw !important;
+    height: 50vh !important;
+    position: fixed !important;
+  }
+}
+
+/* Timeline container dentro de la columna del mapa en vista visible */
+.visible-timeline-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 10px 15px;
+  z-index: 10;
+  pointer-events: all;
+  border-top: 1px solid #e1e4e8;
 }
 
 .DateForm {

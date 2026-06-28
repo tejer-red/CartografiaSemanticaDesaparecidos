@@ -19,7 +19,15 @@ export function processMapData(map, timeScale) {
     const condicion = feature.properties?.condicion_localizacion;
     if (!timestamp) return;
 
-    const date = new Date(parseInt(timestamp));
+    // Parseo robusto rescatado de rama 2.0 (fix numérico/string de enero)
+    let date;
+    if (typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else {
+      const parsed = new Date(parseInt(timestamp));
+      date = isNaN(parsed.getTime()) ? new Date(timestamp) : parsed;
+    }
+    if (isNaN(date.getTime())) return; // Skip fechas irrecuperables
     let key;
 
     switch (timeScale) {

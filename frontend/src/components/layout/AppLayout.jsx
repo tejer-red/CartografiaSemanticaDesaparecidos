@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
+import useIsMobile from '../../hooks/useIsMobile';
 import InitialModal from './InitialModal';
 import LeftSideBar from './LeftSideBar';
 import HeaderCompact from './HeaderCompact';
 import SideNotebook from '../notebook/SideNotebook';
 import BottomTimelinePanel from './BottomTimelinePanel';
+import { MobileActionBar } from './mobile';
 
 const AppLayout = ({
   visibleComponents,
@@ -24,6 +26,7 @@ const AppLayout = ({
 }) => {
   const [activePanel, setActivePanel] = useState(null);
   const { isInitialModalOpen, setIsInitialModalOpen } = useData();
+  const isMobile = useIsMobile();
 
   const handlePanelHover = (panelName) => {
     setActivePanel(panelName);
@@ -81,6 +84,9 @@ const AppLayout = ({
         onMouseLeave={() => handlePanelHover(null)}
         style={getPanelStyle('bottomTimeline')}
       />
+
+      {/* Renderizado condicional móvil rescatado de rama 2.0 */}
+      {isMobile && <MobileActionBar />}
     </div>
   );
 };

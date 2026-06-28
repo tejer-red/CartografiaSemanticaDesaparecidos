@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
 import { useAuth } from './context/AuthContext';
 import { API_BASE_URL } from './config';
@@ -7,6 +7,7 @@ import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './compone
 import { MapComponent } from './components/map';
 import { LoginScreen } from './components/auth';
 import { AppLayout, LoadingOverlay } from './components/layout';
+import { VisibleNotebook } from './components/notebook';
 import LinkModal from './components/shared/LinkModal';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
@@ -16,6 +17,7 @@ const logger = createLogger('App');
 
 
 const App = () => {
+  const location = useLocation();
   const [fetchCedulas, setFetchCedulas] = useState(true);
   const [fetchForense, setFetchForense] = useState(true);
   const [fetchFosas, setFetchFosas] = useState(true);
@@ -178,7 +180,7 @@ const App = () => {
               onFetchComplete={handleFetchComplete}
             />
           </div>
-          <div className="Map">
+          <div className={`Map ${location.pathname.includes('/visible/') ? 'visible-view-map' : ''}`}>
             <MapComponent />
           </div>
           <Suspense fallback={<div>Loading...</div>}>
@@ -201,6 +203,7 @@ const App = () => {
                   listNotebooksApp={listNotebooksApp}
                 />
               } />
+              <Route path="/visible/:id" element={<VisibleNotebook />} />
               <Route path="/" element={
                 <AppLayout
                   isNotebookRoute={false}

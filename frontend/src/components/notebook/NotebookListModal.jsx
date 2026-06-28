@@ -19,25 +19,34 @@ const NotebookListModal = ({
         {title}
       </h2>
       <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-        {notebookList.map((notebook, index) => (
-          <div
-            key={index}
-            style={{
-              padding: "12px",
-              borderBottom: "1px solid #eee",
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-            onClick={() => {
-              logger.log("Selected notebook:", notebook);
-              window.location.href = `/dist/cuaderno/${notebook}`;
-            }}
-          >
-            <span>{`${index + 1} -  ${notebook}`}</span>
-          </div>
-        ))}
+        {notebookList.map((notebook, index) => {
+          const notebookName = typeof notebook === 'string' ? notebook : notebook.name;
+          const isLocal = typeof notebook === 'object' && notebook.isLocal;
+          return (
+            <div
+              key={index}
+              style={{
+                padding: "12px",
+                borderBottom: "1px solid #eee",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+              onClick={() => {
+                logger.log("Selected notebook:", notebookName);
+                if (onSelectNotebook) {
+                  onSelectNotebook(notebookName);
+                } else {
+                  window.location.href = `/dist/cuaderno/${notebookName}`;
+                }
+              }}
+            >
+              <span>{`${index + 1} -  ${notebookName}`}</span>
+              {isLocal && <span style={{ fontSize: "0.7em", backgroundColor: "#eee", padding: "2px 6px", borderRadius: "4px" }}>Local</span>}
+            </div>
+          );
+        })}
       </div>
       <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
         <button
