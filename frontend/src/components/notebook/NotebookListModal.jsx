@@ -38,7 +38,7 @@ const NotebookListModal = ({
                 if (onSelectNotebook) {
                   onSelectNotebook(notebookName);
                 } else {
-                  window.location.href = `/dist/cuaderno/${notebookName}`;
+                  window.location.href = `/cuaderno/${notebookName}`;
                 }
               }}
             >

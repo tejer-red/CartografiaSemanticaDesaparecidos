@@ -815,7 +815,7 @@ export const DataProvider = ({ children }) => {
   };
 
   const filterMarkersByDate = (selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange) => {
-    if (!map || !selectedDate) return;
+    if (!map || !map.style || !selectedDate) return;
 
     //logger.log('Filtering markers by date...');
     //logger.log('Selected Date:', selectedDate);
@@ -866,46 +866,46 @@ export const DataProvider = ({ children }) => {
     //logger.log('Combined Filter:', combinedFilter);
 
     // Apply the combined filter to the "cedulaLayer"
-    if (map.getLayer("cedulaLayer")) {
-      try {
+    try {
+      if (map.getLayer("cedulaLayer")) {
         //logger.log('Applying filter to cedulaLayer');
         map.setFilter("cedulaLayer", combinedFilter);
-      } catch (e) {
-        logger.error("Error applying filter to cedulaLayer:", e);
       }
+    } catch (e) {
+      logger.error("Error applying filter to cedulaLayer:", e);
     }
 
     // Apply the date filter to the "fosaLayer"
-    if (map.getLayer("fosaLayer")) {
-      try {
+    try {
+      if (map.getLayer("fosaLayer")) {
         const fosaDateFilters = [
           ["<=", ["to-number", ["get", "timestamp_start"], 0], endTimestamp],
           [">=", ["to-number", ["get", "timestamp_end"], 0], selectedTimestamp]
         ];
         map.setFilter("fosaLayer", ['all', ...fosaDateFilters]);
-      } catch (e) {
-        logger.error("Error applying filter to fosaLayer:", e);
       }
+    } catch (e) {
+      logger.error("Error applying filter to fosaLayer:", e);
     }
 
     // Apply the date filter to the "noticiasLayer"
-    if (map.getLayer("noticiasLayer")) {
-      try {
+    try {
+      if (map.getLayer("noticiasLayer")) {
         const noticiasDateFilters = [
           ["<=", ["to-number", ["get", "timestamp_start"], 0], endTimestamp],
           [">=", ["to-number", ["get", "timestamp_end"], 0], selectedTimestamp]
         ];
         map.setFilter("noticiasLayer", ['all', ...noticiasDateFilters]);
-      } catch (e) {
-        logger.error("Error applying filter to noticiasLayer:", e);
       }
+    } catch (e) {
+      logger.error("Error applying filter to noticiasLayer:", e);
     }
 
     // Update heatmap layers
     activeHeatmapCategories.forEach(category => {
       const layerId = `cedulaLayer-${category}`;
-      if (map.getLayer(layerId)) {
-        try {
+      try {
+        if (map.getLayer(layerId)) {
           const categoryFilter = category === 'HOMBRE' || category === 'MUJER'
             ? ['==', ['get', 'sexo'], category]
             : ['==', ['get', 'condicion_localizacion'], category];
@@ -913,9 +913,9 @@ export const DataProvider = ({ children }) => {
           //logger.log(`Applying filter to heatmap layer: ${layerId}`);
           //logger.log('Heatmap Filter:', heatmapFilter);
           map.setFilter(layerId, heatmapFilter);
-        } catch (e) {
-          logger.error(`Error applying filter to heatmap layer ${layerId}:`, e);
         }
+      } catch (e) {
+        logger.error(`Error applying filter to heatmap layer ${layerId}:`, e);
       }
     });
   };

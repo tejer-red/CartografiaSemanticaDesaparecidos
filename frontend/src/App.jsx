@@ -1,13 +1,13 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
 import { useAuth } from './context/AuthContext';
 import { API_BASE_URL } from './config';
 import { FetchCedulas, FetchForense, FetchFosas, FetchNoticias } from './components/data';
 import { MapComponent } from './components/map';
 import { LoginScreen } from './components/auth';
-import { AppLayout, LoadingOverlay } from './components/layout';
-import { VisibleNotebook } from './components/notebook';
+import { AppLayout, LoadingOverlay, LandingPage } from './components/layout';
+import { VisibleNotebook, NotebookListPage } from './components/notebook';
 import LinkModal from './components/shared/LinkModal';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
@@ -45,29 +45,12 @@ const App = () => {
     setFetchId
   } = useData(); // Use DataContext for shared state
 
-  // State for NotebookLoad modal in Tab 5
-  const [isNotebookModalOpen, setIsNotebookModalOpen] = useState(false);
-  const [notebookList, setNotebookList] = useState([]);
+  const navigate = useNavigate();
 
-  // Debug-enabled listNotebooks for Tab 5
-  const listNotebooksApp = async () => {
-    logger.log('Tab5: listNotebooks called');
-    try {
-      const response = await fetch(`${API_BASE_URL}/notebooks`);
-      if (!response.ok) throw new Error('Failed to fetch notebooks');
-      const data = await response.json();
-      logger.log('Tab5: listNotebooks response', data);
-      if (data.success) {
-        setNotebookList(data.notebooks);
-        setIsNotebookModalOpen(true);
-        logger.log('Tab5: Modal should open now');
-      } else {
-        alert('No notebooks found.');
-      }
-    } catch (error) {
-      alert('Error fetching notebooks.');
-      logger.error('Tab5: Error fetching notebooks:', error);
-    }
+  // Redirect to new notebook list page
+  const listNotebooksApp = () => {
+    logger.log('Redirecting to notebooks list page');
+    navigate('/cuaderno/lista');
   };
 
   useEffect(() => {
@@ -158,33 +141,58 @@ const App = () => {
       ) : (
         <>
           <LoadingOverlay />
-          <div className="AbstractFetching">
-             <FetchCedulas
-              fetchCedulas={fetchCedulas}
-              fetchId={fetchId}
-              onFetchComplete={handleFetchComplete}
-            />
-            <FetchForense
-              fetchForense={fetchForense}
-              fetchId={fetchId}
-              onFetchComplete={handleFetchComplete}
-            />
-            <FetchFosas
-              fetchFosas={fetchFosas}
-              fetchId={fetchId}
-              onFetchComplete={handleFetchComplete}
-            />
-            <FetchNoticias
-              fetchNoticias={fetchNoticias}
-              fetchId={fetchId}
-              onFetchComplete={handleFetchComplete}
-            />
-          </div>
-          <div className={`Map ${location.pathname.includes('/visible/') ? 'visible-view-map' : ''}`}>
-            <MapComponent />
-          </div>
+          {/* Solo cargar fetchers y mapa si estamos en una ruta interactiva de cuaderno o visible, excluyendo el listado */}
+          {((location.pathname.includes('/cuaderno/') && location.pathname !== '/cuaderno/lista') || location.pathname.includes('/visible/')) && (
+            <>
+              <div className="AbstractFetching">
+                 <FetchCedulas
+                  fetchCedulas={fetchCedulas}
+                  fetchId={fetchId}
+                  onFetchComplete={handleFetchComplete}
+                />
+                <FetchForense
+                  fetchForense={fetchForense}
+                  fetchId={fetchId}
+                  onFetchComplete={handleFetchComplete}
+                />
+                <FetchFosas
+                  fetchFosas={fetchFosas}
+                  fetchId={fetchId}
+                  onFetchComplete={handleFetchComplete}
+                />
+                <FetchNoticias
+                  fetchNoticias={fetchNoticias}
+                  fetchId={fetchId}
+                  onFetchComplete={handleFetchComplete}
+                />
+              </div>
+              <div className={`Map ${location.pathname.includes('/visible/') ? 'visible-view-map' : ''}`}>
+                <MapComponent key={location.pathname.includes('/visible/') ? 'map-visible' : 'map-cuaderno'} />
+              </div>
+            </>
+          )}
           <Suspense fallback={<div>Loading...</div>}>
             <Routes>
+              <Route path="/" element={<LandingPage listNotebooksApp={listNotebooksApp} />} />
+              <Route path="/cuaderno/lista" element={<NotebookListPage />} />
+              <Route path="/cuaderno/nuevo" element={
+                <AppLayout
+                  isNotebookRoute={false}
+                  visibleComponents={visibleComponents}
+                  toggleComponent={toggleComponent}
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  fetchCedulas={fetchCedulas}
+                  setFetchCedulas={setFetchCedulas}
+                  fetchForense={fetchForense}
+                  setFetchForense={setFetchForense}
+                  fetchFosas={fetchFosas}
+                  setFetchFosas={setFetchFosas}
+                  fetchNoticias={fetchNoticias}
+                  setFetchNoticias={setFetchNoticias}
+                  listNotebooksApp={listNotebooksApp}
+                />
+              } />
               <Route path="/cuaderno/:id" element={
                 <AppLayout
                   isNotebookRoute={true}
@@ -204,24 +212,6 @@ const App = () => {
                 />
               } />
               <Route path="/visible/:id" element={<VisibleNotebook />} />
-              <Route path="/" element={
-                <AppLayout
-                  isNotebookRoute={false}
-                  visibleComponents={visibleComponents}
-                  toggleComponent={toggleComponent}
-                  handleSubmit={handleSubmit}
-                  loading={loading}
-                  fetchCedulas={fetchCedulas}
-                  setFetchCedulas={setFetchCedulas}
-                  fetchForense={fetchForense}
-                  setFetchForense={setFetchForense}
-                  fetchFosas={fetchFosas}
-                  setFetchFosas={setFetchFosas}
-                  fetchNoticias={fetchNoticias}
-                  setFetchNoticias={setFetchNoticias}
-                  listNotebooksApp={listNotebooksApp}
-                />
-              } />
             </Routes>
           </Suspense>
           

@@ -1,0 +1,287 @@
+/* Estilos simples y limpios para la Landing Page */
+
+.landing-container {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+#root {
+  width: 100%;
+}
+
+
+/* Header */
+.landing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.landing-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #1e293b;
+}
+
+.logo-icon {
+  color: #8884d8;
+}
+
+.github-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #475569;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
+}
+
+.github-link:hover {
+  color: #1e293b;
+}
+
+/* Hero Section */
+.landing-hero {
+  max-width: 800px;
+  margin: 4rem auto 3rem auto;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.hero-title {
+  font-size: 2.75rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 1.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #475569;
+  margin-bottom: 2.5rem;
+}
+
+.hero-subtitle strong {
+  color: #0f172a;
+}
+
+/* Botones de acción */
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background-color: #8884d8;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: #7672c4;
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+/* Info Cards */
+.info-sections {
+  max-width: 1000px;
+  width: 100%;
+  margin: 2rem auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+.info-card {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-icon {
+  color: #8884d8;
+}
+
+.info-card h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.info-card p {
+  font-size: 0.975rem;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+.info-card ul {
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.info-card li {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #475569;
+  margin-bottom: 0.75rem;
+}
+
+.info-card li strong {
+  color: #1e293b;
+}
+
+/* Download Section */
+.download-section {
+  max-width: 1000px;
+  width: 100%;
+  margin: 3rem auto 4rem auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+.download-box {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+.download-icon {
+  color: #8884d8;
+}
+
+.download-text {
+  flex: 1;
+  min-width: 250px;
+}
+
+.download-text h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+}
+
+.download-text p {
+  font-size: 0.95rem;
+  color: #475569;
+  margin: 0;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.download-btn:hover {
+  background-color: #1e293b;
+}
+
+/* Footer */
+.landing-footer {
+  margin-top: auto;
+  border-top: 1px solid #e2e8f0;
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.landing-footer p {
+  margin: 0;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .info-sections {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .download-box {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

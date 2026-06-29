@@ -42,7 +42,7 @@ const accordionStyles = {
   }
 };
 
-const LeftSideBar = () => {
+const LeftSideBar = ({ style = {}, onMouseEnter, onMouseLeave, headerHeight = 58 }) => {
   const { visibleComponents } = useData();
   const { zIndex, handleClick } = useZIndex('left-sidebar');
   
@@ -57,18 +57,21 @@ const LeftSideBar = () => {
     <div 
       id="left-sidebar"
       onClick={handleClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{
         position: 'absolute',
         left: 5,
-        top: 65,
+        top: headerHeight + 8,
         width: '400px',
         background: 'var(--bg-color)',
         padding: '16px',
         zIndex: zIndex,
-        maxHeight: 'calc(100vh - 100px)',
+        maxHeight: `calc(100vh - ${headerHeight + 16}px)`,
         overflowY: 'auto',
         borderRadius: 'var(--border-radius)',
-        boxShadow: 'var(--panel-shadow)'
+        boxShadow: 'var(--panel-shadow)',
+        ...style
       }}
     >
       <FilterFormWrapper />

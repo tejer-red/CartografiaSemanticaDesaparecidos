@@ -4,7 +4,6 @@ import { useData } from '../../context/DataContext';
 import '../../styles/Notebook.css';
 import { useNotebook } from '../../utils/notebook';
 import NotebookNotes from './NotebookNotes';
-import NotebookListModal from './NotebookListModal';
 import GlobalTimeGraph from '../timeline/GlobalTimeGraph';
 import { MapPin, ArrowLeft, Info, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -158,12 +157,6 @@ const Notebook = () => {
             ))
           )}
         </div>
-        <NotebookListModal
-          listNotebooks={listNotebooks}
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          notebookList={notebookList}
-        />
       </div>
     </div>
   );

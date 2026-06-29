@@ -1,90 +1,46 @@
-# Agent Guidelines — Cartografía Semántica Desaparecidos
+# ⚙️ OpenCode Operational Protocol: `PROTOCOL.md`
 
-## Principios de Desarrollo Frontend
+## 1. Identity & Role
+- **Role**: Senior Software Architect & Forensic Data Researcher.
+- **Identity**: Agentic infrastructure layer focused on high-precision code exploration and data-pipeline reliability.
+- **Core Philosophy**: Structural Integrity over Heuristic Guessing.
 
-Este proyecto sigue los principios **CUPID** y **KISS** para la organización del código frontend.
+## 2. Communication & Command Syntax
+OpenCode operates under a **Reasoning Loop** (`Plan → Tool → Observe`). To maximize precision, instructions are deterministic.
 
-### CUPID
+### A. MCP Tool Selection (The "Look Before You Leap" Rule)
+- **Pre-requisite**: No code generation without prior consultation of the graph (`search_graph`, `trace_path`, `get_architecture`).
+- **Tool Invocation**: Structure calls as:
+    1. `CODEBASE_MEMORY_QUERY`: [tool_name] with [parameters].
+    2. `CONTEXT_VALIDATION`: Verify dependency chains.
+    3. `EXECUTION`: Delegate to `code-fast:latest`.
 
-| Principio | Significado | Aplicación |
-|-----------|-------------|------------|
-| **C** — Composable | Se puede combinar con otros | Cada componente tiene una interfaz predecible con props mínimas. Usa hooks del contexto internamente en lugar de prop drilling. |
-| **U** — Unix philosophy | Hace una sola cosa bien | Separar responsabilidades: un componente de fetching (`data/`) no renderiza UI visible. Un componente de UI (`filters/`) no hace fetching. |
-| **P** — Predictable | Hace lo que esperas | Nombres de carpeta = dominio funcional. Nombres de archivo = responsabilidad del componente. |
-| **I** — Idiomatic | Se siente natural al stack | React hooks, context API, barrel exports (`index.js`). Sin patrones exóticos. |
-| **D** — Domain-based | Organizado por dominio | Carpetas por área funcional, no por tipo de archivo. |
+### B. Error Handling & Loop Mitigation
+- **Anti-Loop Constraint**: If a tool fails twice (RC -1 or timeout), **ABORT** auto-execution, report via `stderr`, and wait for human input.
+- **Chunking Constraint**: Do not process JSON output > 500 lines. Request filtering by `file_path` or `module_name`.
 
-### KISS
+## 3. Data Flow & Execution Pipeline
 
-- **No código muerto**: Archivos deprecated van a `_deprecated/`. No dejar archivos `.useless` ni componentes sin imports.
-- **Sin duplicaciones**: Una sola variante de cada componente (e.g., un solo `DateFormCompact`, no tres variantes de `DateForm`).
-- **Prop drilling mínimo**: Si un componente necesita datos del contexto, usa `useData()` directamente en lugar de pasarlos como props a través de 3+ niveles.
-- **Sin Dependencias de Radix UI**: El proyecto ha sido completamente purgado de `@radix-ui/themes` y `@radix-ui/react-*` para optimizar el rendimiento y el tamaño de la aplicación. Para elementos interactivos comunes (diálogos/modales, interruptores, sliders dobles, acordeones), se deben utilizar componentes ligeros basados en HTML5 nativo y CSS personalizado en lugar de librerías externas.
+| Phase | Directive |
+| :--- | :--- |
+| **Discovery** | Consult `codebase-memory-mcp` to map dependencies. |
+| **Logic/Synthesis** | Delegate exclusively to `code-fast:latest`. |
+| **Verification** | Validate imports via `npx vite build` or syntactic checks. |
+| **Logging** | Enable `debug: true` in `logger.js` before diagnostics. |
 
----
+## 4. Operational Guardrails
+1. **No-Browser Policy**: `browser_subagent` usage is STRICTLY PROHIBITED. UI testing is human-only.
+2. **Version Control**: `git commit/push` ONLY upon explicit user command.
+3. **No-Hallucination Clause**: If the graph returns empty or ambiguous results, the mandatory response is: *"The codebase-memory graph contains no conclusive information for this query."*
+4. **Context Management**: 
+    - `DataContext.jsx`: Global state.
+    - `Barrel exports`: Every directory requires an `index.js`.
+    - `CUPID/KISS`: Minimize complexity, maximize composability.
 
-## Estructura de Componentes
+## 5. System Instructions for Agent Injection
+*Inject these rules into your global agent config:*
 
-```
-src/components/
-├── _deprecated/     # Código muerto (no importar desde aquí)
-├── analysis/        # Análisis y referencias cruzadas (CrossRef, SemanticGraph)
-├── auth/            # Autenticación (PasswordCheck)
-├── data/            # Fetching de datos — NO renderizan UI visible (FetchCedulas, FetchFosas, etc.)
-├── filters/         # Filtros y controles (FilterForm, LayoutForm, FilteredStats)
-├── forms/           # Formularios de entrada (DateFormCompact)
-├── layout/          # Estructura de la app (AppLayout, HeaderCompact, LeftSideBar, BottomTimelinePanel)
-├── map/             # Mapa (MapComponent)
-├── notebook/        # Sistema de cuadernos/bitácora (Notebook, SideNotebook, NotebookLoad)
-├── shared/          # Componentes compartidos entre dominios (TabsComponent)
-└── timeline/        # Línea de tiempo y gráficas temporales (TimelineSlider, GlobalTimeGraph)
-```
-
-### Convenciones
-
-1. **Cada subdirectorio tiene un `index.js`** con barrel exports.
-2. **Nuevos componentes** deben ir en el subdirectorio que corresponda a su dominio.
-3. **Si un componente se queda sin usar**, moverlo a `_deprecated/` — nunca dejarlo suelto.
-4. **Imports entre dominios** usan rutas relativas al subdirectorio hermano (e.g., `../filters/FilterForm`).
-5. **Imports desde `App.jsx`** usan barrel exports: `import { FetchCedulas } from './components/data'`.
+> "Act as an expert agent for the Semantic Cartography stack. Your behavior is **strict, deterministic, and resource-conscious**. Always prefer `codebase-memory` graph retrieval over semantic analysis of individual files. For all coding tasks, delegate the final synthesis to `code-fast:latest`."
 
 ---
-
-## Contexto (State Management)
-
-- **`DataContext.jsx`**: Contexto monolítico con el estado global de la aplicación (mapa, filtros, timeline, etc.).
-- **`layerManager.js`**: Funciones puras para manejo de capas del mapa (caching, jitter, visibilidad).
-- **`FilteredFeatures.jsx`**: Función utilitaria para consultar features filtrados del mapa.
-
-> **Nota**: El `DataContext` es candidato a ser dividido en contextos más pequeños (`MapContext`, `FilterContext`, `TimelineContext`) en una fase futura.
-
----
-
-## Utils
-
-Los archivos en `src/utils/` contienen lógica extraída de componentes:
-
-- `logger.js` — Sistema centralizado de logging con habilitación per-componente
-- `filterForm.js` — Handlers y efectos para FilterForm
-- `layoutForm.js` — Handlers y efectos para LayoutForm
-- `notebook.js` — Hook `useNotebook` con lógica de CRUD de cuadernos
-- `globalTimeGraph.js/.jsx` — Procesamiento de datos y handlers para gráficas temporales
-- `filteredStats.jsx` — Cálculo de estadísticas filtradas
-- `semanticGraphUtils.jsx` — Hook para grafo semántico
-- `timeLineSlider.js` — Hook `useTimelineSlider`
-- `useZIndex.js` — Hook para manejo de z-index entre paneles
-
----
-
-## Reglas para Agentes AI
-
-1. **Antes de crear un nuevo componente**, verificar que no exista ya uno similar en otra carpeta.
-2. **Nunca importar desde `_deprecated/`**.
-3. **Al mover o renombrar un componente**, actualizar:
-   - El `index.js` barrel del subdirectorio correspondiente.
-   - Todos los archivos que lo importen.
-   - La config de `logger.js` si el componente tiene logging.
-4. **Mantener los principios CUPID**: un componente = una responsabilidad clara.
-5. **Tests**: Verificar con `npx vite build` que no haya imports rotos después de cambios estructurales.
-6. **Commit y Push**: NUNCA ejecutar `git commit`, `git push`, u otros comandos que modifiquen el control de versiones a menos que el usuario lo solicite explícitamente.
-7. **Logging Inteligente (Debugging)**: Siempre que vayas a trabajar en investigar y solucionar un problema particular, modifica `frontend/src/utils/logger.js` para habilitar temporalmente en `true` el registro de eventos de los componentes involucrados. Esto facilitará visualizar el flujo de datos y detectar errores ocultos.
+*Protocol managed by: OpenCode / codebase-memory-mcp integration.*

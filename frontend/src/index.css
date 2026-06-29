@@ -340,54 +340,8 @@ label {
 }
 
 
-.HeaderCompact {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  flex-wrap: wrap;
-  z-index: 9;
-  position: absolute;
-  top: 0;
-  background: var(--bg-color);
-  width: 100%;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--border-color);
-}
+/* Los estilos de HeaderCompact se han trasladado a su respectiva hoja de estilos modular: HeaderCompact.css */
 
-.header-info {
-  margin-right: 20px;
-  min-width: 150px;
-  font-weight: bold;
-}
-
-.notebook-id {
-  color: #2a6099;
-}
-
-.timestamp {
-  color: #666;
-}
-
-.toggle-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.toggle-controls label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ComponentToggles label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
 
 .ComponentToggles input[type="checkbox"] {
   cursor: pointer;

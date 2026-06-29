@@ -1,32 +1,333 @@
-.ComponentToggles {
+/* Estilos para el HeaderCompact - Estructura modular tipo Toolbar */
+
+.HeaderCompact {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.5rem;
+    height: fit-content;
+    display: flex;
+    align-items: center;
+    z-index: 1000;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+}
+
+.header-compact-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 100%;
+    margin: 0 auto;
+    flex-wrap: nowrap;
+}
+
+/* Estructura de Secciones */
+.header-section {
   display: flex;
   align-items: center;
-  padding: 8px;
-  background: #f5f5f5;
+  gap: 0.75rem;
+  background-color: #ffffff;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
-.header-info {
-  margin-right: 20px;
-  min-width: 150px;
-  font-weight: bold;
-}
-
-.notebook-id {
-  color: #2a6099;
-}
-
-.timestamp {
-  color: #666;
-}
-
-.toggle-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.toggle-controls label {
+/* Notebook Section */
+.notebook-section {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.5rem;
+}
+
+.notebook-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.icon-notebook {
+  color: #8884d8;
+}
+
+.label-notebook-id {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.notebook-input {
+  margin-bottom: 0px; 
+  border-radius: 0;
+  border: 0;
+  border-bottom: 3px solid #8884d8;
+  padding: 0.15rem 0.25rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  width: 160px;
+  background-color: transparent;
+  color: #0f172a;
+  outline: none;
+  transition: border-bottom-color 0.2s ease;
+}
+
+.header-compact-container .notebook-input {
+    margin-bottom: 0;
+}
+
+.notebook-input:focus,
+.notebook-input:hover {
+  border-bottom-color: #7672c4;
+  background-color: transparent;
+}
+
+.info-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.info-btn:hover {
+  color: #0f172a;
+  background-color: #e2e8f0;
+}
+
+.session-info-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 1rem;
+  z-index: 5000;
+  box-shadow: none;
+  width: 300px;
+  font-size: 0.825rem;
+  color: #334155;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.5rem;
+}
+
+.dropdown-header strong {
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
+.close-dropdown-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+
+.close-dropdown-btn:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.dropdown-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-label {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.item-value {
+  color: #1e293b;
+  word-break: break-all;
+}
+
+.dropdown-divider {
+  border: 0;
+  border-top: 1px solid #f1f5f9;
+  margin: 0.25rem 0;
+}
+
+.info-stats-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.info-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.stat-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-box span {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.stat-box strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.font-span-2 {
+  grid-column: span 2;
+}
+
+/* Dates Section */
+.dates-section {
+  gap: 1rem;
+}
+
+.icon-calendar {
+  color: #8884d8;
+}
+
+.date-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.date-input-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.date-picker-input {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.775rem;
+  font-family: inherit;
+  background-color: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.date-picker-input:hover {
+  border-color: #94a3b8;
+}
+
+/* Actions Section */
+.actions-section {
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-icon-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: #8884d8;
+  border: 1px solid #7672c4;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-accent:hover {
+  background-color: #7672c4;
+}
+
+/* Standalone / Fallback Info */
+.header-standalone-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #64748b;
+  font-size: 0.825rem;
+}
+
+.timestamp-badge {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-family: monospace;
+  color: #475569;
+}
+
+/* Responsividad para móviles y pantallas compactas */
+@media (max-width: 992px) {
+  .header-compact-container {
+    justify-content: center;
+    gap: 0.75rem;
+  }
+  
+  .notebook-section, .dates-section, .actions-section {
+    width: auto;
+  }
 }

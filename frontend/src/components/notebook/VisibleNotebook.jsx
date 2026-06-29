@@ -152,7 +152,7 @@ const VisibleNotebook = () => {
                 setIsModalOpen={setIsModalOpen}
                 notebookList={notebookList}
                 onSelectNotebook={(notebook) => {
-                    window.location.href = `/dist/visible/${notebook}`;
+                    window.location.href = `/visible/${notebook}`;
                 }}
             />
             <FilterFormWrapper />

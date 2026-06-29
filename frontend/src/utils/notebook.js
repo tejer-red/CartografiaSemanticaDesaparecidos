@@ -474,42 +474,10 @@ export function useNotebook(dataContext, id, navigate) {
     }
   }, [setStartDate, setEndDate, setSelectedDate, setTimeScale, setFetchId]);
 
-  const listNotebooks = useCallback(async () => {
-    try {
-      // First gather local notebooks
-      const localNbs = await db.notebooks.toArray();
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/notebooks`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            // merge local and remote?
-            const merged = [...data.notebooks];
-            for (let l of localNbs) {
-               if (!merged.find(m => (typeof m === 'string' ? m : m.name) === l.name)) {
-                  merged.push({ id: l.name, name: l.name, created_at: l.created_at, isLocal: true });
-               }
-            }
-            setNotebookList(merged);
-            setIsModalOpen(true);
-            return;
-          }
-        }
-      } catch (e) {
-        logger.error('Failed to fetch remote notebooks:', e);
-      }
-      
-      // fallback to local only
-      const mappedLocal = localNbs.map(l => ({ id: l.name, name: l.name, created_at: l.created_at, isLocal: true }));
-      setNotebookList(mappedLocal);
-      setIsModalOpen(true);
-      
-    } catch (error) {
-      alert('Error fetching notebooks.');
-      logger.error('Error fetching notebooks:', error);
-    }
-  }, []);
+  const listNotebooks = useCallback(() => {
+    navigate('/cuaderno/lista');
+  }, [navigate]);
+
 
   return {
     notes,

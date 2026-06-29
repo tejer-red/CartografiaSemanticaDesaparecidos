@@ -5,3 +5,5 @@ export { default as BottomTimelinePanel } from './BottomTimelinePanel';
 export { default as InitialModal } from './InitialModal';
 export { LoadingOverlay } from './LoadingOverlay';
 export { MobileActionBar } from './mobile';
+export { default as LandingPage } from './LandingPage';
+

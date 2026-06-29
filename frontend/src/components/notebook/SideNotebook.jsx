@@ -18,6 +18,10 @@ const SideNotebook = ({
   setFetchFosas,
   fetchNoticias,
   setFetchNoticias,
+  style = {},
+  onMouseEnter,
+  onMouseLeave,
+  headerHeight = 58
 }) => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('notebook'); // 'notebook' or 'ingesta'
@@ -36,13 +40,15 @@ const SideNotebook = ({
     <div 
       id="side-notebook"
       onClick={handleClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {/* Rotated tab button 1: Notebook */}
       <button
         onClick={() => toggleTab('notebook')}
         style={{
           position: "fixed",
-          top: 70,
+          top: headerHeight + 8,
           right: open ? PANEL_WIDTH + 45 : 45,
           zIndex: 8,
           background: activeTab === 'notebook' && open ? "#0056b3" : "#007bff",
@@ -72,7 +78,7 @@ const SideNotebook = ({
         onClick={() => toggleTab('ingesta')}
         style={{
           position: "fixed",
-          top: 290, // Moved down to prevent overlap
+          top: headerHeight + 228, // Moved down to prevent overlap
           right: open ? PANEL_WIDTH + 45 : 45,
           zIndex: 8,
           background: activeTab === 'ingesta' && open ? "#4f46e5" : "#6366f1",
@@ -103,7 +109,7 @@ const SideNotebook = ({
           display: "flex",
           flexDirection: "column",
           position: "fixed",
-          top: 0,
+          top: headerHeight,
           right: 0,
           zIndex: zIndex,
           background: "#fff",
@@ -112,9 +118,10 @@ const SideNotebook = ({
           width: open ? PANEL_WIDTH + 1 : 0,
           minWidth: open ? PANEL_WIDTH : 0,
           maxWidth: open ? PANEL_WIDTH : 0,
-          height: "100vh",
+          height: `calc(100vh - ${headerHeight}px)`,
           overflow: "hidden",
           transition: "width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease",
+          ...style
         }}
       >
         <>
@@ -137,7 +144,7 @@ const SideNotebook = ({
               style={{
                 minWidth: PANEL_WIDTH,
                 maxWidth: 600,
-                height: "100vh",
+                height: `calc(100vh - ${headerHeight}px)`,
                 background: "#fff",
                 display: "flex",
                 flexDirection: "column",
@@ -153,7 +160,7 @@ const SideNotebook = ({
               display: activeTab === 'ingesta' ? 'flex' : 'none',
               minWidth: PANEL_WIDTH,
               maxWidth: 600,
-              height: "100vh",
+              height: `calc(100vh - ${headerHeight}px)`,
               background: "#f9fafb", // slightly different background for ingesta
               flexDirection: "column",
               boxSizing: "border-box",

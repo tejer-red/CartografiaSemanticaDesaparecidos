@@ -105,7 +105,7 @@ export function useLayoutFormEffects(dataContext) {
     }
 
     function updateMapLayer() {
-      if (!map) return;
+      if (!map || !map.style) return;
 
       const sourceId = 'cedulaLayer';
       const geojsonData = {
@@ -122,36 +122,52 @@ export function useLayoutFormEffects(dataContext) {
           'cedulaLayer-NO APLICA'
         ];
         possibleHeatmapLayerIds.forEach((layerId) => {
-          if (map.getLayer(layerId)) {
-            map.removeLayer(layerId);
+          try {
+            if (map.getLayer(layerId)) {
+              map.removeLayer(layerId);
+            }
+          } catch (e) {
+            console.error(`Error removing heatmap layer ${layerId}:`, e);
           }
-          if (map.getSource(layerId)) {
-            map.removeSource(layerId);
+          try {
+            if (map.getSource(layerId)) {
+              map.removeSource(layerId);
+            }
+          } catch (e) {
+            console.error(`Error removing heatmap source ${layerId}:`, e);
           }
         });
 
-        if (map.getLayer(sourceId)) {
-          map.getSource(sourceId).setData(geojsonData);
-          const layoutConfig = colorScheme === 'sexo' ? sexoLayout : condicionLocalizacionLayout;
-          Object.entries(layoutConfig).forEach(([key, value]) => {
-            map.setPaintProperty(sourceId, key, value);
-          });
-        } else {
-          if (!map.getSource(sourceId)) {
-            map.addSource(sourceId, { type: 'geojson', data: geojsonData });
+        try {
+          if (map.getLayer(sourceId)) {
+            map.getSource(sourceId).setData(geojsonData);
+            const layoutConfig = colorScheme === 'sexo' ? sexoLayout : condicionLocalizacionLayout;
+            Object.entries(layoutConfig).forEach(([key, value]) => {
+              map.setPaintProperty(sourceId, key, value);
+            });
+          } else {
+            if (!map.getSource(sourceId)) {
+              map.addSource(sourceId, { type: 'geojson', data: geojsonData });
+            }
+            const layoutConfig = colorScheme === 'sexo' ? sexoLayout : condicionLocalizacionLayout;
+            map.addLayer({
+              id: sourceId,
+              type: 'circle',
+              source: sourceId,
+              paint: layoutConfig
+            });
           }
-          const layoutConfig = colorScheme === 'sexo' ? sexoLayout : condicionLocalizacionLayout;
-          map.addLayer({
-            id: sourceId,
-            type: 'circle',
-            source: sourceId,
-            paint: layoutConfig
-          });
+        } catch (e) {
+          console.error("Error updating point layers:", e);
         }
         setActiveHeatmapCategories([]);
       } else if (mapType === 'heatmap') {
-        if (map.getLayer(sourceId)) {
-          map.removeLayer(sourceId);
+        try {
+          if (map.getLayer(sourceId)) {
+            map.removeLayer(sourceId);
+          }
+        } catch (e) {
+          console.error("Error removing point layer:", e);
         }
 
         let activeCategories = [];
@@ -172,19 +188,31 @@ export function useLayoutFormEffects(dataContext) {
           const parts = layerId.split('-');
           const category = parts[1];
           if (!activeCategories.includes(category)) {
-            if (map.getLayer(layerId)) {
-              map.removeLayer(layerId);
+            try {
+              if (map.getLayer(layerId)) {
+                map.removeLayer(layerId);
+              }
+            } catch (e) {
+              console.error(`Error removing heatmap layer ${layerId}:`, e);
             }
-            if (map.getSource(layerId)) {
-              map.removeSource(layerId);
+            try {
+              if (map.getSource(layerId)) {
+                map.removeSource(layerId);
+              }
+            } catch (e) {
+              console.error(`Error removing heatmap source ${layerId}:`, e);
             }
           }
         });
 
-        if (!map.getSource(sourceId)) {
-          map.addSource(sourceId, { type: 'geojson', data: geojsonData });
-        } else {
-          map.getSource(sourceId).setData(geojsonData);
+        try {
+          if (!map.getSource(sourceId)) {
+            map.addSource(sourceId, { type: 'geojson', data: geojsonData });
+          } else {
+            map.getSource(sourceId).setData(geojsonData);
+          }
+        } catch (e) {
+          console.error("Error updating/creating geojson source:", e);
         }
 
         activeCategories.forEach((category) => {
@@ -196,19 +224,23 @@ export function useLayoutFormEffects(dataContext) {
             filter = ['==', ['get', 'condicion_localizacion'], category];
           }
           const layoutConfig = getHeatmapLayoutForCategory(category);
-          if (map.getLayer(layerId)) {
-            Object.entries(layoutConfig).forEach(([key, value]) => {
-              map.setPaintProperty(layerId, key, value);
-            });
-            map.setFilter(layerId, filter);
-          } else {
-            map.addLayer({
-              id: layerId,
-              type: 'heatmap',
-              source: sourceId,
-              paint: layoutConfig,
-              filter: filter
-            });
+          try {
+            if (map.getLayer(layerId)) {
+              Object.entries(layoutConfig).forEach(([key, value]) => {
+                map.setPaintProperty(layerId, key, value);
+              });
+              map.setFilter(layerId, filter);
+            } else {
+              map.addLayer({
+                id: layerId,
+                type: 'heatmap',
+                source: sourceId,
+                paint: layoutConfig,
+                filter: filter
+              });
+            }
+          } catch (e) {
+            console.error(`Error adding/updating heatmap layer ${layerId}:`, e);
           }
         });
         setActiveHeatmapCategories(activeCategories);
@@ -216,7 +248,11 @@ export function useLayoutFormEffects(dataContext) {
 
       // Trigger filter update after updating the map layer
       if (selectedDate) {
-        filterMarkersByDate(selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange,);
+        try {
+          filterMarkersByDate(selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange);
+        } catch (e) {
+          console.error("Error triggering filterMarkersByDate:", e);
+        }
       }
     }
 

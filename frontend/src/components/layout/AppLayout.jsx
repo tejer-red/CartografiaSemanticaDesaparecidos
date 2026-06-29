@@ -25,6 +25,7 @@ const AppLayout = ({
   listNotebooksApp
 }) => {
   const [activePanel, setActivePanel] = useState(null);
+  const [headerHeight, setHeaderHeight] = useState(58);
   const { isInitialModalOpen, setIsInitialModalOpen } = useData();
   const isMobile = useIsMobile();
 
@@ -42,6 +43,7 @@ const AppLayout = ({
         visibleComponents={visibleComponents}
         toggleComponent={toggleComponent}
         onNewDatasetClick={() => setIsInitialModalOpen(true)}
+        onHeightChange={setHeaderHeight}
       />
       <InitialModal
         isOpen={isInitialModalOpen}
@@ -63,6 +65,7 @@ const AppLayout = ({
         onMouseEnter={() => handlePanelHover('leftSidebar')}
         onMouseLeave={() => handlePanelHover(null)}
         style={getPanelStyle('leftSidebar')}
+        headerHeight={headerHeight}
       />
       <SideNotebook
         handleSubmit={handleSubmit}
@@ -78,6 +81,7 @@ const AppLayout = ({
         onMouseEnter={() => handlePanelHover('sideNotebook')}
         onMouseLeave={() => handlePanelHover(null)}
         style={getPanelStyle('sideNotebook')}
+        headerHeight={headerHeight}
       />
       <BottomTimelinePanel 
         onMouseEnter={() => handlePanelHover('bottomTimeline')}

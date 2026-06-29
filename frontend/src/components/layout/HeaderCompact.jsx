@@ -1,214 +1,232 @@
-import React, { useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-
-import createLogger from '../../utils/logger';
-const logger = createLogger('HeaderCompact');
-
-
-import { Info, X } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Info, X, Save, FolderOpen, List, Calendar, Plus, BookOpen, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import createLogger from '../../utils/logger';
+import './HeaderCompact.css';
 
-const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick }) => {
+const logger = createLogger('HeaderCompact');
+
+const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, onHeightChange }) => {
   const { id } = useParams();
   const location = useLocation();
-  const currentTimestamp = Date.now();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const dataContext = useData();
-  const [showInfoModal, setShowInfoModal] = React.useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const headerRef = useRef(null);
 
   useEffect(() => {
     logger.log('HeaderCompact - Current location:', location);
-    logger.log('HeaderCompact - Route params:', { id });
-    logger.log('HeaderCompact - Full pathname:', location.pathname);
-    logger.log('HeaderCompact - Route match:', location.pathname.includes("/cuaderno/"));
   }, [location, id]);
 
+  useEffect(() => {
+    if (!headerRef.current || !onHeightChange) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        // Usamos getBoundingClientRect para precisión total de subpíxeles y márgenes
+        onHeightChange(entry.target.getBoundingClientRect().height);
+      }
+    });
+
+    observer.observe(headerRef.current);
+
+    // Notificar altura inicial
+    onHeightChange(headerRef.current.getBoundingClientRect().height);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [onHeightChange]);
+
+  const handleSaveClick = () => {
+    const currentInput = document.getElementById('notebook-id-input')?.value || id;
+    window.dispatchEvent(new CustomEvent('saveNotebookRequested', { detail: { name: currentInput } }));
+  };
+
+  const handleLoadClick = () => {
+    const targetId = prompt('Ingrese el ID del cuaderno a cargar:');
+    if (targetId) {
+      window.dispatchEvent(new CustomEvent('loadNotebookRequested', { detail: { id: targetId } }));
+    }
+  };
+
+  const isNotebook = location.pathname.includes("/cuaderno/");
+
   return (
-    <div className="HeaderCompact">
-      <div className="header-info" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {location.pathname.includes("/cuaderno/") ? (
+    <header className="HeaderCompact" ref={headerRef}>
+      <div className="header-compact-container">
+        {isNotebook ? (
           <>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#374151' }}>Cuaderno ID:</span>
-            <input 
-              id="notebook-id-input"
-              type="text" 
-              defaultValue={id}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (e.target.value) {
+            {/* Sección del Cuaderno */}
+            <div className="header-section notebook-section">
+              <div className="notebook-title-wrapper">
+                <BookOpen size={18} className="icon-notebook" />
+                <span className="label-notebook-id">Cuaderno:</span>
+              </div>
+              <input 
+                id="notebook-id-input"
+                type="text" 
+                defaultValue={id || 'Nuevo Cuaderno'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.target.value) {
                     window.dispatchEvent(new CustomEvent('saveNotebookRequested', { detail: { name: e.target.value } }));
                   }
-                }
-              }}
-              style={{ 
-                border: '1px solid #d1d5db', 
-                borderRadius: '4px', 
-                padding: '2px 8px', 
-                fontSize: '13px', 
-                width: '200px',
-                background: 'white',
-                outline: 'none'
-              }}
-              title="Cambiar el nombre y presionar Enter para guardar el cuaderno"
-            />
-            <button 
-              onClick={() => setShowInfoModal(true)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center' }}
-              title="Ver detalles del cuaderno"
-            >
-              <Info size={18} />
-            </button>
-            <small style={{ marginLeft: '10px', color: '#6b7280' }}>
-              (Puede navegar este cuaderno en la "Bitácora de navegación")
-            </small>
+                }}
+                className="notebook-input"
+                title="Cambiar el nombre y presionar Enter para guardar"
+              />
+              <button 
+                onClick={() => setShowInfoModal(true)}
+                className="info-btn"
+                title="Ver detalles del cuaderno"
+              >
+                <Info size={16} />
+              </button>
 
-        {/* Fecha de inicio y fin del cuaderno */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-          <label style={{ fontSize: '12px', color: '#374151' }}>Fecha de inicio:</label>
-          <input
-            type="date"
-            value={dataContext.startDate ? new Date(dataContext.startDate).toISOString().split('T')[0] : ''}
-            onChange={(e) => dataContext.setStartDate(e.target.value)}
-            style={{ padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-          />
-          <label style={{ fontSize: '12px', color: '#374151' }}>Fecha final:</label>
-          <input
-            type="date"
-            value={dataContext.endDate ? new Date(dataContext.endDate).toISOString().split('T')[0] : ''}
-            onChange={(e) => dataContext.setEndDate(e.target.value)}
-            style={{ padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-          />
-        </div>
+              {showInfoModal && (
+                <div className="session-info-dropdown">
+                  <div className="dropdown-header">
+                    <strong>Detalles de Sesión</strong>
+                    <button className="close-dropdown-btn" onClick={() => setShowInfoModal(false)}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="dropdown-body">
+                    <div className="info-item">
+                      <span className="item-label">Responsable:</span>
+                      <strong className="item-value">{user?.email || 'Usuario Local'}</strong>
+                    </div>
+                    <div className="info-item">
+                      <span className="item-label">Fecha de creación:</span>
+                      <strong className="item-value">
+                        {(() => {
+                          const parsedId = parseInt(id);
+                          return !isNaN(parsedId) && parsedId > 1000000000000 
+                            ? new Date(parsedId).toLocaleString('es-ES') 
+                            : 'Creado localmente o importado';
+                        })()}
+                      </strong>
+                    </div>
+                    <div className="info-item">
+                      <span className="item-label">Rango de datos:</span>
+                      <strong className="item-value">
+                        {dataContext.startDate ? new Date(dataContext.startDate).toLocaleDateString('es-ES') : 'Inicio'} a {dataContext.endDate ? new Date(dataContext.endDate).toLocaleDateString('es-ES') : 'Fin'}
+                      </strong>
+                    </div>
+                    <hr className="dropdown-divider" />
+                    <div className="info-stats-title">Estadísticas:</div>
+                    <div className="info-stats-grid">
+                      <div className="stat-box">
+                        <span>Fosas Remotas</span>
+                        <strong>{dataContext.remoteFosas?.features?.length || 0}</strong>
+                      </div>
+                      <div className="stat-box">
+                        <span>Fosas Locales</span>
+                        <strong>{dataContext.localFosas?.length || 0}</strong>
+                      </div>
+                      <div className="stat-box">
+                        <span>Noticias Remotas</span>
+                        <strong>{dataContext.remoteNoticias?.features?.length || 0}</strong>
+                      </div>
+                      <div className="stat-box">
+                        <span>Noticias Locales</span>
+                        <strong>{dataContext.localNoticias?.length || 0}</strong>
+                      </div>
+                      <div className="stat-box font-span-2">
+                        <span>Cédulas Totales</span>
+                        <strong>{dataContext.fetchedRecords?.features?.length || 0}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            {showInfoModal && (
-              <div style={{
-                position: 'absolute', top: '40px', left: '20px', background: 'white', border: '1px solid #e5e7eb',
-                borderRadius: '8px', padding: '16px', zIndex: 99999, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                width: '320px', fontSize: '13px', color: '#374151'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <strong style={{ fontSize: '14px' }}>Detalles de Sesión</strong>
-                  <X size={16} style={{ cursor: 'pointer' }} onClick={() => setShowInfoModal(false)} />
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#6b7280' }}>Responsable:</span><br/>
-                  <strong>{user?.email || 'Usuario Local'}</strong>
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#6b7280' }}>Fecha de creación:</span><br/>
-                  <strong>
-                    {(() => {
-                      const parsedId = parseInt(id);
-                      return !isNaN(parsedId) && parsedId > 1000000000000 
-                        ? new Date(parsedId).toLocaleString() 
-                        : 'Creado a partir de importación/guardado manual';
-                    })()}
-                  </strong>
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#6b7280' }}>Rango de datos:</span><br/>
-                  <strong>{dataContext.startDate || 'Inicio'} a {dataContext.endDate || 'Fin'}</strong>
-                </div>
-                <hr style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
-                <div style={{ marginBottom: '4px' }}>
-                  <strong style={{ fontSize: '13px' }}>Estadísticas de Sesión:</strong>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Fosas Fetched:</span><br/>
-                    <strong>{dataContext.remoteFosas?.features?.length || 0}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Fosas Locales:</span><br/>
-                    <strong>{dataContext.localFosas?.length || 0}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Noticias Fetched:</span><br/>
-                    <strong>{dataContext.remoteNoticias?.features?.length || 0}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Noticias Locales:</span><br/>
-                    <strong>{dataContext.localNoticias?.length || 0}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Cédulas Fetched:</span><br/>
-                    <strong>{dataContext.fetchedRecords?.features?.length || 0}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Cédulas Locales:</span><br/>
-                    <strong>{dataContext.localCedulas?.length || 0}</strong>
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>Notas en Bitácora:</span><br/>
-                    <strong>{(() => {
-                      try {
-                        const notesStr = localStorage.getItem(`datades-notebook-${id}`);
-                        return notesStr ? JSON.parse(notesStr).length : 0;
-                      } catch(e) { return 0; }
-                    })()}</strong>
-                  </div>
-                </div>
+            {/* Sección de Rango de Fechas */}
+            <div className="header-section dates-section">
+              <Calendar size={18} className="icon-calendar" />
+              <div className="date-input-group">
+                <label htmlFor="start-date-picker">Inicio:</label>
+                <input
+                  id="start-date-picker"
+                  type="date"
+                  value={dataContext.startDate ? new Date(dataContext.startDate).toISOString().split('T')[0] : ''}
+                  onChange={(e) => dataContext.setStartDate(e.target.value)}
+                  className="date-picker-input"
+                />
               </div>
-            )}
-            
-            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+              <div className="date-input-group">
+                <label htmlFor="end-date-picker">Fin:</label>
+                <input
+                  id="end-date-picker"
+                  type="date"
+                  value={dataContext.endDate ? new Date(dataContext.endDate).toISOString().split('T')[0] : ''}
+                  onChange={(e) => dataContext.setEndDate(e.target.value)}
+                  className="date-picker-input"
+                />
+              </div>
+            </div>
+
+            {/* Sección de Acciones */}
+            <div className="header-section actions-section">
               <button 
-                onClick={() => {
-                  const currentInput = document.getElementById('notebook-id-input')?.value || id;
-                  window.dispatchEvent(new CustomEvent('saveNotebookRequested', { detail: { name: currentInput } }));
-                }}
-                style={{ padding: '4px 8px', fontSize: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', color: '#4b5563', fontWeight: 500 }}
-                title="Guardar este cuaderno en el servidor remoto"
+                onClick={handleSaveClick}
+                className="action-icon-btn"
+                title="Guardar este cuaderno en el servidor"
               >
-                Guardar en servidor
+                <Save size={16} />
+                <span>Guardar</span>
               </button>
               <button 
-                onClick={() => {
-                  const targetId = prompt('Ingrese el ID del cuaderno a cargar:');
-                  if (targetId) window.dispatchEvent(new CustomEvent('loadNotebookRequested', { detail: { id: targetId } }));
-                }}
-                style={{ padding: '4px 8px', fontSize: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', color: '#4b5563', fontWeight: 500 }}
-                title="Cargar un cuaderno desde el servidor remoto"
+                onClick={handleLoadClick}
+                className="action-icon-btn"
+                title="Cargar un cuaderno desde el servidor"
               >
-                Cargar del servidor
+                <FolderOpen size={16} />
+                <span>Cargar</span>
               </button>
               <button 
-                onClick={() => window.dispatchEvent(new CustomEvent('listNotebooksRequested'))}
-                style={{ padding: '4px 8px', fontSize: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', color: '#4b5563', fontWeight: 500 }}
-                title="Explorar todos los cuadernos remotos"
+                onClick={() => navigate('/cuaderno/lista')}
+                className="action-icon-btn"
+                title="Ver lista de cuadernos guardados"
               >
-                Listar cuadernos
+                <List size={16} />
+                <span>Ver Lista</span>
+              </button>
+              {id && (
+                <button 
+                  onClick={() => {
+                    const baseUrl = window.location.pathname.startsWith('/dist') ? '/dist' : '';
+                    window.open(`${baseUrl}/visible/${id}`, '_blank');
+                  }}
+                  className="action-icon-btn"
+                  title="Ver versión pública de este cuaderno en una pestaña nueva"
+                >
+                  <Eye size={16} />
+                  <span>Ver Público</span>
+                </button>
+              )}
+              <button 
+                onClick={onNewDatasetClick}
+                className="btn-accent"
+                title="Crear un nuevo cuaderno"
+              >
+                <Plus size={16} />
+                <span>Nuevo Cuaderno</span>
               </button>
             </div>
           </>
         ) : (
-          <span className="timestamp">
-            {currentTimestamp}
-            <small style={{ marginLeft: '10px', color: '#666' }}>
-              Modifique las fechas para analizar las fichas de búsqueda
-            </small>
-          </span>
+          <div className="header-standalone-info">
+            <span className="timestamp-badge">{Date.now()}</span>
+            <small>Modifique las fechas para analizar las fichas de búsqueda</small>
+          </div>
         )}
       </div>
-      <div style={{display: 'none'}} className="toggle-controls">
-        {Object.entries(visibleComponents).map(([key, value]) => (
-          <label key={key}>
-            <input
-              type="checkbox"
-              checked={value}
-              onChange={() => toggleComponent(key)}
-            />
-            {key.charAt(0).toUpperCase() + key.slice(1)}
-          </label>
-        ))}
-      </div>
-      <div>
-        <button onClick={onNewDatasetClick}>
-          Nuevo conjunto de datos
-        </button>
-      </div>
-    </div>
+    </header>
   );
 };
 

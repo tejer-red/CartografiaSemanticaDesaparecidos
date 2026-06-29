@@ -47,17 +47,11 @@ const InitialModal = ({
     if (onClose) onClose();
   }, [localStartDate, localEndDate, setStartDate, setEndDate, handleSubmit, onClose]);
 
-  const handleListNotebooks = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/notebooks`);
-      if (!response.ok) throw new Error('Failed to fetch notebooks');
-      const data = await response.json();
-      if (data.success) {
-        setNotebooks(data.notebooks);
-        setShowingNotebooks(true);
-      }
-    } catch (error) {
-      logger.error('Error fetching notebooks:', error);
+  const handleListNotebooks = () => {
+    if (listNotebooksApp) {
+      listNotebooksApp();
+    } else {
+      window.location.href = '/cuaderno/lista';
     }
   };
 
@@ -246,7 +240,7 @@ const InitialModal = ({
             notebookList={notebooks}
             onSelectNotebook={(notebook) => {
               logger.log('Selected notebook:', notebook);
-              window.location.href = `/dist/cuaderno/${notebook.id}`;
+              window.location.href = `/cuaderno/${notebook.id}`;
             }}
             inDialog={true}
             title="Seleccionar Cuaderno"
