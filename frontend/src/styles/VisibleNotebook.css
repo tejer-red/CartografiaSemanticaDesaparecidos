@@ -63,6 +63,12 @@
     font-weight: 600;
 }
 
+.notebook-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .notebook-header h1 {
     font-size: 1.2rem;
     /* Mucho más pequeño */

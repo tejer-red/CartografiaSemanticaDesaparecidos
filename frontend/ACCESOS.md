@@ -30,8 +30,18 @@ Componente barrera. Su función principal es restringir el paso a las rutas priv
 - Pestañas duales de autenticación (Registro e Inicio de sesión).
 - Información de contacto (`accesos_cartografia@tejer.red`) advirtiendo que los datos cartográficos crudos son de naturaleza sensible.
 
+### `components/auth/GlobalAuthIndicator.jsx` (Nuevo)
+Componente de estado de sesión unificado. Funciona como un "botón fantasma/secundario" integrado directamente en los encabezados principales de todas las vistas (`LandingPage`, `NotebookListPage`, `HeaderCompact`, `VisibleNotebook`):
+- **Usuario Anónimo:** Muestra "Iniciar sesión". Al pulsarlo en una ruta pública, redirige forzosamente al inicio de sesión (mediante `/cuaderno/nuevo`).
+- **Usuario Logueado:** Muestra el correo electrónico del analista. Despliega un menú flotante con la confirmación de sesión y el botón para cerrar sesión (`signOut`).
+
+### `components/notebook/NotebookListPage.jsx`
+La página del catálogo adapta dinámicamente sus botones de acción (en el pie de cada tarjeta de cuaderno) dependiendo del estado de sesión:
+- **Con Sesión:** Ofrece dos rutas de acción: "Editar" (redirige al espacio de trabajo privado `/cuaderno/:id`) y "Visible" (para ver la versión pública `/visible/:id`).
+- **Sin Sesión:** Restringe la acción mostrando únicamente el botón "Visualización Pública", forzando el enrutamiento a `/visible/:id` y previniendo el acceso al entorno de edición.
+
 ### `components/layout/HeaderCompact.jsx`
-- Extrae y despliega la identidad en la interfaz. 
+- Integra el `GlobalAuthIndicator` en la parte superior derecha de las acciones.
 - En el modal de información de la sesión ("Detalles de Sesión"), renderiza dinámicamente el correo electrónico del responsable activo (`user.email`). De no existir sesión, opera en degradación mostrando "Usuario Local".
 
 ### `components/notebook/LocalDataPanel.jsx` & `ImportContextModal.jsx` & `Notebook.jsx`

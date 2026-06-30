@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Info, X, Save, FolderOpen, List, Calendar, Plus, BookOpen, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import GlobalAuthIndicator from '../auth/GlobalAuthIndicator';
 import createLogger from '../../utils/logger';
 import './HeaderCompact.css';
 
@@ -217,6 +218,9 @@ const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, 
                 <Plus size={16} />
                 <span>Nuevo Cuaderno</span>
               </button>
+              <div className="header-auth-wrapper" style={{ marginLeft: '8px' }}>
+                <GlobalAuthIndicator />
+              </div>
             </div>
           </>
         ) : (

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/localDatabase';
 import { API_BASE_URL } from '../../config';
-import { BookOpen, Map, ArrowLeft, Plus, Server, HardDrive, Trash2 } from 'lucide-react';
+import { BookOpen, Map, ArrowLeft, Plus, Server, HardDrive, Trash2, Edit2, Eye } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import GlobalAuthIndicator from '../auth/GlobalAuthIndicator';
 import './NotebookListPage.css';
 
 import createLogger from '../../utils/logger';
@@ -10,6 +12,7 @@ const logger = createLogger('NotebookListPage');
 
 const NotebookListPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [notebooks, setNotebooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,11 +21,28 @@ const NotebookListPage = () => {
     try {
       // Obtener locales de IndexedDB
       const localNbs = await db.notebooks.toArray();
-      const mappedLocal = localNbs.map(l => ({
-        id: l.name,
-        name: l.name,
-        created_at: l.created_at || l.updated_at,
-        isLocal: true
+      const mappedLocal = await Promise.all(localNbs.map(async (l) => {
+        let meta = null;
+        if (l.configJSON) {
+          try { meta = JSON.parse(l.configJSON); } catch(e) {}
+        }
+        
+        // Count local notes
+        let notesCount = 0;
+        try {
+          notesCount = await db.navigation_logs.where('notebook_id').equals(l.name).count();
+        } catch(e) {}
+
+        return {
+          id: l.name,
+          name: l.name,
+          created_at: l.created_at || l.updated_at,
+          isLocal: true,
+          startDate: meta?.startDate || null,
+          endDate: meta?.endDate || null,
+          mapType: meta?.mapType || null,
+          notesCount: notesCount
+        };
       }));
 
       let merged = [...mappedLocal];
@@ -39,7 +59,10 @@ const NotebookListPage = () => {
                 id: name,
                 name: name,
                 created_at: r.created_at || r.updated_at,
-                isLocal: false
+                isLocal: false,
+                startDate: r.startDate || null,
+                endDate: r.endDate || null,
+                notesCount: r.notesCount || 0
               };
             });
 
@@ -104,8 +127,9 @@ const NotebookListPage = () => {
         <div className="header-actions">
           <button onClick={() => navigate('/cuaderno/nuevo')} className="new-explore-btn">
             <Plus size={18} />
-            Nueva Exploración
+            <span className="hide-on-mobile">Nueva Exploración</span>
           </button>
+          <GlobalAuthIndicator />
         </div>
       </header>
 
@@ -134,7 +158,7 @@ const NotebookListPage = () => {
               <div 
                 key={nb.id} 
                 className="notebook-card"
-                onClick={() => navigate(`/cuaderno/${nb.name}`)}
+                onClick={() => navigate(user ? `/cuaderno/${nb.name}` : `/visible/${nb.name}`)}
               >
                 <div className="card-top">
                   <div className="notebook-icon-wrapper">
@@ -173,8 +197,55 @@ const NotebookListPage = () => {
                   </p>
                 )}
 
-                <div className="card-footer">
-                  <span className="open-link">Abrir cuaderno →</span>
+                <div className="notebook-metadata">
+                  {nb.startDate && nb.endDate && (
+                    <div className="meta-item">
+                      <span className="meta-label">Período:</span>
+                      <span className="meta-value">{nb.startDate} al {nb.endDate}</span>
+                    </div>
+                  )}
+                  {nb.mapType && (
+                    <div className="meta-item">
+                      <span className="meta-label">Vista Principal:</span>
+                      <span className="meta-value">
+                        {nb.mapType === 'heatmap' ? 'Mapa de Calor' : nb.mapType === 'points' ? 'Puntos' : nb.mapType}
+                      </span>
+                    </div>
+                  )}
+                  <div className="meta-item">
+                    <span className="meta-label">Total Notas:</span>
+                    <span className="meta-value">{nb.notesCount || 0}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Autor:</span>
+                    <span className="meta-value">{user ? user.email : 'Analista'}</span>
+                  </div>
+                </div>
+
+                <div className="card-footer card-actions-footer">
+                  {user ? (
+                    <div className="auth-card-actions">
+                      <button 
+                        className="btn-card-action primary"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/cuaderno/${nb.name}`); }}
+                      >
+                        <Edit2 size={14} /> Editar
+                      </button>
+                      <button 
+                        className="btn-card-action secondary"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/visible/${nb.name}`); }}
+                      >
+                        <Eye size={14} /> Visible
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      className="btn-card-action primary full-width"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/visible/${nb.name}`); }}
+                    >
+                      <Eye size={14} /> Visualización Pública
+                    </button>
+                  )}
                   {nb.isLocal && (
                     <button 
                       onClick={(e) => handleDeleteLocal(e, nb.name)}

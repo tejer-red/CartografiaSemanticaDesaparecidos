@@ -7,6 +7,7 @@ import NotebookListModal from './NotebookListModal';
 import GlobalTimeGraph from '../timeline/GlobalTimeGraph';
 import FilterFormWrapper from '../filters/FilterFormWrapper';
 import { ChevronRight, Home, Map as MapIcon, Calendar, Info } from 'lucide-react';
+import GlobalAuthIndicator from '../auth/GlobalAuthIndicator';
 import useIsMobile from '../../hooks/useIsMobile';
 import '../../styles/VisibleNotebook.css';
 
@@ -79,10 +80,13 @@ const VisibleNotebook = () => {
                     </nav>
 
                     <header className="notebook-header">
-                        <h1>{id}</h1>
-                        <div className="notebook-meta">
-                            <span><Calendar size={14} /> {startDate} - {endDate}</span>
+                        <div>
+                            <h1>{id}</h1>
+                            <div className="notebook-meta">
+                                <span><Calendar size={14} /> {startDate} - {endDate}</span>
+                            </div>
                         </div>
+                        <GlobalAuthIndicator />
                     </header>
                 </div>
 

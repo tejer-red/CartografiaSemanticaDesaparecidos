@@ -208,7 +208,34 @@
 .notebook-card-date {
   font-size: 0.825rem;
   color: #64748b;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
+}
+
+.notebook-metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  background-color: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.meta-item {
+  display: flex;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.meta-label {
+  font-weight: 600;
+  color: #475569;
+  min-width: 100px;
+}
+
+.meta-value {
+  color: #0f172a;
 }
 
 .card-footer {
@@ -218,14 +245,57 @@
   align-items: center;
 }
 
-.open-link {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #8884d8;
+.card-actions-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
-.notebook-card:hover .open-link {
-  color: #7672c4;
+.auth-card-actions {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.btn-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-card-action.full-width {
+  flex: 1;
+  width: 100%;
+}
+
+.btn-card-action.primary {
+  background-color: #8884d8;
+  color: #fff;
+}
+
+.btn-card-action.primary:hover {
+  background-color: #7672c4;
+}
+
+.btn-card-action.secondary {
+  background-color: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.btn-card-action.secondary:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
 }
 
 .delete-card-btn {
@@ -276,5 +346,17 @@
   
   .title-section h1 {
     font-size: 1.75rem;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none;
   }
 }

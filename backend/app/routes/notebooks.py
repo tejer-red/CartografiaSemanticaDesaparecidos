@@ -9,8 +9,16 @@ router = APIRouter()
 @router.get("")
 def list_notebooks(db: Session = Depends(database.get_db)):
     notebooks = db.query(models.Notebook).all()
-    # Return list of notebook names/IDs to match PHP output format: {"success": true, "notebooks": [...]}
-    names = [n.id for n in notebooks]
+    names = [
+        {
+            "name": n.id,
+            "startDate": n.startDate,
+            "endDate": n.endDate,
+            "created_at": n.created_at.isoformat() if n.created_at else None,
+            "notesCount": len(n.notes) if n.notes else 0
+        }
+        for n in notebooks
+    ]
     return {"success": True, "notebooks": names}
 
 @router.post("")

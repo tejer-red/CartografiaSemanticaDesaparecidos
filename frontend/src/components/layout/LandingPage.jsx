@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Map, BookOpen, FileText, Github, Download, Info, BarChart2 } from 'lucide-react';
+import GlobalAuthIndicator from '../auth/GlobalAuthIndicator';
 import './LandingPage.css';
 
 const LandingPage = ({ listNotebooksApp }) => {
@@ -14,15 +15,18 @@ const LandingPage = ({ listNotebooksApp }) => {
           <Map size={24} className="logo-icon" />
           <span>Cartografía de Desapariciones</span>
         </div>
-        <a 
-          href="https://github.com/tejer-red" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="github-link"
-        >
-          <Github size={20} />
-          <span>GitHub</span>
-        </a>
+        <div className="header-right-actions">
+          <a 
+            href="https://github.com/tejer-red" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="github-link"
+          >
+            <Github size={20} />
+            <span className="hide-on-mobile">GitHub</span>
+          </a>
+          <GlobalAuthIndicator />
+        </div>
       </header>
 
       {/* Main Hero */}
