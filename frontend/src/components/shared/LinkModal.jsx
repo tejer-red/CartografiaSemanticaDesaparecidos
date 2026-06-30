@@ -61,11 +61,10 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
       const results = [];
       const term = searchTerm.toLowerCase();
 
-      // Search in local data (assuming they are arrays of objects with properties)
       if (localNoticias) {
         localNoticias.forEach(n => {
           if (n.titular && n.titular.toLowerCase().includes(term)) {
-            results.push({ id: n.uuid, label: n.titular, type: 'Noticia (Local)' });
+            results.push({ id: n.uuid, label: n.titular, type: 'Noticia (Local)', original: n });
           }
         });
       }
@@ -73,7 +72,7 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
       if (localFosas) {
         localFosas.forEach(f => {
           if (f.municipio && f.municipio.toLowerCase().includes(term)) {
-            results.push({ id: f.uuid, label: `Fosa en ${f.municipio}`, type: 'Fosa (Local)' });
+            results.push({ id: f.uuid, label: `Fosa en ${f.municipio}`, type: 'Fosa (Local)', original: f });
           }
         });
       }
@@ -81,7 +80,7 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
       if (localCedulas) {
         localCedulas.forEach(c => {
           if (c.nombre_completo && c.nombre_completo.toLowerCase().includes(term)) {
-            results.push({ id: c.uuid, label: c.nombre_completo, type: 'Cédula (Local)' });
+            results.push({ id: c.uuid, label: c.nombre_completo, type: 'Cédula (Local)', original: c });
           }
         });
       }
@@ -91,9 +90,9 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
           const props = f.properties;
           if (!props) return;
           if (props.tipo_marcador === 'noticia' && props.titular && props.titular.toLowerCase().includes(term)) {
-            results.push({ id: props.uuid || props.id, label: props.titular, type: 'Noticia (Remota)' });
+            results.push({ id: props.uuid || props.id, label: props.titular, type: 'Noticia (Remota)', original: f });
           } else if (props.municipio && props.municipio.toLowerCase().includes(term)) {
-            results.push({ id: props.uuid || props.id, label: `Fosa en ${props.municipio}`, type: 'Fosa (Remota)' });
+            results.push({ id: props.uuid || props.id, label: `Fosa en ${props.municipio}`, type: 'Fosa (Remota)', original: f });
           }
         });
       }
@@ -103,7 +102,7 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
           const props = f.properties;
           if (!props) return;
           if (props.nombre_completo && props.nombre_completo.toLowerCase().includes(term)) {
-            results.push({ id: props.uuid || props.id, label: props.nombre_completo, type: 'Cédula (Remota)' });
+            results.push({ id: props.uuid || props.id, label: props.nombre_completo, type: 'Cédula (Remota)', original: f });
           }
         });
       }
@@ -127,6 +126,35 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
         await createLink(sourceEntity.uuid || sourceEntity.id, `TAG-${tagName.trim()}`, 'ETIQUETA', description);
       } else {
         await createLink(sourceEntity.uuid || sourceEntity.id, targetUuid, relationType, description);
+        
+        // Determinar lat/lng para dibujar líneas luego en el mapa (si aplican)
+        let sLat = sourceEntity.lat || sourceEntity.properties?.lat;
+        let sLng = sourceEntity.lng || sourceEntity.properties?.lng;
+        if (!sLat && sourceEntity.geometry?.coordinates) {
+           sLng = sourceEntity.geometry.coordinates[0];
+           sLat = sourceEntity.geometry.coordinates[1];
+        }
+
+        let targetData = searchResults.find(r => r.id === targetUuid)?.original;
+        let tLat = targetData?.lat || targetData?.properties?.lat;
+        let tLng = targetData?.lng || targetData?.properties?.lng;
+        if (!tLat && targetData?.geometry?.coordinates) {
+           tLng = targetData.geometry.coordinates[0];
+           tLat = targetData.geometry.coordinates[1];
+        }
+
+        window.dispatchEvent(new CustomEvent('addRelationNoteRequested', {
+          detail: {
+            source_uuid: sourceEntity.uuid || sourceEntity.id,
+            target_uuid: targetUuid,
+            tipo_relacion: relationType,
+            descripcion: description,
+            sourceTitle: sourceTitle,
+            targetTitle: searchTerm,
+            sourceCoords: (sLat && sLng) ? [sLng, sLat] : null,
+            targetCoords: (tLat && tLng) ? [tLng, tLat] : null
+          }
+        }));
       }
       setTagName('');
       setTargetUuid('');
@@ -226,14 +254,14 @@ const LinkModal = ({ isOpen, onClose, sourceEntity, sourceTitle }) => {
               </div>
 
               {searchResults.length > 0 && (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, border: '1px solid #d1d5db', borderRadius: '6px', maxHeight: '150px', overflowY: 'auto' }}>
-                  {searchResults.map(result => (
+                <ul style={{ listStyle: 'none', padding: 0, margin: '5px 0 0 0', border: '1px solid #d1d5db', borderRadius: '4px', maxHeight: '150px', overflowY: 'auto', background: 'white' }}>
+                  {searchResults.map((result, i) => (
                     <li 
-                      key={result.id} 
+                      key={i} 
                       onClick={() => {
                         setTargetUuid(result.id);
                         setSearchTerm(result.label);
-                        setSearchResults([]);
+                        // Do NOT clear searchResults here so handleSubmit can find original data
                       }}
                       style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', backgroundColor: targetUuid === result.id ? '#eff6ff' : 'white' }}
                     >

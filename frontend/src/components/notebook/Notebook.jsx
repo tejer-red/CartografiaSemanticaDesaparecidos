@@ -14,6 +14,18 @@ const Notebook = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showInfoModal, setShowInfoModal] = React.useState(false);
+  const [highlightedRelation, setHighlightedRelation] = React.useState(null);
+
+  const handleToggleRelation = (note) => {
+    const isCurrentlyHighlighted = highlightedRelation === note.id;
+    const newHighlightId = isCurrentlyHighlighted ? null : note.id;
+    setHighlightedRelation(newHighlightId);
+    
+    // Despachar evento para que el mapa dibuje/borre la línea temporal
+    window.dispatchEvent(new CustomEvent('toggleRelationHighlight', {
+      detail: isCurrentlyHighlighted ? null : note.relation
+    }));
+  };
 
   const {
     notes,
@@ -23,6 +35,7 @@ const Notebook = () => {
     setNewNote,
     addNote,
     addTextOnlyNote,
+    addRelationNote,
     saveNotesToBackend,
     loadNotesFromBackend,
     listNotebooks,
@@ -38,17 +51,20 @@ const Notebook = () => {
     const handleSave = (e) => saveNotesToBackend(e.detail?.name);
     const handleLoad = (e) => loadNotesFromBackend(e.detail?.id);
     const handleList = () => listNotebooks();
+    const handleAddRelationNote = (e) => addRelationNote(e.detail);
 
     window.addEventListener('saveNotebookRequested', handleSave);
     window.addEventListener('loadNotebookRequested', handleLoad);
     window.addEventListener('listNotebooksRequested', handleList);
+    window.addEventListener('addRelationNoteRequested', handleAddRelationNote);
 
     return () => {
       window.removeEventListener('saveNotebookRequested', handleSave);
       window.removeEventListener('loadNotebookRequested', handleLoad);
       window.removeEventListener('listNotebooksRequested', handleList);
+      window.removeEventListener('addRelationNoteRequested', handleAddRelationNote);
     };
-  }, [saveNotesToBackend, loadNotesFromBackend, listNotebooks]);
+  }, [saveNotesToBackend, loadNotesFromBackend, listNotebooks, addRelationNote]);
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -83,15 +99,20 @@ const Notebook = () => {
           {notes.length === 0 ? (
             <div style={{ color: 'gray', marginBottom: '8px' }}>¡Aún no hay notas! Agrega una para comenzar.</div>
           ) : (
-            notes.map(note => (
+            notes.map(note => {
+              const isHighlighted = highlightedRelation === note.id;
+
+              return (
               <div
                 key={note.id}
                 style={{
-                  border: '1px solid #eee',
+                  border: isHighlighted ? '2px solid #6366f1' : '1px solid #eee',
                   borderRadius: 6,
-                  padding: 10,
+                  padding: isHighlighted ? 14 : 10,
                   marginBottom: 10,
-                  background: '#fafbfc',
+                  background: isHighlighted ? '#e0e7ff' : '#fafbfc',
+                  transition: 'all 0.3s ease',
+                  boxShadow: isHighlighted ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none'
                 }}
               >
                 <div style={{ marginBottom: '4px', whiteSpace: 'pre-wrap' }}>{note.text}</div>
@@ -106,6 +127,29 @@ const Notebook = () => {
                 >
                   <span>{formatTimestamp(note.timestamp)}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
+                    {note.relation && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRelation(note)}
+                        title="Ver relación en el mapa interactivo"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          backgroundColor: isHighlighted ? '#4f46e5' : '#e0e7ff',
+                          color: isHighlighted ? 'white' : '#4f46e5',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          transition: 'background-color 0.2s',
+                        }}
+                      >
+                        {isHighlighted ? 'Ocultar Relación' : 'Destacar Relación'}
+                      </button>
+                    )}
                     {note.state && (
                       <button
                         type="button"
@@ -154,7 +198,8 @@ const Notebook = () => {
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

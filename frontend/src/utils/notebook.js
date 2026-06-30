@@ -285,7 +285,7 @@ export function useNotebook(dataContext, id, navigate) {
     } catch(e) {
       logger.error('Error adding note:', e);
     }
-  }, [newNote, captureCurrentState, id, loadLogs]);
+  }, [noteTitle, newNote, captureCurrentState, id, loadLogs]);
 
   const addTextOnlyNote = useCallback(async () => {
     if (!noteTitle.trim() || !newNote.trim() || !id) {
@@ -303,11 +303,42 @@ export function useNotebook(dataContext, id, navigate) {
       await db.navigation_logs.add(newNoteEntry);
       await loadLogs();
       setNewNote('');
+      setNoteTitle('');
     } catch(e) {
       logger.error('Error adding text note:', e);
     }
-  }, [newNote, id, loadLogs]);
+  }, [noteTitle, newNote, id, loadLogs]);
 
+  const addRelationNote = useCallback(async (relationData) => {
+    const targetNotebookId = relationData.notebook_id || id;
+    if (!targetNotebookId) return;
+    const { source_uuid, target_uuid, tipo_relacion, descripcion, sourceTitle, targetTitle, sourceCoords, targetCoords } = relationData;
+    
+    const displayType = tipo_relacion.replace(/_/g, ' ');
+    const noteText = `# Vínculo Creado\n${sourceTitle} ➔ ${targetTitle}\nTipo: ${displayType}${descripcion ? `\n\nNotas: ${descripcion}` : ''}`;
+    
+    const newNoteEntry = {
+      notebook_id: targetNotebookId,
+      text: noteText,
+      timestamp: new Date().toISOString(),
+      state: null,
+      relation: {
+        source_uuid,
+        target_uuid,
+        tipo_relacion,
+        sourceCoords,
+        targetCoords
+      }
+    };
+
+    try {
+      await db.navigation_logs.add(newNoteEntry);
+      await loadLogs();
+      logger.log('Added relation note to notebook:', newNoteEntry);
+    } catch (e) {
+      logger.error('Error adding relation note:', e);
+    }
+  }, [id, loadLogs]);
   const restoreState = useCallback((savedState) => {
     if (!savedState) return;
     if (savedState.selectedDate) setSelectedDate(new Date(savedState.selectedDate));
@@ -395,17 +426,20 @@ export function useNotebook(dataContext, id, navigate) {
       logger.log('Backend save successful. Response:', saveResult);
       alert('Notes saved successfully!');
 
-      
       if (name !== id) {
         logger.log(`Name changed from ${id} to ${name}. Migrating local storage and IndexedDB...`);
         
         try {
           // create new or update name in IndexedDB
-          const existingNb = await db.notebooks.where('name').equals(id).first();
-          if (existingNb) {
-            await db.notebooks.update(existingNb.id, { name: name, updated_at: new Date().toISOString() });
+          if (id) {
+            const existingNb = await db.notebooks.where('name').equals(id).first();
+            if (existingNb) {
+              await db.notebooks.update(existingNb.id, { name: name, updated_at: new Date().toISOString() });
+            } else {
+               await db.notebooks.add({ name: name, configJSON: JSON.stringify(configPayload), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+            }
           } else {
-             await db.notebooks.add({ name: name, configJSON: JSON.stringify(configPayload), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+            await db.notebooks.add({ name: name, configJSON: JSON.stringify(configPayload), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
           }
 
           logger.log('Executing Dexie transaction for migration...');
@@ -439,7 +473,6 @@ export function useNotebook(dataContext, id, navigate) {
       const response = await fetch(`${API_BASE_URL}/notebooks/${notebookId}`);
       if (!response.ok) {
         if (response.status === 404) {
-          // This is a local session that hasn't been saved to backend yet, perfectly normal.
           return false;
         }
         throw new Error('Failed to load notes from backend: ' + response.statusText);
@@ -447,7 +480,9 @@ export function useNotebook(dataContext, id, navigate) {
       const data = await response.json();
       logger.log('Loaded notebook data from backend:', data);
       
-      // Save backend notes to IndexedDB if they don't exist? For now just populate context dates
+      if (data.notes && Array.isArray(data.notes)) {
+        setNotes(data.notes);
+      }
       
       let dateChanged = false;
       if (data.startDate) {
@@ -472,7 +507,7 @@ export function useNotebook(dataContext, id, navigate) {
       logger.error('Notebook: Error loading notes from backend:', error);
       return false;
     }
-  }, [setStartDate, setEndDate, setSelectedDate, setTimeScale, setFetchId]);
+  }, [setStartDate, setEndDate, setSelectedDate, setTimeScale, setFetchId, setNotes]);
 
   const listNotebooks = useCallback(() => {
     navigate('/cuaderno/lista');
@@ -491,6 +526,7 @@ export function useNotebook(dataContext, id, navigate) {
     setNewNote,
     addNote,
     addTextOnlyNote,
+    addRelationNote,
     saveNotesToBackend,
     loadNotesFromBackend,
     listNotebooks,

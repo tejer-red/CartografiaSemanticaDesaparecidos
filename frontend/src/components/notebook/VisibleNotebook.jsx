@@ -17,7 +17,6 @@ const VisibleNotebook = () => {
     const dataContext = useData();
     const { setFetchId, startDate, endDate, mapLoaded, setVisibleComponents, map } = dataContext;
 
-    // Hook de notebook para cargar y manejar las notas
     const {
         notes,
         loadNotesFromBackend,
@@ -30,6 +29,17 @@ const VisibleNotebook = () => {
     } = useNotebook(dataContext, id);
 
     const [notebookName, setNotebookName] = useState('Cargando...');
+    const [highlightedRelation, setHighlightedRelation] = useState(null);
+
+    const handleToggleRelation = (note) => {
+        const isCurrentlyHighlighted = highlightedRelation === note.id;
+        const newHighlightId = isCurrentlyHighlighted ? null : note.id;
+        setHighlightedRelation(newHighlightId);
+        
+        window.dispatchEvent(new CustomEvent('toggleRelationHighlight', {
+            detail: isCurrentlyHighlighted ? null : note.relation
+        }));
+    };
 
     useEffect(() => {
         if (id) {
@@ -99,12 +109,45 @@ const VisibleNotebook = () => {
                             const lines = note.text.trim().split('\n');
                             const title = lines[0].startsWith('# ') ? lines[0].replace('# ', '') : 'Nota de Análisis';
                             const bodyText = lines.slice(1).join('\n');
+                            const isHighlighted = highlightedRelation === note.id;
 
                             return (
-                                <article key={note.id} className="note-card">
+                                <article 
+                                    key={note.id} 
+                                    className="note-card"
+                                    style={{
+                                        border: isHighlighted ? '2px solid #6366f1' : undefined,
+                                        padding: isHighlighted ? '14px' : undefined,
+                                        backgroundColor: isHighlighted ? '#e0e7ff' : undefined,
+                                        boxShadow: isHighlighted ? '0 4px 12px rgba(99, 102, 241, 0.2)' : undefined,
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
                                     <header className="note-card-header">
                                         <div className="note-title-group">
                                             <h2>{title}</h2>
+                                            {note.relation && (
+                                                <button
+                                                    onClick={() => handleToggleRelation(note)}
+                                                    title="Ver relación en el mapa interactivo"
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '4px 8px',
+                                                        backgroundColor: isHighlighted ? '#4f46e5' : '#e0e7ff',
+                                                        color: isHighlighted ? 'white' : '#4f46e5',
+                                                        border: 'none',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                        fontSize: '11px',
+                                                        fontWeight: 500,
+                                                        transition: 'background-color 0.2s',
+                                                    }}
+                                                >
+                                                    {isHighlighted ? 'Ocultar Relación' : 'Destacar Relación'}
+                                                </button>
+                                            )}
                                             {note.state && (
                                                 <button
                                                     className="btn-restore-mini"

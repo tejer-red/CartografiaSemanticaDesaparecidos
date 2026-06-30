@@ -97,6 +97,40 @@ const ImportContextModal = ({ isOpen, onClose, entityData, entityType, onImportC
         };
         await db.local_vinculos.add(relationRecord);
         logger.log('Relación creada:', relationRecord);
+
+        // Disparar evento para que se cree la nota de la relación
+        const sourceTitle = baseRecord.titular || (baseRecord.municipio ? `Fosa en ${baseRecord.municipio}` : null) || baseRecord.nombre_completo || 'Entidad Importada';
+        
+        let targetData = possibleTargets.find(t => t.uuid === targetUuid);
+        const targetTitle = targetData?.label || 'Entidad Destino';
+
+        let sLat = baseRecord.lat || baseRecord.properties?.lat;
+        let sLng = baseRecord.lng || baseRecord.properties?.lng;
+        if (!sLat && baseRecord.geometry?.coordinates) {
+           sLng = baseRecord.geometry.coordinates[0];
+           sLat = baseRecord.geometry.coordinates[1];
+        }
+
+        let tLat = targetData?.original?.lat || targetData?.original?.properties?.lat;
+        let tLng = targetData?.original?.lng || targetData?.original?.properties?.lng;
+        if (!tLat && targetData?.original?.geometry?.coordinates) {
+           tLng = targetData.original.geometry.coordinates[0];
+           tLat = targetData.original.geometry.coordinates[1];
+        }
+
+        window.dispatchEvent(new CustomEvent('addRelationNoteRequested', {
+          detail: {
+            source_uuid: newUuid,
+            target_uuid: targetUuid,
+            tipo_relacion: relationType,
+            descripcion: 'Relación creada al importar',
+            sourceTitle: sourceTitle,
+            targetTitle: targetTitle,
+            sourceCoords: (sLat && sLng) ? [sLng, sLat] : null,
+            targetCoords: (tLat && tLng) ? [tLng, tLat] : null,
+            notebook_id: activeNotebookId // Explicitly pass it in case the notebook hook hasn't updated its ID yet
+          }
+        }));
       }
 
       if (!notebookId && notebookName) {
@@ -115,10 +149,10 @@ const ImportContextModal = ({ isOpen, onClose, entityData, entityType, onImportC
 
   // gather all possible targets for relation
   const possibleTargets = [
-    ...(localFosas || []).map(f => ({ uuid: f.uuid, label: `Fosa en ${f.municipio}` })),
-    ...(localNoticias || []).map(n => ({ uuid: n.uuid, label: `Noticia: ${n.titular}` })),
-    ...(localCedulas || []).map(c => ({ uuid: c.uuid, label: `Cédula: ${c.nombre_completo}` }))
-  ].filter(t => t.uuid !== entityData.uuid);
+    ...(localFosas || []).map(f => ({ uuid: f.uuid, label: `Fosa en ${f.municipio}`, original: f })),
+    ...(localNoticias || []).map(n => ({ uuid: n.uuid, label: `Noticia: ${n.titular}`, original: n })),
+    ...(localCedulas || []).map(c => ({ uuid: c.uuid, label: `Cédula: ${c.nombre_completo}`, original: c }))
+  ].filter(t => t.uuid !== entityData.uuid && t.uuid !== entityData.original_uuid);
 
   return (
     <div className="login-screen-overlay" style={{ zIndex: 7000 }}>

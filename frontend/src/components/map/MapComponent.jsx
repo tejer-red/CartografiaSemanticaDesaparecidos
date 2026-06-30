@@ -50,6 +50,59 @@ const MapComponent = () => {
           setMapLoaded(true); // Set mapLoaded to true when style is loaded
           logger.log('Map and style loaded successfully');
         });
+
+        // Event listener for relation highlights
+        const handleToggleRelationHighlight = (e) => {
+          const relation = e.detail;
+          
+          if (!newMap || !newMap.isStyleLoaded()) return;
+
+          // Always remove previous if exists
+          if (newMap.getLayer('highlight-relation-line')) {
+            newMap.removeLayer('highlight-relation-line');
+            newMap.removeSource('highlight-relation-source');
+          }
+
+          if (relation && relation.sourceCoords && relation.targetCoords) {
+            // Draw new line
+            newMap.addSource('highlight-relation-source', {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [relation.sourceCoords, relation.targetCoords]
+                }
+              }
+            });
+
+            newMap.addLayer({
+              id: 'highlight-relation-line',
+              type: 'line',
+              source: 'highlight-relation-source',
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': '#4f46e5',
+                'line-width': 4,
+                'line-dasharray': [2, 2],
+                'line-opacity': 0.8
+              }
+            });
+            
+            // Opcional: Centrar el mapa para que se vean ambos puntos
+            const bounds = new maplibregl.LngLatBounds()
+              .extend(relation.sourceCoords)
+              .extend(relation.targetCoords);
+            newMap.fitBounds(bounds, { padding: 80, duration: 800 });
+          }
+        };
+
+        window.addEventListener('toggleRelationHighlight', handleToggleRelationHighlight);
+        newMap.relationListener = handleToggleRelationHighlight; // To clean up later
+
       } catch (error) {
         logger.error("Error initializing map:", error);
       }
@@ -57,6 +110,9 @@ const MapComponent = () => {
 
     return () => {
       if (localMapRef.current) {
+        if (localMapRef.current.relationListener) {
+          window.removeEventListener('toggleRelationHighlight', localMapRef.current.relationListener);
+        }
         localMapRef.current.remove();
         localMapRef.current = null;
         setMap(null);

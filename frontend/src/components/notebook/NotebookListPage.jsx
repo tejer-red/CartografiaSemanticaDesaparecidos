@@ -30,8 +30,20 @@ const NotebookListPage = () => {
         // Count local notes
         let notesCount = 0;
         try {
-          notesCount = await db.navigation_logs.where('notebook_id').equals(l.name).count();
-        } catch(e) {}
+          const stringName = String(l.name);
+          notesCount = await db.navigation_logs.where('notebook_id').equals(stringName).count();
+          
+          // Fallback por si acaso fue guardado como entero
+          if (notesCount === 0 && !isNaN(l.name)) {
+             const numName = Number(l.name);
+             const fallbackCount = await db.navigation_logs.where('notebook_id').equals(numName).count();
+             if (fallbackCount > 0) notesCount = fallbackCount;
+          }
+          
+          logger.log(`[Local Notebook: ${l.name}] Type of name: ${typeof l.name}, Computed notes count: ${notesCount}`);
+        } catch(e) {
+          logger.error(`[Local Notebook: ${l.name}] Error counting notes:`, e);
+        }
 
         return {
           id: l.name,
@@ -55,6 +67,8 @@ const NotebookListPage = () => {
           if (data.success && data.notebooks) {
             const remoteNbs = data.notebooks.map(r => {
               const name = typeof r === 'string' ? r : r.name;
+              const notesCount = r.notesCount || 0;
+              logger.log(`[Remote Notebook: ${name}] API Payload:`, r, `Computed notes count: ${notesCount}`);
               return {
                 id: name,
                 name: name,
@@ -62,7 +76,7 @@ const NotebookListPage = () => {
                 isLocal: false,
                 startDate: r.startDate || null,
                 endDate: r.endDate || null,
-                notesCount: r.notesCount || 0
+                notesCount: notesCount
               };
             });
 
@@ -96,23 +110,46 @@ const NotebookListPage = () => {
     fetchNotebooksList();
   }, []);
 
-  const handleDeleteLocal = async (e, name) => {
-    e.stopPropagation(); // Evitar navegación al hacer clic en borrar
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar el cuaderno local "${name}"?`)) {
+  const handleDeleteNotebook = async (e, nb) => {
+    e.stopPropagation();
+    
+    // Solo permitir borrar si el usuario tiene sesión activa o si es puramente local (sin copia remota)
+    if (!user && !nb.isLocal) {
+      alert('Debes iniciar sesión para eliminar cuadernos del servidor.');
       return;
     }
+
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el cuaderno "${nb.name}"? Esta acción es irreversible.`)) {
+      return;
+    }
+
     try {
-      const existingNb = await db.notebooks.where('name').equals(name).first();
-      if (existingNb) {
-        await db.notebooks.delete(existingNb.id);
-        // También borrar sus logs asociados
-        await db.navigation_logs.where('notebook_id').equals(name).delete();
-        logger.log(`Deleted local notebook: ${name}`);
-        fetchNotebooksList();
+      // 1. Borrar del servidor si tiene copia remota o es exclusivamente remoto
+      if (!nb.isLocal || nb.hasRemoteCopy) {
+        const response = await fetch(`${API_BASE_URL}/notebooks/${nb.name}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok && response.status !== 404) {
+          throw new Error('Error al eliminar del servidor');
+        }
+        logger.log(`Deleted remote notebook: ${nb.name}`);
       }
+
+      // 2. Borrar localmente si existe
+      if (nb.isLocal || nb.hasRemoteCopy) {
+        const existingNb = await db.notebooks.where('name').equals(nb.name).first();
+        if (existingNb) {
+          await db.notebooks.delete(existingNb.id);
+          await db.navigation_logs.where('notebook_id').equals(nb.name).delete();
+          logger.log(`Deleted local notebook: ${nb.name}`);
+        }
+      }
+
+      // Refrescar la lista
+      fetchNotebooksList();
     } catch (err) {
-      logger.error('Error deleting local notebook:', err);
-      alert('No se pudo eliminar el cuaderno local.');
+      logger.error('Error deleting notebook:', err);
+      alert('Hubo un problema al eliminar el cuaderno.');
     }
   };
 
@@ -246,11 +283,11 @@ const NotebookListPage = () => {
                       <Eye size={14} /> Visualización Pública
                     </button>
                   )}
-                  {nb.isLocal && (
+                  {(user || (nb.isLocal && !nb.hasRemoteCopy)) && (
                     <button 
-                      onClick={(e) => handleDeleteLocal(e, nb.name)}
+                      onClick={(e) => handleDeleteNotebook(e, nb)}
                       className="delete-card-btn"
-                      title="Eliminar cuaderno local"
+                      title={nb.isLocal && !nb.hasRemoteCopy ? "Eliminar cuaderno local" : "Eliminar cuaderno (local y servidor)"}
                     >
                       <Trash2 size={16} />
                     </button>
