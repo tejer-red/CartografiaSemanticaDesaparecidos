@@ -78,9 +78,5 @@ def check_password(payload: PasswordPayload):
     return {"success": is_valid}
 
 @app.get("/")
-def read_root():
-    return {
-        "status": "online",
-        "message": "Welcome to Tejer.Red Cartografía Semántica API",
-        "docs_url": "/docs"
-    }
+async def root():
+    return {"status": "up"}
