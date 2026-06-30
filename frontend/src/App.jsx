@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useData } from './context/DataContext'; // Remove DataProvider import
 import { useAuth } from './context/AuthContext';
 import { API_BASE_URL } from './config';
@@ -125,6 +125,10 @@ const App = () => {
     }
   };
 
+  const isNotebookRoute = location.pathname.includes('/cuaderno/') && !location.pathname.includes('lista');
+  const isVisibleRoute = location.pathname.includes('/visible/');
+  const shouldRenderMapAndFetchers = isVisibleRoute || (isNotebookRoute && user);
+
   return (
     <>
       <style>
@@ -136,13 +140,11 @@ const App = () => {
       </style>
       {authLoading ? (
         <LoadingOverlay />
-      ) : !user ? (
-        <LoginScreen />
       ) : (
         <>
           <LoadingOverlay />
-          {/* Solo cargar fetchers y mapa si estamos en una ruta interactiva de cuaderno o visible, excluyendo el listado */}
-          {((location.pathname.includes('/cuaderno/') && location.pathname !== '/cuaderno/lista') || location.pathname.includes('/visible/')) && (
+          {/* Solo cargar fetchers y mapa si estamos en una ruta interactiva de cuaderno (y logueado) o visible, excluyendo el listado */}
+          {shouldRenderMapAndFetchers && (
             <>
               <div className="AbstractFetching">
                  <FetchCedulas
@@ -173,45 +175,63 @@ const App = () => {
           )}
           <Suspense fallback={<div>Loading...</div>}>
             <Routes>
+              {/* Redirecciones de /dist */}
+              <Route path="/dist" element={<Navigate to="/" replace />} />
+              <Route path="/dist/cuadernos/lista" element={<Navigate to="/cuaderno/lista" replace />} />
+              <Route path="/dist/cuaderno/lista" element={<Navigate to="/cuaderno/lista" replace />} />
+              <Route path="/dist/visible/:id" element={<Navigate to="/visible/:id" replace />} />
+              <Route path="/cuadernos/lista" element={<Navigate to="/cuaderno/lista" replace />} />
+
+              {/* Rutas Públicas */}
               <Route path="/" element={<LandingPage listNotebooksApp={listNotebooksApp} />} />
               <Route path="/cuaderno/lista" element={<NotebookListPage />} />
+              <Route path="/visible/:id" element={<VisibleNotebook />} />
+              
+              {/* Rutas Privadas */}
               <Route path="/cuaderno/nuevo" element={
-                <AppLayout
-                  isNotebookRoute={false}
-                  visibleComponents={visibleComponents}
-                  toggleComponent={toggleComponent}
-                  handleSubmit={handleSubmit}
-                  loading={loading}
-                  fetchCedulas={fetchCedulas}
-                  setFetchCedulas={setFetchCedulas}
-                  fetchForense={fetchForense}
-                  setFetchForense={setFetchForense}
-                  fetchFosas={fetchFosas}
-                  setFetchFosas={setFetchFosas}
-                  fetchNoticias={fetchNoticias}
-                  setFetchNoticias={setFetchNoticias}
-                  listNotebooksApp={listNotebooksApp}
-                />
+                user ? (
+                  <AppLayout
+                    isNotebookRoute={false}
+                    visibleComponents={visibleComponents}
+                    toggleComponent={toggleComponent}
+                    handleSubmit={handleSubmit}
+                    loading={loading}
+                    fetchCedulas={fetchCedulas}
+                    setFetchCedulas={setFetchCedulas}
+                    fetchForense={fetchForense}
+                    setFetchForense={setFetchForense}
+                    fetchFosas={fetchFosas}
+                    setFetchFosas={setFetchFosas}
+                    fetchNoticias={fetchNoticias}
+                    setFetchNoticias={setFetchNoticias}
+                    listNotebooksApp={listNotebooksApp}
+                  />
+                ) : (
+                  <LoginScreen />
+                )
               } />
               <Route path="/cuaderno/:id" element={
-                <AppLayout
-                  isNotebookRoute={true}
-                  visibleComponents={visibleComponents}
-                  toggleComponent={toggleComponent}
-                  handleSubmit={handleSubmit}
-                  loading={loading}
-                  fetchCedulas={fetchCedulas}
-                  setFetchCedulas={setFetchCedulas}
-                  fetchForense={fetchForense}
-                  setFetchForense={setFetchForense}
-                  fetchFosas={fetchFosas}
-                  setFetchFosas={setFetchFosas}
-                  fetchNoticias={fetchNoticias}
-                  setFetchNoticias={setFetchNoticias}
-                  listNotebooksApp={listNotebooksApp}
-                />
+                user ? (
+                  <AppLayout
+                    isNotebookRoute={true}
+                    visibleComponents={visibleComponents}
+                    toggleComponent={toggleComponent}
+                    handleSubmit={handleSubmit}
+                    loading={loading}
+                    fetchCedulas={fetchCedulas}
+                    setFetchCedulas={setFetchCedulas}
+                    fetchForense={fetchForense}
+                    setFetchForense={setFetchForense}
+                    fetchFosas={fetchFosas}
+                    setFetchFosas={setFetchFosas}
+                    fetchNoticias={fetchNoticias}
+                    setFetchNoticias={setFetchNoticias}
+                    listNotebooksApp={listNotebooksApp}
+                  />
+                ) : (
+                  <LoginScreen />
+                )
               } />
-              <Route path="/visible/:id" element={<VisibleNotebook />} />
             </Routes>
           </Suspense>
           
