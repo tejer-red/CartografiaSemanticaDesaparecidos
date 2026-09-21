@@ -49,3 +49,11 @@ htmlcov/
 api/notebooks/*
 api/config.php
 api/user_log.txt
+
+# Datasets and Sensitive Data (PII protection - transfer only via SSH/rsync)
+*.jsonl
+backend/app/ner/data/
+data/
+data_export/
+*_sensitive.*
+
