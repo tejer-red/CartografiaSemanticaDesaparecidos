@@ -2,8 +2,8 @@
 
 - **Última actualización:** 2026-09-23 17:39 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `32a4b09` (`fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties`)
-- **Estado de sincronización:** Cambios locales listos para commit
+- **Último commit:** `1371eff` (`fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes`)
+- **Estado de sincronización:** Sincronizado con `origin/feature/ner-ontologia-mineria`
 - **Estado general:** Paginación por lotes (.range) para superar el límite estricto de 1,000 registros en PostgREST/Supabase, y desbloqueo del montaje de mapa y fetchers para usuarios anónimos en `/cuaderno/nuevo` y `/cuaderno/:id`
 
 ---
@@ -12,7 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
+| `1371eff` | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
 | `32a4b09` | 2026-09-23 | abundis | `fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties` |
 | `4f589d9` | 2026-09-23 | abundis | `feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support` |
 | `ca79cfb` | 2026-09-23 | abundis | `feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync` |
