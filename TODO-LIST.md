@@ -12,6 +12,7 @@ flowchart TD
     B --> C["3. Drawer Lateral Flotante de Hallazgos en Mapa"]
     C --> D["4. Modal de Vinculación Semi-Supervisada (Aprobación Manual)"]
     D --> E["5. Optimización de Endpoints y Caching de Grafos"]
+    E --> F["6. Anonimización Global de Cédulas y Gestión Granular de Usuarios (RBAC)"]
 ```
 
 ---
@@ -61,3 +62,16 @@ flowchart TD
 - **Capa:** Backend / Servidor de Despliegue (`FastAPI`, `ontology.py`)
 - **Importancia Técnica y Metodológica:**
   - **Escalabilidad de Grafo:** El cálculo del subgrafo ontológico para miles de nodos puede demandar tiempo computacional si se recalcula en cada petición. Implementar cache en memoria (LRU / Redis) para consultas por municipio y grados de separación.
+
+---
+
+### 6. Sistema Global de Anonimización de Cédulas PII y Control Granular de Accesos (RBAC)
+- **Estado:** ⏳ Pendiente Estructural
+- **Capa:** Transversal (Backend / Base de Datos / Frontend Global)
+- **Importancia Técnica y Metodológica:**
+  - **Protección de Datos Personales Sensibles (PII):** Cumplimiento estricto de la legislación de protección de víctimas en México (LGPDPPSO). En todas las vistas del sitio (mapa geográfico, panel de búsqueda, tablas de casos, grafos y estadísticas), los nombres de personas, teléfonos y domicilios deben permanecer anonimizados por defecto bajo hashes criptográficos (`[NOMBRE_HASH_...]`, `[DOMICILIO_HASH_...]`).
+  - **Gestión Granular de Usuarios y Roles (RBAC):**
+    - `PÚBLICO / VISITANTE`: Visualización exclusiva con hashes anonimizados en todo el sitio. Sin acceso a datos sensibles.
+    - `INVESTIGADOR / COLECTIVO`: Capacidad de consultar notas periodísticas completas, entidades NER subrayadas y sugerir/validar vínculos caso $\leftrightarrow$ fosa.
+    - `ADMINISTRADOR FORENSE / MINISTERIO PÚBLICO`: Permiso para desanonimizar PII mediante conmutador global de sesión (`anonymized: false`), resolviendo hashes contra el diccionario `pii_hash_registry` y `cedulas_privadas` con auditoría de accesos.
+  - **Conmutador Global de Anonimización en Frontend:** Integrar el estado en el contexto de autenticación (`AuthContext` / `UserContext`), propagándolo de forma unificada a las capas de visualización (`RedNoticiasPage`, `MapView`, `CaseDetailModal`, etc.).

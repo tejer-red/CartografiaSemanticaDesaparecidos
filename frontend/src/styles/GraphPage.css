@@ -1,0 +1,334 @@
+/* ==============================================================================
+   GraphPage.css - Estilos Compartidos para Páginas de Grafo Semántico
+   Homologado con el Design System del Proyecto (Tema Claro: index.css)
+   ============================================================================== */
+
+.graph-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #f8fafc;
+  color: var(--text-color, #1e293b);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------------------
+   Barra Superior de Herramientas (Toolbar)
+   ------------------------------------------------------------------------------ */
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1.25rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.graph-toolbar-left,
+.graph-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.graph-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.graph-badge-counter {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.graph-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.graph-btn-action:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.graph-btn-action.active {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.graph-btn-primary {
+  background-color: var(--primary-color, #007bff);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.graph-btn-primary:hover {
+  background-color: var(--primary-hover, #0056b3);
+  color: #ffffff;
+}
+
+.graph-btn-lock-active {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.graph-btn-lock-inactive {
+  background-color: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+.graph-select-filter {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+}
+
+.graph-select-filter:focus {
+  border-color: #3b82f6;
+}
+
+/* ------------------------------------------------------------------------------
+   Área Principal del Grafo (Canvas + Overlay Panels)
+   ------------------------------------------------------------------------------ */
+.graph-main-stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.graph-canvas-wrapper {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: radial-gradient(circle, #f8fafc 10%, #f1f5f9 100%);
+}
+
+/* ------------------------------------------------------------------------------
+   Panel de Detalle Lateral (Sidebar Derecha)
+   ------------------------------------------------------------------------------ */
+.graph-sidebar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  z-index: 15;
+  overflow: hidden;
+  animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.graph-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+}
+
+.graph-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.graph-sidebar-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.graph-sidebar-close:hover {
+  color: #0f172a;
+  background-color: #e2e8f0;
+}
+
+.graph-sidebar-content {
+  flex: 1;
+  padding: 1.1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  font-size: 0.85rem;
+}
+
+.graph-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.graph-sidebar-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.graph-sidebar-value {
+  font-size: 0.85rem;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+.graph-sidebar-article-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.85rem;
+  max-height: 380px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #334155;
+}
+
+/* ------------------------------------------------------------------------------
+   Leyenda Flotante (Esquina Inferior Izquierda)
+   ------------------------------------------------------------------------------ */
+.graph-legend-box {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 0.95rem;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.graph-legend-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.graph-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.graph-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------------------
+   Resaltadores de Entidades NER (Tema Claro)
+   ------------------------------------------------------------------------------ */
+.ner-highlight-forense {
+  background-color: rgba(220, 38, 38, 0.12);
+  color: #991b1b;
+  border-bottom: 2px solid #dc2626;
+  border-radius: 2px;
+  padding: 1px 3px;
+  font-weight: 600;
+}
+
+.ner-highlight-colectivo {
+  background-color: rgba(147, 51, 234, 0.12);
+  color: #6b21a8;
+  border-bottom: 2px solid #9333ea;
+  border-radius: 2px;
+  padding: 1px 3px;
+  font-weight: 600;
+}
+
+.ner-highlight-ubicacion {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #92400e;
+  border-bottom: 2px solid #f59e0b;
+  border-radius: 2px;
+  padding: 1px 3px;
+  font-weight: 600;
+}
+
+.ner-highlight-keyword {
+  background-color: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+  border-bottom: 2px solid #0ea5e9;
+  border-radius: 2px;
+  padding: 1px 3px;
+  font-weight: 600;
+}

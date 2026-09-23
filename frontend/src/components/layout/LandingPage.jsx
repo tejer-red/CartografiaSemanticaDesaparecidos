@@ -49,20 +49,20 @@ const LandingPage = ({ listNotebooksApp }) => {
             Nueva Exploración
           </button>
           <button 
-            onClick={() => navigate('/red-contexto')}
+            onClick={() => navigate('/contexto')}
             className="action-btn"
             style={{ backgroundColor: '#7c3aed', color: '#fff', border: 'none' }}
           >
             <BarChart2 size={20} />
-            Auditoría Contexto & Patrones
+            Contexto & Patrones
           </button>
           <button 
-            onClick={() => navigate('/red-noticias')}
+            onClick={() => navigate('/noticias')}
             className="action-btn"
             style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none' }}
           >
             <BarChart2 size={20} />
-            Auditoría Noticias OSINT
+            Noticias OSINT
           </button>
           <button 
             onClick={listNotebooksApp}

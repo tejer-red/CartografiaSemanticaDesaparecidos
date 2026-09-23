@@ -1,0 +1,169 @@
+/* ==============================================================================
+   NoticiasListPage.css - Catálogo en Lista de Noticias OSINT y Entidades NER
+   ============================================================================== */
+
+.noticias-list-container {
+  min-height: calc(100vh - 42px);
+  background-color: #f8fafc;
+  color: var(--text-color, #1e293b);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  padding: 2rem 1.5rem 4rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.noticias-header-section {
+  max-width: 960px;
+  margin: 0 auto 2rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.noticias-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.noticias-title-wrapper h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.noticias-title-wrapper p {
+  color: #64748b;
+  margin: 0.35rem 0 0 0;
+  font-size: 0.95rem;
+}
+
+.noticias-filters-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 0.85rem 1.15rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.noticias-search-input {
+  flex: 1;
+  min-width: 240px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.noticias-grid {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.noticia-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.noticia-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.noticia-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.noticia-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.noticia-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.noticia-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.noticia-meta-badge.alert {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.noticia-body-text {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: #334155;
+  white-space: pre-wrap;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.noticia-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.noticia-entities-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+.noticia-pagination-bar {
+  max-width: 960px;
+  margin: 2rem auto 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}

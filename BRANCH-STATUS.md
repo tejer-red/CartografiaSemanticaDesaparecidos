@@ -1,10 +1,52 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 13:15 CST
+- **Última actualización:** 2026-09-23 13:58 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `5c4f436` (`feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST`)
-- **Estado de sincronización:** 2 commits adelante de remoto (`origin/feature/ner-ontologia-mineria`)
-- **Estado general:** En desarrollo activo (Homologación Visual de Paneles y Hoja de Ruta TODO-LIST)
+- **Último commit:** `d947313` (`feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology`)
+- **Estado de sincronización:** Commit local registrado en la rama `feature/ner-ontologia-mineria`
+- **Estado general:** Estable y verificado con Vite build
+
+---
+
+## 1. Registro Cronológico de Commits
+
+| Hash | Fecha | Autor | Mensaje |
+| :--- | :---: | :---: | :--- |
+| `d947313` | 2026-09-23 | abundis | `feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology` |
+| `5c4f436` | 2026-09-23 | abundis | `feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST` |
+| `aeb4263` | 2026-09-23 | abundis | `fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel` |
+| `c5cf358` | 2026-09-23 | abundis | `feat: add ontology matching, OSINT miners, NER pipelines, and frontend analysis views` |
+| `730c15b` | 2026-09-21 | abundis | `chore: add INSTRUCCIONES_GPU.md to gitignore` |
+| `b723624` | 2026-09-21 | abundis | `feat(ner): setup dataset builder, query generator and GPU training plan` |
+
+---
+
+## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### L. Reestructuración Canónica del Sitemap, Homologación Visual (Tema Claro) y Vistas en Lista de Noticias y Contexto Ontológico
+- **Justificación técnica:**
+  1. **Arquitectura de Información Coherente (Sitemap):** Se reorganizó la jerarquía de rutas para separar claramente la visualización en lista (catálogos de consulta rápida y lectura asistida) de la visualización en grafo de relaciones (análisis de redes Sigma.js), con redirecciones transparentes para preservar compatibilidad con enlaces existentes.
+  2. **Homologación de Estilos (Design System):** Se eliminaron los fondos oscuros inline (`#090d16`, `#0f172a`) de los grafos para alinearse con la identidad global de `index.css` (fondos blancos `#ffffff`, grises `#f8fafc`, bordes `#e2e8f0` y tipografía de alto contraste).
+  3. **Navegación Ligera (Breadcrumb):** Se implementó un componente unificado de migas de pan con enlace rápido de retorno a Inicio, visible en todas las rutas públicas.
+- **Backend (`backend/app/routes/ontology.py`):**
+  - **Endpoint `GET /api/v1/ontology/noticias-list`:** Entrega el corpus periodístico paginado con filtros por municipio y búsqueda de texto completo, adjuntando entidades NER extraídas para el resaltador del frontend.
+  - **Endpoint `GET /api/v1/ontology/context-entities`:** Agrupa y cuenta las relaciones ontológicas de `vinculos_entidades`, ordenándolas por frecuencia descendente con desglose de entidades destino para alimentar la vista en lista sin exponer PII.
+- **Frontend - Nuevos Componentes y Estilos:**
+  - `frontend/src/styles/GraphPage.css`: Hoja de estilos compartida para las vistas de red Sigma, con toolbar modular, badges de conteo y panel lateral de detalle en tema claro.
+  - `frontend/src/components/layout/Breadcrumb.jsx` & `Breadcrumb.css`: Barra de navegación contextual dinámica con botón `← Volver al Inicio`.
+  - `frontend/src/components/analysis/NoticiasListPage.jsx` & `NoticiasListPage.css`: Catálogo de noticias con buscador, filtro por municipio, badges de hallazgos (cuerpos/restos), texto completo expandible y resaltador semántico NER (`HighlightedArticleText`) adaptado a fondo claro.
+  - `frontend/src/components/analysis/ContextoListPage.jsx` & `ContextoListPage.css`: Vista tabular de convenciones del registro ontológico agrupadas por tipo de relación, con barras de distribución porcentual y botón para saltar al hiper-grafo.
+- **Frontend - Archivos Modificados:**
+  - `frontend/src/App.jsx`:
+    - Redirección canónica: `/cuaderno` → `/cuaderno/lista`.
+    - Redirecciones de compatibilidad: `/red-noticias` → `/noticias/grafo` y `/red-contexto` → `/contexto/grafo`.
+    - Rutas nuevas: `/contexto` (lista), `/contexto/grafo` (red), `/noticias` (lista), `/noticias/grafo` (red).
+    - Inserción global del `<Breadcrumb />`.
+    - Optimización `isIndependentView` para evitar instanciar el mapa WebGL en las nuevas rutas.
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`: Migrado a tema claro con `GraphPage.css`, enlace bidireccional hacia `/noticias` (catálogo lista).
+  - `frontend/src/components/analysis/RedContextoPage.jsx`: Topbar modular en tema claro y enlaces de navegación hacia `/contexto` y `/noticias/grafo`.
+  - `frontend/src/components/layout/LandingPage.jsx`: Botones de acción actualizados para apuntar a `/contexto` y `/noticias`.
+
 
 ---
 
@@ -17,6 +59,26 @@
 | `c5cf358` | 2026-09-23 | abundis | `feat: add ontology matching, OSINT miners, NER pipelines, and frontend analysis views` |
 | `730c15b` | 2026-09-21 | abundis | `chore: add INSTRUCCIONES_GPU.md to gitignore` |
 | `b723624` | 2026-09-21 | abundis | `feat(ner): setup dataset builder, query generator and GPU training plan` |
+
+---
+
+## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### K. Privacidad Criptográfica de Cédulas (PII Hasheada vs Real), Resaltado Semántico NER de Prensa y Tarea 6 en TODO-LIST
+- **Justificación técnica:**
+  1. **Privacidad de Víctimas y Denunciantes:** Las cédulas de búsqueda contienen PII protegida por la ley. En el visualizador ontológico y en todo el sitio, las personas y domicilios deben mostrarse bajo hashes (`[NOMBRE_HASH_...]`, `[DOMICILIO_HASH_...]`) de forma predeterminada, ofreciendo un conmutador explícito para auditores forenses en red local (`anonymized=false`).
+  2. **Análisis Hemerográfico Completo:** Los analistas requieren leer la nota de prensa íntegra sin recortes arbitrarios, con identificación visual inmediata (subrayado) de municipios, colonias, términos forenses (`fosa`, `cuerpos`, `restos`, `calcinados`) y colectivos de búsqueda.
+- **Backend (`backend/app/routes/ontology.py`):**
+  - Se incorporó el parámetro `anonymized: bool = Query(default=True)` a `GET /api/v1/ontology/graph`.
+  - Cuando `anonymized=True`: Consulta la tabla pública `Caso` (`cedulas_anonimizadas`), extrae los hashes de nombres y domicilios, y oculta expedientes (`EXP-***-UUID`).
+  - Cuando `anonymized=False`: Consulta `CedulaPrivada`, suministrando el nombre real y la narrativa original completa para usuarios autorizados.
+  - Para nodos `NOTICIA`: Envía el `cuerpo_completo` íntegro y genera dinámicamente un arreglo `entidades_ner` (`UBICACION`, `FORENSE`, `KEYWORD`).
+- **Frontend (`frontend/src/components/analysis/RedNoticiasPage.jsx`):**
+  - **Componente `HighlightedArticleText`:** Motor regex de reemplazo que envuelve menciones de municipios/colonias en ámbar (`#fde68a`), términos forenses en rojo suave (`#fca5a5`) y colectivos en violeta (`#d8b4fe`).
+  - **Conmutador de Anonimización en Toolbar:** Botón interactivo `[🔒 PII: Hasheada / 🔓 PII: Real (Confidencial)]` que consulta dinámicamente al backend según el modo elegido.
+  - **Conmutador de Subrayado NER:** Botón interactivo `[✨ NER: Subrayado / NER: Texto Plano]` para alternar entre el texto periodístico anotado y el texto plano.
+  - **Fosas y Domicilios en Cédulas:** Se añadieron badges de visualización para `fosa_id` vinculada y `domicilio_hasheado` en el cajón de detalle del nodo.
+- **Roadmap (`TODO-LIST.md`):** Se formalizó la **Tarea 6: Sistema Global de Anonimización de Cédulas PII y Control Granular de Accesos (RBAC)** en todo el ecosistema de la plataforma.
 
 ---
 

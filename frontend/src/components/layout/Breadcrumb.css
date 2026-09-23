@@ -1,0 +1,78 @@
+/* ==============================================================================
+   Breadcrumb.css - Navegación Ligera y Consistente
+   ============================================================================== */
+
+.breadcrumb-nav-wrapper {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 0.85rem;
+  z-index: 30;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.breadcrumb-list {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #64748b;
+}
+
+.breadcrumb-link {
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.breadcrumb-link:hover {
+  color: #0f172a;
+}
+
+.breadcrumb-separator {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+}
+
+.breadcrumb-current {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.breadcrumb-home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #475569;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.breadcrumb-home-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}

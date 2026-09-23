@@ -11,6 +11,9 @@ import { VisibleNotebook, NotebookListPage } from './components/notebook';
 import LinkModal from './components/shared/LinkModal';
 import RedNoticiasPage from './components/analysis/RedNoticiasPage';
 import RedContextoPage from './components/analysis/RedContextoPage';
+import NoticiasListPage from './components/analysis/NoticiasListPage';
+import ContextoListPage from './components/analysis/ContextoListPage';
+import Breadcrumb from './components/layout/Breadcrumb';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 import createLogger from './utils/logger';
@@ -129,8 +132,11 @@ const App = () => {
 
   const isNotebookRoute = location.pathname.includes('/cuaderno/') && !location.pathname.includes('lista');
   const isVisibleRoute = location.pathname.includes('/visible/');
-  const isGraphRoute = location.pathname.includes('/red-noticias') || location.pathname.includes('/red-contexto');
-  const shouldRenderMapAndFetchers = !isGraphRoute && (isVisibleRoute || (isNotebookRoute && user));
+  const isIndependentView = location.pathname.includes('/red-noticias') || 
+                            location.pathname.includes('/red-contexto') ||
+                            location.pathname.startsWith('/noticias') ||
+                            location.pathname.startsWith('/contexto');
+  const shouldRenderMapAndFetchers = !isIndependentView && (isVisibleRoute || (isNotebookRoute && user));
 
   return (
     <>
@@ -176,6 +182,9 @@ const App = () => {
               </div>
             </>
           )}
+          {/* Breadcrumb contextual en páginas públicas */}
+          <Breadcrumb />
+
           <Suspense fallback={<div>Loading...</div>}>
             <Routes>
               {/* Redirecciones de /dist */}
@@ -185,12 +194,25 @@ const App = () => {
               <Route path="/dist/visible/:id" element={<Navigate to="/visible/:id" replace />} />
               <Route path="/cuadernos/lista" element={<Navigate to="/cuaderno/lista" replace />} />
 
-              {/* Rutas Públicas */}
+              {/* Redirección Canónica de /cuaderno */}
+              <Route path="/cuaderno" element={<Navigate to="/cuaderno/lista" replace />} />
+
+              {/* Redirecciones de compatibilidad para enlaces y bookmarks previos */}
+              <Route path="/red-noticias" element={<Navigate to="/noticias/grafo" replace />} />
+              <Route path="/red-contexto" element={<Navigate to="/contexto/grafo" replace />} />
+
+              {/* Rutas Públicas Principales */}
               <Route path="/" element={<LandingPage listNotebooksApp={listNotebooksApp} />} />
               <Route path="/cuaderno/lista" element={<NotebookListPage />} />
               <Route path="/visible/:id" element={<VisibleNotebook />} />
-              <Route path="/red-noticias" element={<RedNoticiasPage />} />
-              <Route path="/red-contexto" element={<RedContextoPage />} />
+
+              {/* Módulo de Contexto y Convenciones Ontológicas */}
+              <Route path="/contexto" element={<ContextoListPage />} />
+              <Route path="/contexto/grafo" element={<RedContextoPage />} />
+
+              {/* Módulo de Cobertura Periodística y Prensa OSINT */}
+              <Route path="/noticias" element={<NoticiasListPage />} />
+              <Route path="/noticias/grafo" element={<RedNoticiasPage />} />
               
               {/* Rutas Privadas */}
               <Route path="/cuaderno/nuevo" element={

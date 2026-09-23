@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.models import Caso, Noticia, Fosa, VinculoEntidad
+from backend.app.models import Caso, Noticia, Fosa, VinculoEntidad, NoticiaCorpus, CedulaPrivada, PiiHashRegistry
 from backend.app.ontology.matcher import ontology_matcher_service
 from backend.app.ontology.models import SemanticGraphResponse, GraphNode, GraphEdge, COLOR_MAP
 
@@ -109,14 +109,17 @@ def get_supernodes_clustering(db: Session = Depends(get_db)):
 def get_full_semantic_graph(
     limit_edges: int = Query(default=300, ge=10, le=2000),
     include_empty: bool = Query(default=False, description="Incluir casos archivados sin noticia (OSINT_EMPTY)"),
+    anonymized: bool = Query(default=True, description="Mostrar nombres y datos de cédulas anonimizados bajo hashes criptográficos"),
     db: Session = Depends(get_db)
 ):
     """
     Devuelve el grafo semántico consolidado para visualización interactiva.
-    Incluye metadata contextual completa para PERSONA/CASO, NOTICIA, FOSA y HASH_DOMICILIO.
+    Incluye metadata contextual completa para PERSONA/CASO (con soporte de anonimización PII),
+    cuerpo completo y entidades NER estructuradas para NOTICIA, y vínculos con FOSA y DOMICILIOS.
     """
     import math
-    from backend.app.models import CedulaPrivada, PiiHashRegistry
+    import re
+    from backend.app.models import CedulaPrivada, PiiHashRegistry, Caso, Fosa
 
     query = db.query(VinculoEntidad)
     if not include_empty:
@@ -143,7 +146,11 @@ def get_full_semantic_graph(
         node_ids.add(e.target_node)
 
     # 1. Precargar información contextual por lotes para enriquecer cada nodo
-    caso_uuids = [nid.replace("CASO_", "") for nid in node_ids if "CASO_" in nid]
+    caso_uuids = [
+        nid.replace("CASO_", "").replace("cedula_", "") 
+        for nid in node_ids 
+        if "CASO_" in nid or "cedula_" in nid
+    ]
     noticia_ids = []
     for nid in node_ids:
         if "NOTICIA_" in nid:
@@ -151,11 +158,18 @@ def get_full_semantic_graph(
                 noticia_ids.append(int(nid.replace("NOTICIA_", "")))
             except Exception:
                 pass
+    corpus_ids = []
+    for nid in node_ids:
+        if "corpus_" in nid:
+            try:
+                corpus_ids.append(int(nid.replace("corpus_", "")))
+            except Exception:
+                pass
     fosa_ids = []
     for nid in node_ids:
-        if "FOSA_" in nid:
+        if "FOSA_" in nid or "fosa_" in nid:
             try:
-                fosa_ids.append(int(nid.replace("FOSA_", "")))
+                fosa_ids.append(int(nid.replace("FOSA_", "").replace("fosa_", "")))
             except Exception:
                 pass
     pii_hash_ids = [nid for nid in node_ids if "HASH_" in nid or "DOMICILIO_" in nid or "NOMBRE_" in nid]
@@ -163,16 +177,97 @@ def get_full_semantic_graph(
     # Diccionarios de enriquecimiento
     casos_meta = {}
     if caso_uuids:
-        c_rows = db.query(CedulaPrivada).filter(CedulaPrivada.id.in_(caso_uuids)).all()
-        for c in c_rows:
-            casos_meta[f"CASO_{c.id}"] = {
-                "nombre_real": c.nombre_real,
-                "municipio": c.municipio,
-                "colonia": c.colonia,
-                "fecha": c.fecha_desaparicion,
-                "descripcion": c.text_original[:600] if c.text_original else "",
-                "telefono": c.telefono_contacto,
-                "expediente": c.id_expediente
+        # Cargar tanto tabla pública anonimizada (Caso) como privada (CedulaPrivada)
+        ca_rows = db.query(Caso).filter(Caso.id_cedula_busqueda.in_(caso_uuids)).all()
+        ca_map = {c.id_cedula_busqueda: c for c in ca_rows}
+
+        cp_rows = db.query(CedulaPrivada).filter(CedulaPrivada.id.in_(caso_uuids)).all()
+        cp_map = {c.id: c for c in cp_rows}
+
+        for cid in caso_uuids:
+            ca = ca_map.get(cid)
+            cp = cp_map.get(cid)
+
+            # Extraer entidades hasheadas del texto anonimizado
+            domicilio_hashes = []
+            if ca and ca.descripcion_desaparicion:
+                domicilio_hashes = re.findall(r'\[(DOMICILIO_HASH_[a-f0-9]+)\]', ca.descripcion_desaparicion)
+
+            if anonymized:
+                # MODO ANÓNIMO: Respetar hashes y privacidad
+                nombre_display = (ca.nombre_completo if ca and ca.nombre_completo else f"Caso {cid[:8]}")
+                desc_display = (ca.descripcion_desaparicion if ca and ca.descripcion_desaparicion else (cp.text_original[:600] if cp else ""))
+                meta = {
+                    "nombre_anonimizado": nombre_display,
+                    "municipio": ca.municipio if ca else (cp.municipio if cp else None),
+                    "colonia": cp.colonia if cp else None,
+                    "fecha": ca.fecha_desaparicion if ca else (cp.fecha_desaparicion if cp else None),
+                    "description": desc_display,
+                    "expediente": f"EXP-***-{cid[:6]}",
+                    "fosa_id": ca.fosa_id if ca else None,
+                    "domicilio_hasheado": domicilio_hashes[0] if domicilio_hashes else None,
+                    "is_anonymized": True
+                }
+            else:
+                # MODO CONFIDENCIAL / AUDITORÍA: Datos reales
+                nombre_real = cp.nombre_real if cp and cp.nombre_real else (ca.nombre_completo if ca else f"Caso {cid[:8]}")
+                desc_real = cp.text_original if cp and cp.text_original else (ca.descripcion_desaparicion if ca else "")
+                meta = {
+                    "nombre_anonimizado": nombre_real,
+                    "municipio": cp.municipio if cp else (ca.municipio if ca else None),
+                    "colonia": cp.colonia if cp else None,
+                    "fecha": cp.fecha_desaparicion if cp else (ca.fecha_desaparicion if ca else None),
+                    "description": desc_real,
+                    "telefono": cp.telefono_contacto if cp else None,
+                    "expediente": cp.id_expediente if cp else None,
+                    "fosa_id": ca.fosa_id if ca else None,
+                    "domicilio_hasheado": domicilio_hashes[0] if domicilio_hashes else None,
+                    "is_anonymized": False
+                }
+
+            casos_meta[f"CASO_{cid}"] = meta
+            casos_meta[f"cedula_{cid}"] = meta
+
+    corpus_meta = {}
+    if corpus_ids:
+        nc_rows = db.query(NoticiaCorpus).filter(NoticiaCorpus.id.in_(corpus_ids)).all()
+        for nc in nc_rows:
+            # Construir entidades para resaltado semántico
+            entidades = []
+            if nc.municipio_extraido:
+                entidades.append({"tipo": "UBICACION", "texto": nc.municipio_extraido})
+            if nc.colonia_extraida:
+                entidades.append({"tipo": "UBICACION", "texto": nc.colonia_extraida})
+            if nc.referencia_ubicacion:
+                entidades.append({"tipo": "UBICACION", "texto": nc.referencia_ubicacion})
+            if nc.keywords_matched:
+                for kw in nc.keywords_matched:
+                    entidades.append({"tipo": "KEYWORD", "texto": kw})
+
+            # Añadir patrones forenses frecuentes
+            terminos_forenses = [
+                "fosa clandestina", "fosas clandestinas", "restos óseos", "restos humanos",
+                "cuerpos embolsados", "cuerpo embolsado", "bolsas con restos", "calcinados",
+                "madres buscadoras", "colectivo luz de esperanza", "guerreros buscadores",
+                "comisión de búsqueda", "inhumación clandestina", "osamenta", "segmentos anatómicos"
+            ]
+            cuerpo_lower = (nc.cuerpo_texto or "").lower()
+            for tf in terminos_forenses:
+                if tf in cuerpo_lower:
+                    entidades.append({"tipo": "FORENSE", "texto": tf})
+
+            corpus_meta[f"corpus_{nc.id}"] = {
+                "titular": nc.titular,
+                "url": nc.url,
+                "fecha": str(nc.fecha) if nc.fecha else None,
+                "municipio": nc.municipio_extraido,
+                "colonia": nc.colonia_extraida,
+                "cuerpos": nc.total_cuerpos_estimado,
+                "restos": nc.total_restos_estimado,
+                "coordenadas": nc.coordenadas,
+                "resumen": nc.resumen_hallazgo or nc.titular,
+                "cuerpo_texto": nc.cuerpo_texto or nc.resumen_hallazgo or nc.titular,
+                "entidades_ner": entidades
             }
 
     noticias_meta = {}
@@ -183,8 +278,9 @@ def get_full_semantic_graph(
                 "titular": n.titular,
                 "url": n.url,
                 "fecha": str(n.fecha) if n.fecha else None,
-                "cuerpo_snippet": (n.cuerpo_texto[:800] + "...") if n.cuerpo_texto else "",
-                "query": getattr(n, "query_origen", "")
+                "cuerpo_texto": n.cuerpo_texto or n.titular,
+                "query": getattr(n, "query_origen", ""),
+                "entidades_ner": []
             }
 
     fosas_meta = {}
@@ -199,6 +295,7 @@ def get_full_semantic_graph(
                 "total_restos": f.total_restos_fragmentos,
                 "coordenadas": f.coordenadas
             }
+            fosas_meta[f"fosa_{f.id}"] = fosas_meta[f"FOSA_{f.id}"]
 
     pii_meta = {}
     if pii_hash_ids:
@@ -219,22 +316,49 @@ def get_full_semantic_graph(
         node_meta = {}
         node_label = nid
 
-        if "CASO" in nid:
+        if "CASO" in nid or "cedula" in nid:
             ntype = "PERSONA"
             if nid in casos_meta:
                 cm = casos_meta[nid]
-                node_label = f"Caso: {cm['colonia'] or cm['municipio'] or nid[:12]}"
+                if anonymized:
+                    node_label = f"Caso {cm['nombre_anonimizado']}"
+                else:
+                    node_label = f"Caso: {cm['nombre_anonimizado'] or cm['colonia'] or cm['municipio'] or nid[:8]}"
                 node_meta = {
                     "type": "PERSONA",
                     "location": f"{cm['colonia'] or ''}, {cm['municipio'] or ''}".strip(", "),
                     "date": cm["fecha"],
-                    "description": cm["descripcion"],
-                    "expediente": cm["expediente"],
-                    "nombre_anonimizado": cm["nombre_real"]
+                    "description": cm["description"],
+                    "expediente": cm.get("expediente"),
+                    "nombre_anonimizado": cm["nombre_anonimizado"],
+                    "fosa_id": cm.get("fosa_id"),
+                    "domicilio_hasheado": cm.get("domicilio_hasheado"),
+                    "is_anonymized": cm.get("is_anonymized", True)
                 }
             else:
-                node_label = nid.replace("CASO_", "Caso ")
-        elif "FOSA" in nid:
+                node_label = nid.replace("CASO_", "Caso ").replace("cedula_", "Caso ")
+                node_meta = {"type": "PERSONA"}
+        elif "corpus_" in nid:
+            ntype = "NOTICIA"
+            if nid in corpus_meta:
+                cm = corpus_meta[nid]
+                node_label = cm["titular"][:35] + "..." if len(cm["titular"]) > 35 else cm["titular"]
+                node_meta = {
+                    "type": "NOTICIA",
+                    "titular": cm["titular"],
+                    "url": cm["url"],
+                    "date": cm["fecha"],
+                    "location": f"{cm['colonia'] or ''}, {cm['municipio'] or ''}".strip(", "),
+                    "description": cm["resumen"] or cm["titular"],
+                    "cuerpo_completo": cm["cuerpo_texto"],
+                    "cuerpos": cm["cuerpos"],
+                    "restos": cm["restos"],
+                    "entidades_ner": cm["entidades_ner"]
+                }
+            else:
+                node_label = nid.replace("corpus_", "Noticia ")
+                node_meta = {"type": "NOTICIA"}
+        elif "FOSA" in nid or "fosa_" in nid:
             ntype = "FOSA"
             if nid in fosas_meta:
                 fm = fosas_meta[nid]
@@ -249,7 +373,8 @@ def get_full_semantic_graph(
                     "description": f"Fosa clandestina con {fm['total_cuerpos'] or 0} cuerpos recuperados en {fm['municipio']}."
                 }
             else:
-                node_label = nid.replace("FOSA_", "Fosa ")
+                node_label = nid.replace("FOSA_", "Fosa ").replace("fosa_", "Fosa ")
+                node_meta = {"type": "FOSA"}
         elif "NOTICIA" in nid:
             ntype = "NOTICIA"
             if nid in noticias_meta:
@@ -260,28 +385,33 @@ def get_full_semantic_graph(
                     "titular": nm["titular"],
                     "url": nm["url"],
                     "date": nm["fecha"],
-                    "description": nm["cuerpo_snippet"] or nm["titular"],
-                    "query": nm["query"]
+                    "description": nm["titular"],
+                    "cuerpo_completo": nm["cuerpo_texto"],
+                    "query": nm["query"],
+                    "entidades_ner": nm.get("entidades_ner", [])
                 }
             else:
                 node_label = nid.replace("NOTICIA_", "Nota ")
+                node_meta = {"type": "NOTICIA"}
         elif "DOMICILIO" in nid:
             ntype = "HASH_DOMICILIO"
             pm = pii_meta.get(nid, {})
-            node_label = f"Calle: {pm.get('canonical_value', nid)[:25]}"
+            node_label = f"Domicilio: {nid[:18]}" if anonymized else f"Calle: {pm.get('canonical_value', nid)[:25]}"
             node_meta = {
                 "type": "HASH_DOMICILIO",
-                "canonical_value": pm.get("canonical_value"),
-                "description": f"Entidad de domicilio normalizada: {pm.get('canonical_value')}"
+                "canonical_value": pm.get("canonical_value") if not anonymized else nid,
+                "hash_id": nid,
+                "description": f"Entidad protegida de domicilio [HASH]: {nid}" if anonymized else f"Entidad de domicilio normalizada: {pm.get('canonical_value')}"
             }
         elif "NOMBRE" in nid:
             ntype = "PERSONA"
             pm = pii_meta.get(nid, {})
-            node_label = f"PII: {pm.get('canonical_value', nid)[:20]}"
+            node_label = f"{nid[:16]}" if anonymized else f"PII: {pm.get('canonical_value', nid)[:20]}"
             node_meta = {
                 "type": "PERSONA",
-                "canonical_value": pm.get("canonical_value"),
-                "description": f"PII criptográfico anonimizado: {pm.get('canonical_value')}"
+                "canonical_value": pm.get("canonical_value") if not anonymized else nid,
+                "hash_id": nid,
+                "description": f"Nombre criptográfico anonimizado: {nid}" if anonymized else f"Nombre desanonimizado: {pm.get('canonical_value')}"
             }
         elif nid == "OSINT_EMPTY":
             ntype = "SUGERENCIA"
@@ -293,6 +423,9 @@ def get_full_semantic_graph(
         else:
             ntype = "SUGERENCIA"
             node_label = nid
+            node_meta = {}
+
+        node_color = COLOR_MAP.get(ntype, "#4a4e69")
 
         nodes_pool.append({
             "id": nid,
@@ -300,8 +433,8 @@ def get_full_semantic_graph(
             "type": ntype,
             "x": radius * math.cos(angle),
             "y": radius * math.sin(angle),
-            "size": 16.0 if ntype in ["PERSONA", "FOSA", "NOTICIA"] else 10.0,
-            "color": COLOR_MAP.get(ntype, "#4a4e69"),
+            "size": 18.0 if ntype in ["PERSONA", "FOSA", "NOTICIA"] else 10.0,
+            "color": node_color,
             "metadata": node_meta
         })
 
@@ -623,5 +756,151 @@ def get_context_semantic_graph(
         total_edges=len(edges_pool),
         cluster_mode=False
     )
+
+
+@router.get("/noticias-list")
+def get_noticias_list(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=15, ge=1, le=100),
+    municipio: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve el catálogo de noticias del corpus periodístico paginado,
+    con extracción de entidades NER para visualización en lista con texto completo.
+    """
+    query = db.query(NoticiaCorpus)
+
+    if municipio and municipio.strip():
+        query = query.filter(NoticiaCorpus.municipio_extraido.ilike(f"%{municipio.strip()}%"))
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            (NoticiaCorpus.titular.ilike(term)) | (NoticiaCorpus.cuerpo_texto.ilike(term))
+        )
+
+    total = query.count()
+    items_db = query.order_by(NoticiaCorpus.fecha.desc().nullslast()).offset((page - 1) * page_size).limit(page_size).all()
+
+    terminos_forenses = [
+        "fosa clandestina", "fosas clandestinas", "restos óseos", "restos humanos",
+        "cuerpos embolsados", "cuerpo embolsado", "bolsas con restos", "calcinados",
+        "madres buscadoras", "colectivo luz de esperanza", "guerreros buscadores",
+        "comisión de búsqueda", "inhumación clandestina", "osamenta", "segmentos anatómicos"
+    ]
+
+    items = []
+    for nc in items_db:
+        entidades = []
+        if nc.municipio_extraido:
+            entidades.append({"tipo": "UBICACION", "texto": nc.municipio_extraido})
+        if nc.colonia_extraida:
+            entidades.append({"tipo": "UBICACION", "texto": nc.colonia_extraida})
+        if nc.referencia_ubicacion:
+            entidades.append({"tipo": "UBICACION", "texto": nc.referencia_ubicacion})
+        if nc.keywords_matched:
+            for kw in nc.keywords_matched:
+                entidades.append({"tipo": "KEYWORD", "texto": kw})
+
+        cuerpo_lower = (nc.cuerpo_texto or "").lower()
+        for tf in terminos_forenses:
+            if tf in cuerpo_lower:
+                entidades.append({"tipo": "FORENSE", "texto": tf})
+
+        items.append({
+            "id": nc.id,
+            "titular": nc.titular,
+            "url": nc.url,
+            "fecha": str(nc.fecha) if nc.fecha else None,
+            "municipio": nc.municipio_extraido,
+            "colonia": nc.colonia_extraida,
+            "cuerpo_texto": nc.cuerpo_texto,
+            "keywords": nc.keywords_matched or [],
+            "total_cuerpos_estimado": nc.total_cuerpos_estimado,
+            "total_restos_estimado": nc.total_restos_estimado,
+            "entidades_ner": entidades
+        })
+
+    import math
+    total_pages = math.ceil(total / page_size) if total > 0 else 1
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": total_pages
+    }
+
+
+@router.get("/context-entities")
+def get_context_entities_list(
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve el catálogo agregado de convenciones y entidades ontológicas
+    ordenadas por frecuencia descendente (repeticiones), agrupadas por tipo.
+    """
+    from sqlalchemy import func
+
+    # Conteo por relation_type
+    rel_counts = db.query(
+        VinculoEntidad.relation_type,
+        func.count(VinculoEntidad.id).label("total")
+    ).group_by(VinculoEntidad.relation_type).order_by(func.count(VinculoEntidad.id).desc()).all()
+
+    # Desglose de entidades destino para relaciones clave
+    target_counts = db.query(
+        VinculoEntidad.relation_type,
+        VinculoEntidad.target_node,
+        func.count(VinculoEntidad.id).label("total")
+    ).filter(
+        VinculoEntidad.relation_type.in_([
+            'MODUS_OPERANDI', 'INSTITUCION_LUGAR', 'DESTINO_DECLARADO',
+            'VIAJABA_EN_VEHICULO', 'PERPETRADO_CON_VEHICULO',
+            'REPORTE_POR_FAMILIAR', 'INDICIOS_EN_SITIO'
+        ])
+    ).group_by(
+        VinculoEntidad.relation_type,
+        VinculoEntidad.target_node
+    ).order_by(
+        VinculoEntidad.relation_type,
+        func.count(VinculoEntidad.id).desc()
+    ).all()
+
+    grouped_targets: Dict[str, List[Dict[str, Any]]] = {}
+    for r_type, target, cnt in target_counts:
+        # Limpiar identificadores tipo MODUS_..., INST_..., etc.
+        clean_name = target
+        for prefix in ["MODUS_", "INST_", "DESTINO_", "VEH_VIC_", "VEH_PERP_", "ROL_", "CONDICION_", "SEXO_"]:
+            if clean_name.startswith(prefix):
+                clean_name = clean_name[len(prefix):]
+                break
+        clean_name = clean_name.replace("_", " ").strip()
+
+        if r_type not in grouped_targets:
+            grouped_targets[r_type] = []
+        grouped_targets[r_type].append({
+            "target_node": target,
+            "nombre": clean_name,
+            "repeticiones": cnt
+        })
+
+    categories = []
+    for r_type, total_r in rel_counts:
+        entities = grouped_targets.get(r_type, [])
+        categories.append({
+            "relation_type": r_type,
+            "total_vinculos": total_r,
+            "entities": entities
+        })
+
+    return {
+        "total_tipos": len(categories),
+        "categories": categories
+    }
+
 
 

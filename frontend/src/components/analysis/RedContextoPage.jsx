@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SigmaContainer, useLoadGraph, useRegisterEvents } from '@react-sigma/core';
 import "../../styles/sigma.css";
+import "../../styles/GraphPage.css";
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import { 
@@ -20,7 +21,8 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Clock
+  Clock,
+  List
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -277,66 +279,28 @@ const RedContextoPage = () => {
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Topbar */}
-      <header style={{
-        height: '60px',
-        backgroundColor: '#0f172a',
-        borderBottom: '1px solid #1e293b',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 24px',
-        zIndex: 10
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <header className="graph-toolbar">
+        <div className="graph-toolbar-left">
           <Link 
-            to="/" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              color: '#94a3b8', 
-              textDecoration: 'none', 
-              fontSize: '13px',
-              padding: '6px 10px',
-              backgroundColor: '#1e293b',
-              borderRadius: '6px'
-            }}
+            to="/contexto" 
+            className="graph-btn-action"
+            title="Ir al catálogo ontológico en lista"
           >
-            <ArrowLeft size={16} /> Inicio
+            <List size={16} /> <span>Ver Catálogo Lista</span>
           </Link>
 
           <Link 
-            to="/red-noticias" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              color: '#f59e0b', 
-              textDecoration: 'none', 
-              fontSize: '13px',
-              padding: '6px 12px',
-              backgroundColor: '#1e293b',
-              border: '1px solid #78350f',
-              borderRadius: '6px',
-              fontWeight: 600
-            }}
+            to="/noticias/grafo" 
+            className="graph-btn-action"
+            style={{ color: '#d97706' }}
           >
-            <Newspaper size={16} /> Auditoría Noticias OSINT
+            <Newspaper size={16} /> <span>Grafo Noticias OSINT</span>
           </Link>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Network size={22} color="#a855f7" />
-            <h1 style={{ fontSize: '17px', fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>
-              Hiper-Grafo de Contexto Forense & Patrones
-            </h1>
-            <span style={{ 
-              fontSize: '11px', 
-              background: '#9333ea', 
-              color: '#fff', 
-              padding: '2px 8px', 
-              borderRadius: '12px',
-              fontWeight: 600
-            }}>
+          <div className="graph-toolbar-title">
+            <Network size={20} color="#7c3aed" />
+            <span>Hiper-Grafo de Contexto Forense & Patrones</span>
+            <span className="graph-badge-counter" style={{ background: '#f3e8ff', color: '#6b21a8' }}>
               RAG-Ontology
             </span>
           </div>
