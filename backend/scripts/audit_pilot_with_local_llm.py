@@ -16,10 +16,17 @@ from typing import Dict, Any, List
 from collections import Counter
 from sqlalchemy import create_engine, text
 
-# Base de datos central en abeja
-DB_URL = "postgresql://tejer_Admin:T3jeEr!-!s@192.168.1.64:5432/cartografia_semantica_db"
-LLM_API_URL = "http://localhost:8000/v1/chat/completions"
-MODEL_NAME = "qwen-coder"
+DB_URL = os.environ.get("DATABASE_URL")
+if not DB_URL:
+    host = os.environ.get("DB_HOST", "localhost")
+    port = os.environ.get("DB_PORT", "5432")
+    user = os.environ.get("DB_USER", "postgres")
+    pwd = os.environ.get("DB_PASSWORD", "")
+    name = os.environ.get("DB_NAME", "cartografia_semantica_db")
+    DB_URL = f"postgresql://{user}:{pwd}@{host}:{port}/{name}" if pwd else f"postgresql://{user}@{host}:{port}/{name}"
+
+LLM_API_URL = os.environ.get("LLM_API_URL", "http://localhost:8000/v1/chat/completions")
+MODEL_NAME = os.environ.get("MODEL_NAME", "qwen-coder")
 
 
 def call_local_llm(prompt: str, system_prompt: str) -> Dict[str, Any]:

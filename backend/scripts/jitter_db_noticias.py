@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-db_url = os.getenv("DATABASE_URL")
+db_url = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DATABASE_URL")
 if not db_url:
-    db_url = "postgresql://postgres.vkvonszkyzfktjxobqmp:qlsBX0qmhyLsSzCi@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
+    raise ValueError("Error: DATABASE_URL o SUPABASE_DATABASE_URL no configurada en .env")
 
 print("Connecting to database:", db_url)
 

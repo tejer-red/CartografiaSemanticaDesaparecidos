@@ -23,9 +23,17 @@ from typing import List, Dict, Any, Optional
 from bs4 import BeautifulSoup
 from sqlalchemy import create_engine, text
 
-DB_URL = "postgresql://tejer_Admin:T3jeEr!-!s@192.168.1.64:5432/cartografia_semantica_db"
-LLM_API_URL = "http://localhost:8000/v1/chat/completions"
-MODEL_NAME = "qwen-coder"
+DB_URL = os.environ.get("DATABASE_URL")
+if not DB_URL:
+    host = os.environ.get("DB_HOST", "localhost")
+    port = os.environ.get("DB_PORT", "5432")
+    user = os.environ.get("DB_USER", "postgres")
+    pwd = os.environ.get("DB_PASSWORD", "")
+    name = os.environ.get("DB_NAME", "cartografia_semantica_db")
+    DB_URL = f"postgresql://{user}:{pwd}@{host}:{port}/{name}" if pwd else f"postgresql://{user}@{host}:{port}/{name}"
+
+LLM_API_URL = os.environ.get("LLM_API_URL", "http://localhost:8000/v1/chat/completions")
+MODEL_NAME = os.environ.get("MODEL_NAME", "qwen-coder")
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

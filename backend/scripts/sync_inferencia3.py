@@ -8,14 +8,13 @@ import sys
 import psycopg2
 from psycopg2.extras import execute_batch
 
-SUPABASE_URL = os.environ.get(
-    "SUPABASE_DATABASE_URL",
-    "postgresql://postgres.vkvonszkyzfktjxobqmp:qlsBX0qmhyLsSzCi@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
-)
-LOCAL_DB_URL = os.environ.get(
-    "LOCAL_DATABASE_URL",
-    "postgresql://tejer_Admin:T3jeEr!-!s@192.168.1.64:5432/cartografia_semantica_db"
-)
+SUPABASE_URL = os.environ.get("SUPABASE_DATABASE_URL")
+LOCAL_DB_URL = os.environ.get("DATABASE_URL") or os.environ.get("LOCAL_DATABASE_URL")
+
+if not SUPABASE_URL:
+    raise ValueError("Error: Variable de entorno SUPABASE_DATABASE_URL no configurada en .env")
+if not LOCAL_DB_URL:
+    raise ValueError("Error: Variable de entorno DATABASE_URL no configurada en .env")
 
 def sync_inferencia3():
     print("[Sync] Conectando a PostgreSQL Local...", flush=True)

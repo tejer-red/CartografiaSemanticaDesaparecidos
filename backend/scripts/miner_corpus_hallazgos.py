@@ -31,13 +31,18 @@ from psycopg2.extras import Json
 from bs4 import BeautifulSoup
 
 # Configuración Base de Datos y Modelo LLM
-DB_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql://tejer_Admin:T3jeEr!-!s@192.168.1.64:5432/cartografia_semantica_db"
-)
+DB_URL = os.environ.get("DATABASE_URL")
+if not DB_URL:
+    host = os.environ.get("DB_HOST", "localhost")
+    port = os.environ.get("DB_PORT", "5432")
+    user = os.environ.get("DB_USER", "postgres")
+    pwd = os.environ.get("DB_PASSWORD", "")
+    name = os.environ.get("DB_NAME", "cartografia_semantica_db")
+    DB_URL = f"postgresql://{user}:{pwd}@{host}:{port}/{name}" if pwd else f"postgresql://{user}@{host}:{port}/{name}"
+
 LLM_API_URL = os.environ.get("LLM_API_URL", "http://localhost:8000/v1/chat/completions")
 MODEL_NAME = os.environ.get("MODEL_NAME", "qwen-coder")
-LOCATIONIQ_API_KEY = os.environ.get("LOCATIONIQ_API_KEY", "pk.9333a7f9e3160943014de6f6743c11cf")
+LOCATIONIQ_API_KEY = os.environ.get("LOCATIONIQ_API_KEY", "")
 KEYWORDS_FILE = os.path.join(os.path.dirname(__file__), "keywords_pool.json")
 
 # Rango temporal por defecto alineado con cédulas de búsqueda (hasta 2024)

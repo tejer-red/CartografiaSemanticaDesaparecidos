@@ -27,7 +27,14 @@ from sqlalchemy import create_engine, text
 from backend.app.miners.miner_noticias import news_miner_service
 from backend.app.miners.query_generator import OSINTQueryGenerator
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://tejer_Admin:T3jeEr!-!s@192.168.1.64:5432/cartografia_semantica_db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    host = os.environ.get("DB_HOST", "localhost")
+    port = os.environ.get("DB_PORT", "5432")
+    user = os.environ.get("DB_USER", "postgres")
+    pwd = os.environ.get("DB_PASSWORD", "")
+    name = os.environ.get("DB_NAME", "cartografia_semantica_db")
+    DATABASE_URL = f"postgresql://{user}:{pwd}@{host}:{port}/{name}" if pwd else f"postgresql://{user}@{host}:{port}/{name}"
 LOG_DIR = PROJECT_ROOT / "reports" / "mining"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "night_miner.log"
