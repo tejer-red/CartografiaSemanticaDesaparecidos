@@ -11,10 +11,11 @@ import {
 } from 'lucide-react';
 
 const PanelHallazgosCorpus = () => {
-  const { map, remoteNoticias, setGlobalLinkModal } = useData();
+  const { map, remoteNoticias, setGlobalLinkModal, selectedDate, daysRange } = useData();
   const [searchMunicipio, setSearchMunicipio] = useState('');
   const [selectedColectivo, setSelectedColectivo] = useState('ALL');
   const [minCuerpos, setMinCuerpos] = useState(0);
+  const [filterByTimeline, setFilterByTimeline] = useState(true);
   const [viewportFeatures, setViewportFeatures] = useState([]);
 
   // Colectivos buscadores conocidos en Jalisco
@@ -77,14 +78,33 @@ const PanelHallazgosCorpus = () => {
     };
   }, [map, allCorpusFeatures]);
 
-  // Filtros combinados: texto, municipio, colectivo y cantidad de cuerpos
+  // Filtros combinados: texto, municipio, colectivo, cantidad de cuerpos y ventana temporal del timeline
   const filteredHallazgos = useMemo(() => {
+    let minTime = null;
+    let maxTime = null;
+    if (filterByTimeline && selectedDate) {
+      minTime = new Date(selectedDate).getTime();
+      maxTime = minTime + ((daysRange || 30) * 86400000);
+    }
+
     return viewportFeatures.filter(item => {
       const p = item.properties || {};
       const titular = p.titular || '';
       const resumen = p.resumen || '';
       const municipio = p.municipio || p.municipio_extraido || '';
       const cuerpos = parseInt(p.total_cuerpos || p.total_cuerpos_estimado || 0, 10);
+
+      // Filtro Temporal del Timeline
+      if (minTime !== null && maxTime !== null) {
+        const itemTime = Number(p.timestamp || p.timestamp_start || 0);
+        const itemEndTime = Number(p.timestamp_end || itemTime);
+        if (itemTime > 0) {
+          // Intersección con la ventana activa del timeline
+          if (itemTime > maxTime || itemEndTime < minTime) {
+            return false;
+          }
+        }
+      }
 
       // Filtro Municipio
       if (searchMunicipio.trim()) {
@@ -113,7 +133,7 @@ const PanelHallazgosCorpus = () => {
 
       return true;
     });
-  }, [viewportFeatures, searchMunicipio, selectedColectivo, minCuerpos]);
+  }, [viewportFeatures, searchMunicipio, selectedColectivo, minCuerpos, filterByTimeline, selectedDate, daysRange]);
 
   // Centrar el mapa y enfocar un hallazgo
   const handleSelectHallazgo = (feature) => {
@@ -234,6 +254,24 @@ const PanelHallazgosCorpus = () => {
               <option value={15}>≥ 15 cuerpos (Masivos)</option>
             </select>
           </div>
+        </div>
+
+        {/* Toggle sincronizar con Timeline */}
+        <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#94a3b8', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={filterByTimeline}
+              onChange={(e) => setFilterByTimeline(e.target.checked)}
+              style={{ cursor: 'pointer', accentColor: '#38bdf8' }}
+            />
+            Sincronizar con Timeline
+          </label>
+          {filterByTimeline && selectedDate && (
+            <span style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 600 }}>
+              Ventana: {daysRange || 30} días
+            </span>
+          )}
         </div>
       </div>
 

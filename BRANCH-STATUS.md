@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 11:53 CST
+- **Última actualización:** 2026-09-23 12:51 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `c5cf358` (`feat: add ontology matching, OSINT miners, NER pipelines, and frontend analysis views`)
-- **Estado de sincronización:** Sincronizado con remoto (`origin/feature/ner-ontologia-mineria`)
-- **Estado general:** En desarrollo activo (Fase 2: Escalamiento, Minado y Vinculación Espacio-Temporal)
+- **Último commit:** `d556a7e` (`fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel`)
+- **Estado de sincronización:** 1 commit adelante de remoto (`origin/feature/ner-ontologia-mineria`)
+- **Estado general:** En desarrollo activo (Corrección de Filtros, Condición de Localización y Estadísticas)
 
 ---
 
@@ -12,9 +12,32 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
+| `d556a7e` | 2026-09-23 | abundis | `fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel` |
 | `c5cf358` | 2026-09-23 | abundis | `feat: add ontology matching, OSINT miners, NER pipelines, and frontend analysis views` |
 | `730c15b` | 2026-09-21 | abundis | `chore: add INSTRUCCIONES_GPU.md to gitignore` |
 | `b723624` | 2026-09-21 | abundis | `feat(ner): setup dataset builder, query generator and GPU training plan` |
+
+---
+
+## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### G. Corrección de Condición de Localización y Discrepancias de BD
+- **Justificación técnica:** En la BD local (`192.168.1.64`), todas las 5,542 cédulas figuraban con el valor `'NO_LOCALIZADO'`, perdiendo los atributos reales (`CON VIDA`, `SIN VIDA`, `NO APLICA`) presentes en Supabase y rompiendo los filtros visuales del mapa.
+- **Sincronización:** Se ejecutó migración masiva por `id_cedula_busqueda` desde Supabase hacia la BD local en `192.168.1.64`:
+  - `NO APLICA`: 2,953 registros.
+  - `CON VIDA`: 2,281 registros.
+  - `SIN VIDA`: 308 registros.
+- **Ajuste en Backend (`backend/app/routes/casos.py`):** Modificación del fallback en la línea 100 de `row["condicion_localizacion"] or "NO_LOCALIZADO"` a `row["condicion_localizacion"] or "NO APLICA"`, alineándolo con los filtros y esquemas oficiales.
+
+### H. Corrección y Resiliencia del Panel de Estadísticas (`FilteredStats.jsx` / `FilteredFeatures.jsx`)
+- **Justificación técnica:** El panel "Selección Actual" permanecía en blanco porque MapLibre GL no retornaba features vía `querySourceFeatures` si las teselas no estaban cargadas en el viewport o si el filtro descartaba registros desfasados.
+- **Soporte Fallback en Memoria:** Se modificó `frontend/src/context/FilteredFeatures.jsx` y `frontend/src/utils/filteredStats.jsx` para admitir `fallbackRecords` (`fetchedRecords` de `DataContext`). Si `querySourceFeatures` retorna 0 elementos, el sistema filtra directamente sobre el GeoJSON en memoria respetando rango temporal, sexo, condición, edad y sum_score.
+- **Integración UI:** `frontend/src/components/filters/FilteredStats.jsx` ahora suministra `fetchedRecords`, garantizando renderizado inmediato de gráficas de barras y pastel.
+
+### I. Sincronización del Panel de Hallazgos y Fosas con el Timeline (`PanelHallazgosCorpus.jsx`)
+- **Justificación técnica:** La lista de hallazgos del corpus en el panel lateral no respondía a los cambios de fecha del slider/reproductor del timeline.
+- **Ventana Dinámica:** Se integró `selectedDate` y `daysRange` de `DataContext`. Cada hallazgo se valida para que su fecha (`timestamp`, `timestamp_start` / `timestamp_end`) intersecte el intervalo `[selectedDate, selectedDate + daysRange]`.
+- **Control UI:** Se incorporó un toggle interactivo ("Sincronizar con Timeline") que indica el tamaño de la ventana en días y permite activar o desactivar la sincronización según la conveniencia del analista.
 
 ---
 
@@ -98,7 +121,10 @@
 - `backend/app/main.py`
 - `backend/app/routes/casos.py`, `noticias.py`
 - `frontend/src/App.jsx`, `config.js`
-- `frontend/src/context/AuthContext.jsx`, `DataContext.jsx`
+- `frontend/src/context/AuthContext.jsx`, `DataContext.jsx`, `FilteredFeatures.jsx`
+- `frontend/src/components/analysis/PanelHallazgosCorpus.jsx`
+- `frontend/src/components/filters/FilteredStats.jsx`
+- `frontend/src/utils/filteredStats.jsx`
 - `docker-compose.yml`, `.env.example`, `.gitignore`
 
 ---

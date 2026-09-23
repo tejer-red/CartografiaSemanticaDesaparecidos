@@ -23,7 +23,8 @@ export function calculateStats({
   selectedSexo,
   selectedCondicion,
   edadRange,
-  sumScoreRange
+  sumScoreRange,
+  fallbackRecords = null
 }) {
   const features = getFilteredFeatures(
     map,
@@ -32,7 +33,8 @@ export function calculateStats({
     selectedSexo,
     selectedCondicion,
     edadRange,
-    sumScoreRange
+    sumScoreRange,
+    fallbackRecords
   ).filter(feature => feature.properties.tipo_marcador === 'cedula_busqueda');
 
   if (!features || !features.length) return null;

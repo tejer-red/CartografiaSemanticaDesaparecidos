@@ -97,7 +97,7 @@ def get_casos(
         record_dict = {
             "id_cedula_busqueda": row["id_cedula_busqueda"],
             "autorizacion_informacion_publica": row["autorizacion_informacion_publica"],
-            "condicion_localizacion": row["condicion_localizacion"] or "NO_LOCALIZADO",
+            "condicion_localizacion": row["condicion_localizacion"] or "NO APLICA",
             "nombre_completo": row["nombre_completo"],
             "edad_momento_desaparicion": row["edad_momento_desaparicion"],
             "sexo": row["sexo"],

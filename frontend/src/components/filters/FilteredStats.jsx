@@ -19,7 +19,8 @@ const FilteredStats = () => {
     selectedCondicion,
     edadRange,
     sumScoreRange,
-    COLORS
+    COLORS,
+    fetchedRecords
   } = useData();
 
   const stats = calculateStats({
@@ -29,7 +30,8 @@ const FilteredStats = () => {
     selectedSexo,
     selectedCondicion,
     edadRange,
-    sumScoreRange
+    sumScoreRange,
+    fallbackRecords: fetchedRecords
   });
 
   if (!stats) return null;
