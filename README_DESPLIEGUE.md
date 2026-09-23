@@ -86,15 +86,21 @@ Como el backend y tu contenedor de `cloudflared` comparten la red externa de Doc
 
 ---
 
-## 🔄 4. Migración de Datos Semánticos
+## 🔄 4. Despliegue de Datos a Nube (Sincronización Master-Réplica)
 
-Para importar datos históricos desde tu base de datos anterior (MySQL) a la base de datos PostgreSQL de Supabase en producción:
-1. Asegúrate de configurar la variable `OLD_DATABASE_URL` en tu archivo `.env`.
-2. Ingresa al contenedor de FastAPI en ejecución:
+El sistema ahora opera bajo una estricta política de protección PII (Zero-Knowledge en nube pública). Los datos crudos nunca salen de tu servidor `Abeja`.
+
+### Paso 1: Preparar la Base de Datos en Supabase
+1. En tu nuevo proyecto de Supabase, entra al **SQL Editor**.
+2. Copia y ejecuta el contenido íntegro del script `backend/scripts/supabase_schema_clean.sql`.
+   Esto creará las tablas de la réplica hasheada (`cedulas_anonimizadas`, `noticias_corpus`, etc.).
+
+### Paso 2: Publicar desde Abeja a Supabase
+El backend cuenta con un script diseñado para hacer upsert unidireccional de los registros ya anonimizados desde la BD local hacia Supabase.
+
+1. Asegúrate de configurar la variable `SUPABASE_DATABASE_URL` (conexión Pooler) y `LOCAL_DATABASE_URL` (Abeja) en tu `.env`.
+2. Ejecuta el script de sincronización desde el entorno de backend:
    ```bash
-   docker compose exec backend bash
+   python backend/scripts/publish_to_supabase.py
    ```
-3. Corre el script ETL de migración:
-   ```bash
-   python scripts/migrate_data.py
-   ```
+3. El script leerá localmente las tablas públicas, ignorará las privadas y hará _batch upserts_ en la nube, garantizando que el Frontend en Vercel siempre lea la versión segura.

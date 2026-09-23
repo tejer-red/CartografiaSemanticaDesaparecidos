@@ -23,6 +23,20 @@
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
 
+### M. Arquitectura Master-Réplica (Abeja-Supabase) y Pipeline de Publicación Zero-Knowledge
+- **Justificación técnica:**
+  1. **Privacidad Extrema (Zero-Knowledge en la Nube):** Garantizar que ninguna PII real escape del servidor local (`Abeja`). La nube (`Supabase`) se rediseña como una réplica de sólo lectura que aloja únicamente datos criptográficamente hasheados, los cuales son consumidos por la aplicación en Vercel.
+  2. **Independencia Operativa y Retrocompatibilidad:** Permitir que los analistas en la intranet consulten la base cruda con todos los metadatos forenses, mientras la versión pública mantiene la compatibilidad de esquemas para los mapas y grafos en React.
+- **Backend - Archivos Modificados/Creados:**
+  - `backend/scripts/supabase_schema_clean.sql` **[NEW]**: Script DDL que define el esquema canónico estrictamente público para inicializar la nueva base de datos en Supabase (incluyendo `fosas`, `cedulas_anonimizadas`, `repd_vp_inferencia3`, `noticias_corpus`, `vinculos_entidades`, y `notebooks`). Omite deliberadamente cualquier tabla privada.
+  - `backend/scripts/publish_to_supabase.py` **[NEW]**: Pipeline ETL de publicación unidireccional. Se conecta simultáneamente a PostgreSQL local (`DATABASE_URL`) y Supabase (`SUPABASE_DATABASE_URL`), realizando _Batch Upserts_ (`ON CONFLICT DO UPDATE`) de las 5 tablas públicas garantizando sincronía.
+- **Documentación - Archivos Modificados:**
+  - `ARQUITECTURA.md` **[MODIFY]**: Refactorización de la sección de Topología para explicar el modelo de datos crudo en Abeja vs hasheado en Supabase, así como la separación en 4 capas lógicas.
+  - `MICROSERVICIOS_CARTOGRAFIA.md` **[MODIFY]**: Actualización del diagrama Mermaid para reflejar el rol del script `publish_to_supabase.py` como orquestador de sincronización hacia la nube.
+  - `README_DESPLIEGUE.md` **[MODIFY]**: Se reemplazó la sección de `migrate_data.py` (legacy) por los nuevos pasos de aprovisionamiento de la base de datos limpia en Supabase y la ejecución del sincronizador.
+
+---
+
 ### L. Reestructuración Canónica del Sitemap, Homologación Visual (Tema Claro) y Vistas en Lista de Noticias y Contexto Ontológico
 - **Justificación técnica:**
   1. **Arquitectura de Información Coherente (Sitemap):** Se reorganizó la jerarquía de rutas para separar claramente la visualización en lista (catálogos de consulta rápida y lectura asistida) de la visualización en grafo de relaciones (análisis de redes Sigma.js), con redirecciones transparentes para preservar compatibilidad con enlaces existentes.
