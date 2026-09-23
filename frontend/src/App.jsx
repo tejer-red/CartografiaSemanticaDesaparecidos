@@ -214,50 +214,42 @@ const App = () => {
               <Route path="/noticias" element={<NoticiasListPage />} />
               <Route path="/noticias/grafo" element={<RedNoticiasPage />} />
               
-              {/* Rutas Privadas */}
+              {/* Rutas de Exploración y Mapa (Abierto y Libre sin contraseña) */}
               <Route path="/cuaderno/nuevo" element={
-                user ? (
-                  <AppLayout
-                    isNotebookRoute={false}
-                    visibleComponents={visibleComponents}
-                    toggleComponent={toggleComponent}
-                    handleSubmit={handleSubmit}
-                    loading={loading}
-                    fetchCedulas={fetchCedulas}
-                    setFetchCedulas={setFetchCedulas}
-                    fetchForense={fetchForense}
-                    setFetchForense={setFetchForense}
-                    fetchFosas={fetchFosas}
-                    setFetchFosas={setFetchFosas}
-                    fetchNoticias={fetchNoticias}
-                    setFetchNoticias={setFetchNoticias}
-                    listNotebooksApp={listNotebooksApp}
-                  />
-                ) : (
-                  <LoginScreen />
-                )
+                <AppLayout
+                  isNotebookRoute={false}
+                  visibleComponents={visibleComponents}
+                  toggleComponent={toggleComponent}
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  fetchCedulas={fetchCedulas}
+                  setFetchCedulas={setFetchCedulas}
+                  fetchForense={fetchForense}
+                  setFetchForense={setFetchForense}
+                  fetchFosas={fetchFosas}
+                  setFetchFosas={setFetchFosas}
+                  fetchNoticias={fetchNoticias}
+                  setFetchNoticias={setFetchNoticias}
+                  listNotebooksApp={listNotebooksApp}
+                />
               } />
               <Route path="/cuaderno/:id" element={
-                user ? (
-                  <AppLayout
-                    isNotebookRoute={true}
-                    visibleComponents={visibleComponents}
-                    toggleComponent={toggleComponent}
-                    handleSubmit={handleSubmit}
-                    loading={loading}
-                    fetchCedulas={fetchCedulas}
-                    setFetchCedulas={setFetchCedulas}
-                    fetchForense={fetchForense}
-                    setFetchForense={setFetchForense}
-                    fetchFosas={fetchFosas}
-                    setFetchFosas={setFetchFosas}
-                    fetchNoticias={fetchNoticias}
-                    setFetchNoticias={setFetchNoticias}
-                    listNotebooksApp={listNotebooksApp}
-                  />
-                ) : (
-                  <LoginScreen />
-                )
+                <AppLayout
+                  isNotebookRoute={true}
+                  visibleComponents={visibleComponents}
+                  toggleComponent={toggleComponent}
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  fetchCedulas={fetchCedulas}
+                  setFetchCedulas={setFetchCedulas}
+                  fetchForense={fetchForense}
+                  setFetchForense={setFetchForense}
+                  fetchFosas={fetchFosas}
+                  setFetchFosas={setFetchFosas}
+                  fetchNoticias={fetchNoticias}
+                  setFetchNoticias={setFetchNoticias}
+                  listNotebooksApp={listNotebooksApp}
+                />
               } />
             </Routes>
           </Suspense>

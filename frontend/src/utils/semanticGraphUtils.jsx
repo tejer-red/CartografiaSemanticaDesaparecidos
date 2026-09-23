@@ -83,7 +83,7 @@ export function useSemanticGraph() {
   const graph = useMemo(() => {
     if (!showSigma) return null;
 
-    const graph = new Graph();
+    const graph = new Graph({ multi: true });
 
     // Si la API devolvió el grafo consolidado, construirlo directamente
     if (apiGraphData && apiGraphData.nodes && apiGraphData.nodes.length > 0) {

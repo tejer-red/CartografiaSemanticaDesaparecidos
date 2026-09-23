@@ -204,7 +204,7 @@ const RedContextoPage = () => {
   const graph = useMemo(() => {
     if (!graphData || !graphData.nodes) return null;
 
-    const g = new Graph();
+    const g = new Graph({ multi: true });
 
     // 1. Filtrar casos por ventana de tiempo si el timeline está activo
     const validCaseIds = new Set();
@@ -267,16 +267,20 @@ const RedContextoPage = () => {
 
     graphData.edges.forEach(edge => {
       if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
-        if (!g.hasEdge(edge.source, edge.target)) {
-          g.addEdge(edge.source, edge.target, {
-            label: edge.label || '',
-            size: edge.label === 'PERPETRADO_CON_VEHICULO' ? 2.5 : 1.2,
-            color: edge.color || '#475569',
-            attributes: {
-              relation: edge.label,
-              confidence: edge.confidence
-            }
-          });
+        try {
+          if (!g.hasDirectedEdge(edge.source, edge.target)) {
+            g.addDirectedEdge(edge.source, edge.target, {
+              label: edge.label || '',
+              size: edge.label === 'PERPETRADO_CON_VEHICULO' ? 2.5 : 1.2,
+              color: edge.color || '#475569',
+              attributes: {
+                relation: edge.label,
+                confidence: edge.confidence
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore duplicate edges gracefully
         }
       }
     });
@@ -325,16 +329,7 @@ const RedContextoPage = () => {
   };
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: '#090d16',
-      color: '#f1f5f9',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
-    }}>
+    <div className="graph-page-container">
       {/* Topbar */}
       <header className="graph-toolbar">
         <div className="graph-toolbar-left">
@@ -364,19 +359,11 @@ const RedContextoPage = () => {
         </div>
 
         {/* Filtros y Opciones */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="graph-toolbar-right">
           <select 
             value={filterType} 
             onChange={(e) => setFilterType(e.target.value)}
-            style={{
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '13px',
-              cursor: 'pointer'
-            }}
+            className="graph-select-filter"
           >
             <option value="ALL">Todo el Contexto</option>
             <option value="MODUS">Solo Modus Operandi</option>
@@ -394,15 +381,7 @@ const RedContextoPage = () => {
           <select 
             value={limitEdges} 
             onChange={(e) => setLimitEdges(Number(e.target.value))}
-            style={{
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '13px',
-              cursor: 'pointer'
-            }}
+            className="graph-select-filter"
           >
             <option value={150}>150 Vínculos</option>
             <option value={300}>300 Vínculos (Vista rápida)</option>
@@ -415,42 +394,21 @@ const RedContextoPage = () => {
 
           <button
             onClick={() => setTimelineEnabled(!timelineEnabled)}
-            style={{
-              backgroundColor: timelineEnabled ? '#0284c7' : '#1e293b',
-              color: '#fff',
-              border: timelineEnabled ? '1px solid #38bdf8' : '1px solid #334155',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 600
-            }}
+            className={`graph-btn-action ${timelineEnabled ? 'active' : ''}`}
+            title="Activar o desactivar barra temporal"
           >
-            <Clock size={15} color={timelineEnabled ? '#fff' : '#38bdf8'} />
-            {timelineEnabled ? 'Timeline Activo' : 'Activar Timeline'}
+            <Clock size={15} color={timelineEnabled ? '#2563eb' : '#64748b'} />
+            <span>{timelineEnabled ? 'Timeline Activo' : 'Activar Timeline'}</span>
           </button>
 
           <button
             onClick={fetchGraph}
-            style={{
-              backgroundColor: '#7c3aed',
-              color: '#fff',
-              border: 'none',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 600
-            }}
+            disabled={loading}
+            className="graph-btn-action graph-btn-primary"
+            style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Actualizar
+            <span>Actualizar</span>
           </button>
         </div>
       </header>
@@ -466,15 +424,17 @@ const RedContextoPage = () => {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               zIndex: 20,
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
               padding: '16px 24px',
               borderRadius: '10px',
-              border: '1px solid #334155',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px'
+              gap: '12px',
+              color: '#334155'
             }}>
-              <RefreshCw size={20} className="animate-spin" color="#a855f7" />
+              <RefreshCw size={20} className="animate-spin" color="#7c3aed" />
               <span>Cargando hiper-grafo de patrones forenses...</span>
             </div>
           )}
@@ -506,30 +466,31 @@ const RedContextoPage = () => {
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 30,
-              backgroundColor: '#0f172a',
-              border: '1px solid #334155',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
               borderRadius: '8px',
               padding: '12px 20px',
               width: '660px',
               maxWidth: '90%',
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px'
+              gap: '8px',
+              backdropFilter: 'blur(8px)'
             }}>
               {/* Header Timeline: Fechas y Ventana de Días */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Clock size={16} color="#457b9d" />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+                  <Clock size={16} color="#0284c7" />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
                     Ventana Temporal:
                   </span>
                   <span style={{
                     fontSize: '12px',
                     fontFamily: 'monospace',
-                    color: '#f8fafc',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    color: '#0f172a',
+                    backgroundColor: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
                     padding: '2px 8px',
                     borderRadius: '4px',
                     fontWeight: 600
@@ -538,21 +499,13 @@ const RedContextoPage = () => {
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#94a3b8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569' }}>
                   <span>Rango ventana:</span>
                   <select
                     value={timeWindowDays}
                     onChange={(e) => setTimeWindowDays(Number(e.target.value))}
-                    style={{
-                      backgroundColor: '#1e293b',
-                      color: '#f8fafc',
-                      border: '1px solid #334155',
-                      borderRadius: '4px',
-                      padding: '3px 8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
+                    className="graph-select-filter"
+                    style={{ fontSize: '12px', padding: '3px 8px' }}
                   >
                     <option value={30}>30 días (1 mes)</option>
                     <option value={90}>90 días (3 meses)</option>
@@ -609,16 +562,8 @@ const RedContextoPage = () => {
                     setIsPlaying(true);
                   }}
                   title="Reiniciar timeline"
-                  style={{
-                    background: '#1e293b',
-                    border: '1px solid #334155',
-                    color: '#94a3b8',
-                    padding: '6px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
+                  className="graph-btn-action"
+                  style={{ padding: '6px' }}
                 >
                   <RotateCcw size={14} />
                 </button>
@@ -633,60 +578,46 @@ const RedContextoPage = () => {
           )}
 
           {/* Leyenda de Contexto Forense */}
-          <div style={{
-            position: 'absolute',
-            bottom: 20,
-            left: 20,
-            backgroundColor: '#0f172a',
-            border: '1px solid #1e293b',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
-            borderRadius: '6px',
-            padding: '14px 18px',
-            fontSize: '12px',
-            zIndex: 10,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <span style={{ fontWeight: 700, color: '#94a3b8', marginBottom: '2px' }}>CONVENCIONES RAG-ONTOLOGY</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.PERSONA }} />
+          <div className="graph-legend-box" style={{ maxWidth: '280px' }}>
+            <span className="graph-legend-title">CONVENCIONES RAG-ONTOLOGY</span>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.PERSONA }} />
               <span>🔴 Cédula de Desaparición</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.MODUS }} />
-              <span>🟠 Modus Operandi (Levantón, Evasión, Engaño)</span>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.MODUS }} />
+              <span>🟠 Modus Operandi (Patrón)</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.CONDICION }} />
-              <span>🔴 Condición de Localización (No Localizado, etc.)</span>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.CONDICION }} />
+              <span>🔴 Condición de Localización</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.SEXO }} />
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.SEXO }} />
               <span>🟣 Segmento por Sexo / Género</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.INSTITUCION }} />
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.INSTITUCION }} />
               <span>🟢 Albergue / Casa Hogar / Anexo</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.EVIDENCIA_MATERIAL }} />
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.EVIDENCIA_MATERIAL }} />
               <span>🟡 Carta / Recado / Audio Dejado</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.DESTINO }} />
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.DESTINO }} />
               <span>🔵 Destino / Traslado Declarado</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.VEHICULO_SOSPECHOSO }} />
-              <span>🟣 Vehículo de Perpetradores / Agresores</span>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.VEHICULO_SOSPECHOSO }} />
+              <span>🟣 Vehículo de Perpetradores</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.VEHICULO_VICTIMA }} />
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.VEHICULO_VICTIMA }} />
               <span>🔷 Vehículo de la Víctima</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CONTEXT_COLORS.PARENTESCO }} />
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.PARENTESCO }} />
               <span>⚪ Parentesco Denunciante / Testigo</span>
             </div>
           </div>
@@ -694,99 +625,82 @@ const RedContextoPage = () => {
 
         {/* Panel Lateral de Detalle Forense */}
         {selectedNode && (
-          <aside style={{
-            width: '420px',
-            backgroundColor: '#0b1120',
-            borderLeft: '1px solid #1e293b',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 15,
-            overflowY: 'auto',
-            padding: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: CONTEXT_COLORS[selectedNode.nodeType] || CONTEXT_COLORS.DEFAULT,
-                    color: '#fff'
-                  }}>
-                    {selectedNode.nodeType === 'PERSONA' && '👤 EXPEDIENTE / PERSONA'}
-                    {selectedNode.nodeType === 'MODUS' && '⚡ PATRÓN CRIMINAL (MODUS)'}
-                    {selectedNode.nodeType === 'MES_REPORTE' && '📅 CLÚSTER TEMPORAL (MES)'}
-                    {selectedNode.nodeType === 'CONDICION' && '⚠️ CONDICIÓN DE LOCALIZACIÓN'}
-                    {selectedNode.nodeType === 'SEXO' && '⚧️ SEGMENTO POR SEXO'}
-                    {selectedNode.nodeType === 'INSTITUCION' && '🏢 ALBERGUE / CASA HOGAR / ANEXO'}
-                    {selectedNode.nodeType === 'EVIDENCIA_MATERIAL' && '✉️ CARTA / RECADO / INDICIO'}
-                    {selectedNode.nodeType === 'DESTINO' && '📍 TRASLADO / DESTINO'}
-                    {selectedNode.nodeType === 'VEHICULO_SOSPECHOSO' && '🚨 VEHÍCULO SOSPECHOSO'}
-                    {selectedNode.nodeType === 'VEHICULO_VICTIMA' && '🚗 VEHÍCULO DE VÍCTIMA'}
-                    {selectedNode.nodeType === 'PARENTESCO' && '👥 ROL DENUNCIANTE'}
-                  </span>
-
-                  {selectedNode.nodeType === 'PERSONA' && (
-                    <>
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        backgroundColor: '#dc2626',
-                        color: '#fff'
-                      }}>
-                        {selectedNode.attributes?.condicion_localizacion === 'NO_LOCALIZADO' ? 'NO LOCALIZADO' : (selectedNode.attributes?.condicion_localizacion || 'DESAPARECIDO')}
-                      </span>
-                      {selectedNode.attributes?.sexo && (
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #475569',
-                          color: '#cbd5e1'
-                        }}>
-                          {selectedNode.attributes.sexo} {selectedNode.attributes?.edad ? `• ${selectedNode.attributes.edad} AÑOS` : ''}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                <h3 style={{ fontSize: '18px', fontWeight: 800, margin: '12px 0 0 0', color: '#f8fafc', lineHeight: 1.3 }}>
-                  {selectedNode.attributes?.nombre_real || selectedNode.label || selectedNode.id}
-                </h3>
+          <aside className="graph-sidebar">
+            <div className="graph-sidebar-header">
+              <div className="graph-sidebar-title">
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: CONTEXT_COLORS[selectedNode.nodeType] || CONTEXT_COLORS.DEFAULT,
+                  color: '#fff'
+                }}>
+                  {selectedNode.nodeType === 'PERSONA' && '👤 EXPEDIENTE / PERSONA'}
+                  {selectedNode.nodeType === 'MODUS' && '⚡ PATRÓN CRIMINAL (MODUS)'}
+                  {selectedNode.nodeType === 'MES_REPORTE' && '📅 CLÚSTER TEMPORAL (MES)'}
+                  {selectedNode.nodeType === 'CONDICION' && '⚠️ CONDICIÓN DE LOCALIZACIÓN'}
+                  {selectedNode.nodeType === 'SEXO' && '⚧️ SEGMENTO POR SEXO'}
+                  {selectedNode.nodeType === 'INSTITUCION' && '🏢 ALBERGUE / CASA HOGAR / ANEXO'}
+                  {selectedNode.nodeType === 'EVIDENCIA_MATERIAL' && '✉️ CARTA / RECADO / INDICIO'}
+                  {selectedNode.nodeType === 'DESTINO' && '📍 TRASLADO / DESTINO'}
+                  {selectedNode.nodeType === 'VEHICULO_SOSPECHOSO' && '🚨 VEHÍCULO SOSPECHOSO'}
+                  {selectedNode.nodeType === 'VEHICULO_VICTIMA' && '🚗 VEHÍCULO DE VÍCTIMA'}
+                  {selectedNode.nodeType === 'PARENTESCO' && '👥 ROL DENUNCIANTE'}
+                </span>
               </div>
               <button 
                 onClick={() => setSelectedNode(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  lineHeight: 1
-                }}
+                className="graph-sidebar-close"
+                title="Cerrar panel de detalle"
               >
-                ×
+                <X size={18} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
-              
+            <div className="graph-sidebar-content">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {selectedNode.nodeType === 'PERSONA' && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: '#fee2e2',
+                      color: '#b91c1c'
+                    }}>
+                      {selectedNode.attributes?.condicion_localizacion === 'NO_LOCALIZADO' ? 'NO LOCALIZADO' : (selectedNode.attributes?.condicion_localizacion || 'DESAPARECIDO')}
+                    </span>
+                    {selectedNode.attributes?.sexo && (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        color: '#475569'
+                      }}>
+                        {selectedNode.attributes.sexo} {selectedNode.attributes?.edad ? `• ${selectedNode.attributes.edad} AÑOS` : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '6px 0 0 0', color: '#0f172a', lineHeight: 1.3 }}>
+                  {selectedNode.attributes?.nombre_real || selectedNode.label || selectedNode.id}
+                </h3>
+              </div>
+
               {/* ID & Metadatos Técnicos */}
-              <div style={{ backgroundColor: '#131d31', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <span style={{ color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Identificador Ontológico</span>
-                <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '12px', color: '#38bdf8', wordBreak: 'break-all' }}>
+                <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '12px', color: '#0284c7', wordBreak: 'break-all' }}>
                   {selectedNode.id}
                 </p>
                 {selectedNode.attributes?.expediente && (
-                  <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '12px' }}>
+                  <p style={{ margin: '4px 0 0 0', color: '#334155', fontSize: '12px' }}>
                     <strong>Expediente:</strong> {selectedNode.attributes.expediente}
                   </p>
                 )}
@@ -797,14 +711,14 @@ const RedContextoPage = () => {
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {selectedNode.attributes?.date && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
                         <Calendar size={16} color="#e63946" />
                         <span><strong>Fecha:</strong> {selectedNode.attributes.date}</span>
                       </div>
                     )}
 
                     {selectedNode.attributes?.location && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
                         <MapPin size={16} color="#e63946" />
                         <span><strong>Lugar:</strong> {selectedNode.attributes.location}</span>
                       </div>
@@ -814,22 +728,22 @@ const RedContextoPage = () => {
                   {/* Ficha Forense Estructurada */}
                   {selectedNode.attributes?.forense && (
                     <div style={{
-                      backgroundColor: '#1e1b4b',
-                      border: '1px solid #4338ca',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
                       borderRadius: '8px',
                       padding: '14px',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '10px'
                     }}>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#a5b4fc', textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#4338ca', textTransform: 'uppercase' }}>
                         Atributos Forenses Extraídos (LLM)
                       </span>
 
                       {selectedNode.attributes.forense.modus_operandi && (
                         <div>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>Modus Operandi:</span>
-                          <p style={{ margin: '2px 0 0 0', fontWeight: 700, color: '#f97316' }}>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>Modus Operandi:</span>
+                          <p style={{ margin: '2px 0 0 0', fontWeight: 700, color: '#d97706' }}>
                             {selectedNode.attributes.forense.modus_operandi}
                           </p>
                         </div>
@@ -837,13 +751,13 @@ const RedContextoPage = () => {
 
                       {/* ALBERGUE O INSTITUCIÓN DETECTADA */}
                       {selectedNode.attributes.forense.nombre_lugar_institucion && (
-                        <div style={{ backgroundColor: '#064e3b', border: '1px solid #059669', padding: '10px', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#34d399', fontWeight: 800 }}>🏢 Albergue / Anexo / Centro:</span>
-                          <p style={{ margin: '2px 0 0 0', fontWeight: 700, color: '#ecfdf5', fontSize: '13px' }}>
+                        <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '10px', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#047857', fontWeight: 800 }}>🏢 Albergue / Anexo / Centro:</span>
+                          <p style={{ margin: '2px 0 0 0', fontWeight: 700, color: '#065f46', fontSize: '13px' }}>
                             {selectedNode.attributes.forense.nombre_lugar_institucion}
                           </p>
                           {selectedNode.attributes.forense.lugar_tipo && (
-                            <span style={{ fontSize: '10px', color: '#a7f3d0' }}>
+                            <span style={{ fontSize: '10px', color: '#059669' }}>
                               Tipo: {selectedNode.attributes.forense.lugar_tipo}
                             </span>
                           )}
@@ -852,13 +766,13 @@ const RedContextoPage = () => {
 
                       {/* EVIDENCIA DOCUMENTAL / CARTA / RECADO */}
                       {selectedNode.attributes.forense.indicio_dejado && selectedNode.attributes.forense.indicio_dejado !== 'NINGUNO' && (
-                        <div style={{ backgroundColor: '#78350f', border: '1px solid #d97706', padding: '10px', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#fde047', fontWeight: 800 }}>✉️ Indicio Dejado en Sitio:</span>
-                          <p style={{ margin: '2px 0 0 0', fontWeight: 700, color: '#fffbeb', fontSize: '12px' }}>
+                        <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '10px', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 800 }}>✉️ Indicio Dejado en Sitio:</span>
+                          <p style={{ margin: '2px 0 0 0', fontWeight: 700, color: '#92400e', fontSize: '12px' }}>
                             {selectedNode.attributes.forense.indicio_dejado}
                           </p>
                           {selectedNode.attributes.forense.contenido_indicio && (
-                            <p style={{ margin: '4px 0 0 0', fontStyle: 'italic', color: '#fef3c7', fontSize: '12px', lineHeight: 1.4 }}>
+                            <p style={{ margin: '4px 0 0 0', fontStyle: 'italic', color: '#78350f', fontSize: '12px', lineHeight: 1.4 }}>
                               "{selectedNode.attributes.forense.contenido_indicio}"
                             </p>
                           )}
@@ -867,18 +781,18 @@ const RedContextoPage = () => {
 
                       {/* DESTINO O TRASLADO DECLARADO */}
                       {selectedNode.attributes.forense.destino_declarado && (
-                        <div style={{ backgroundColor: '#1e3a8a', border: '1px solid #2563eb', padding: '8px', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#93c5fd', fontWeight: 700 }}>📍 Destino / Traslado Manifestado:</span>
-                          <p style={{ margin: '2px 0 0 0', color: '#eff6ff', fontWeight: 600 }}>
+                        <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700 }}>📍 Destino / Traslado Manifestado:</span>
+                          <p style={{ margin: '2px 0 0 0', color: '#1e40af', fontWeight: 600 }}>
                             {selectedNode.attributes.forense.destino_declarado}
                           </p>
                         </div>
                       )}
 
                       {selectedNode.attributes.forense.vehiculo_perpetradores?.menciona && (
-                        <div style={{ backgroundColor: '#2e1065', padding: '8px', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#f43f5e', fontWeight: 700 }}>🚨 Vehículo de Agresores:</span>
-                          <p style={{ margin: '2px 0 0 0', color: '#e2e8f0' }}>
+                        <div style={{ backgroundColor: '#faf5ff', border: '1px solid #f3e8ff', padding: '8px', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#9333ea', fontWeight: 700 }}>🚨 Vehículo de Agresores:</span>
+                          <p style={{ margin: '2px 0 0 0', color: '#581c87' }}>
                             {selectedNode.attributes.forense.vehiculo_perpetradores.tipo} {' '}
                             {selectedNode.attributes.forense.vehiculo_perpetradores.color} {' '}
                             {selectedNode.attributes.forense.vehiculo_perpetradores.marca}
@@ -887,9 +801,9 @@ const RedContextoPage = () => {
                       )}
 
                       {selectedNode.attributes.forense.vehiculo_victima?.menciona && (
-                        <div style={{ backgroundColor: '#082f49', padding: '8px', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>🚗 Vehículo Víctima:</span>
-                          <p style={{ margin: '2px 0 0 0', color: '#e2e8f0' }}>
+                        <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #e0f2fe', padding: '8px', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>🚗 Vehículo Víctima:</span>
+                          <p style={{ margin: '2px 0 0 0', color: '#075985' }}>
                             {selectedNode.attributes.forense.vehiculo_victima.tipo} {' '}
                             {selectedNode.attributes.forense.vehiculo_victima.color} {' '}
                             {selectedNode.attributes.forense.vehiculo_victima.marca}
@@ -899,23 +813,23 @@ const RedContextoPage = () => {
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
                         <div>
-                          <span style={{ color: '#94a3b8' }}>Armas:</span>
-                          <p style={{ margin: '2px 0 0 0', fontWeight: 600, color: '#cbd5e1' }}>
+                          <span style={{ color: '#64748b' }}>Armas:</span>
+                          <p style={{ margin: '2px 0 0 0', fontWeight: 600, color: '#334155' }}>
                             {selectedNode.attributes.forense.armas || 'No refiere'}
                           </p>
                         </div>
                         <div>
-                          <span style={{ color: '#94a3b8' }}>Denunciante:</span>
-                          <p style={{ margin: '2px 0 0 0', fontWeight: 600, color: '#cbd5e1' }}>
+                          <span style={{ color: '#64748b' }}>Denunciante:</span>
+                          <p style={{ margin: '2px 0 0 0', fontWeight: 600, color: '#334155' }}>
                             {selectedNode.attributes.forense.reportante_parentesco || 'N/D'}
                           </p>
                         </div>
                       </div>
 
                       {selectedNode.attributes.forense.resumen_forense && (
-                        <div style={{ marginTop: '4px', borderTop: '1px solid #3730a3', paddingTop: '8px' }}>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>Síntesis Criminalística:</span>
-                          <p style={{ margin: '4px 0 0 0', fontStyle: 'italic', color: '#c7d2fe', lineHeight: 1.4 }}>
+                        <div style={{ marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>Síntesis Criminalística:</span>
+                          <p style={{ margin: '4px 0 0 0', fontStyle: 'italic', color: '#4338ca', lineHeight: 1.4 }}>
                             "{selectedNode.attributes.forense.resumen_forense}"
                           </p>
                         </div>
@@ -927,8 +841,8 @@ const RedContextoPage = () => {
 
               {/* SI ES UN NODO MODUS O VEHICULO */}
               {selectedNode.nodeType !== 'PERSONA' && selectedNode.attributes?.description && (
-                <div style={{ backgroundColor: '#131d31', padding: '12px', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.5 }}>
+                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <p style={{ margin: 0, color: '#334155', lineHeight: 1.5 }}>
                     {selectedNode.attributes.description}
                   </p>
                 </div>
@@ -940,17 +854,7 @@ const RedContextoPage = () => {
                   <span style={{ color: '#64748b', fontSize: '11px', fontWeight: 700, display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>
                     Narrativa Original de los Hechos
                   </span>
-                  <div style={{
-                    color: '#94a3b8',
-                    lineHeight: '1.6',
-                    fontSize: '12px',
-                    backgroundColor: '#131d31',
-                    padding: '14px',
-                    borderRadius: '8px',
-                    maxHeight: '260px',
-                    overflowY: 'auto',
-                    border: '1px solid #1e293b'
-                  }}>
+                  <div className="graph-sidebar-article-box">
                     {selectedNode.attributes.description}
                   </div>
                 </div>

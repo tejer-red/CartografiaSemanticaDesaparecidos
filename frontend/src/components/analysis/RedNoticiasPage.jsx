@@ -194,7 +194,7 @@ const RedNoticiasPage = () => {
   const graph = useMemo(() => {
     if (!graphData || !graphData.nodes) return null;
 
-    const g = new Graph({ multi: true });
+    const g = new Graph({ type: 'directed', multi: true, allowSelfLoops: true });
 
     graphData.nodes.forEach(node => {
       if (filterType !== 'ALL' && node.type !== filterType) return;
@@ -202,27 +202,32 @@ const RedNoticiasPage = () => {
       const size = node.size || (node.type === 'PERSONA' ? 14 : (node.type === 'NOTICIA' ? 18 : 10));
       const color = node.color || COLORS[node.type] || COLORS.DEFAULT;
 
-      g.addNode(node.id, {
-        label: node.label,
-        size: size,
-        color: color,
-        x: node.x !== undefined ? node.x : (Math.random() - 0.5) * 500,
-        y: node.y !== undefined ? node.y : (Math.random() - 0.5) * 500,
-        nodeType: node.type,
-        attributes: node.metadata || {}
-      });
+      if (!g.hasNode(node.id)) {
+        g.addNode(node.id, {
+          label: node.label,
+          size: size,
+          color: color,
+          x: node.x !== undefined ? node.x : (Math.random() - 0.5) * 500,
+          y: node.y !== undefined ? node.y : (Math.random() - 0.5) * 500,
+          nodeType: node.type,
+          attributes: node.metadata || {}
+        });
+      }
     });
 
-    graphData.edges.forEach(edge => {
+    graphData.edges.forEach((edge, idx) => {
       if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
+        const edgeKey = edge.id || `edge_${edge.source}_${edge.target}_${idx}`;
         try {
-          g.addEdgeWithKey(edge.id, edge.source, edge.target, {
-            label: edge.label,
-            size: edge.confidence ? edge.confidence * 2 : 1,
-            color: '#cbd5e1',
-            confidence: edge.confidence,
-            estado: edge.estado
-          });
+          if (!g.hasEdge(edgeKey)) {
+            g.addDirectedEdgeWithKey(edgeKey, edge.source, edge.target, {
+              label: edge.label,
+              size: edge.confidence ? edge.confidence * 2 : 1,
+              color: '#cbd5e1',
+              confidence: edge.confidence,
+              estado: edge.estado
+            });
+          }
         } catch (e) {
           // ignore duplicate edge keys
         }

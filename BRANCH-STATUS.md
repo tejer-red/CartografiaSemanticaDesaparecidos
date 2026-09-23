@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 16:27 CST
+- **Última actualización:** 2026-09-23 17:11 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `4f589d9` (`feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support`)
+- **Último commit:** `32a4b09` (`fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Fixes de límites (10,000 casos), renderizado de cuerpo periodístico y total_vinculos completados
+- **Estado general:** Apertura pública del mapa (acceso libre sin contraseña), homologación integral del tema claro en grafos y controles, y corrección multi-grafo en Graphology (`UsageGraphError`) verificados con Vite build exitoso
 
 ---
 
@@ -12,6 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
+| `32a4b09` | 2026-09-23 | abundis | `fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties` |
 | `4f589d9` | 2026-09-23 | abundis | `feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support` |
 | `ca79cfb` | 2026-09-23 | abundis | `feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync` |
 | `5565d4a` | 2026-09-23 | abundis | `feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology` |
@@ -24,6 +25,25 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### Q. Apertura Pública del Mapa (Sin Contraseña) y Homologación Integral de Tema Claro en Grafos
+- **Justificación técnica:**
+  1. **Acceso Libre y Abierto al Mapa Cartográfico (`App.jsx`):** Las rutas `/cuaderno/nuevo` y `/cuaderno/:id` exigían autenticación previa redirigiendo a `<LoginScreen />`. Se removió dicha barrera de acceso para permitir exploración pública universal e inmediata sin requerir credenciales ni contraseñas.
+  2. **Homologación de Estilos y Selects Oscuros (`RedContextoPage.jsx`):** Se eliminaron los contenedores e inputs con fondo negro (`#090d16`, `#1e293b`, `#131d31`, `#0f172a`), reemplazándolos con la clase unificada `.graph-select-filter` y el sistema de diseño claro del proyecto (`#ffffff`, bordes `#cbd5e1`/`#e2e8f0`, textos `#0f172a`/`#334155`).
+  3. **Barra Temporal y Sidebar de Detalle Forense en Grafo:** La barra flotante del reproductor histórico de eventos y el panel lateral de detalle forense ahora se integran visualmente con fondo claro semitransparente, leyendas legibles y tarjetas de atributos forenses estructurados de alto contraste.
+- **Frontend - Archivos Modificados:**
+  - `frontend/src/App.jsx`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+
+### P. Corrección de Aristas Dirigidas Duplicadas en Grafos de Relaciones (`UsageGraphError`)
+- **Justificación técnica:**
+  1. **Excepción Fatal en Graphology (`addDirectedEdgeWithKey` / `addEdge`):** Al existir casos con múltiples eventos compartidos hacia la misma entidad o entre casos vinculados, Graphology lanzaba `Uncaught UsageGraphError: Graph.addDirectedEdgeWithKey: an edge linking A to B already exists`.
+  2. **Configuración Multi-Grafo Completa:** Se actualizaron las instancias de Graph en `RedNoticiasPage.jsx`, `RedContextoPage.jsx` y `semanticGraphUtils.jsx` para admitir explícitamente aristas múltiples dirigidas (`type: 'directed', multi: true, allowSelfLoops: true`).
+  3. **Generación Determinista de Llaves de Arista:** Se implementó verificación preventiva (`hasEdge(edgeKey)`, `hasDirectedEdge`) y captura de errores por clave duplicada para garantizar un renderizado fluido del grafo sin romper la ejecución de React.
+- **Frontend - Archivos Modificados:**
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+  - `frontend/src/utils/semanticGraphUtils.jsx`
 
 ### O. Corrección de Límites de Consulta, Carga de Prensa en Mapa y Renderizado de Texto y Vínculos
 - **Justificación técnica:**
@@ -246,6 +266,8 @@
 - `backend/app/main.py`
 - `backend/app/routes/casos.py`, `noticias.py`
 - `frontend/src/App.jsx`, `config.js`
+- `frontend/src/components/analysis/RedContextoPage.jsx`, `RedNoticiasPage.jsx`
+- `frontend/src/utils/semanticGraphUtils.jsx`
 - `frontend/src/context/AuthContext.jsx`, `DataContext.jsx`, `FilteredFeatures.jsx`
 - `frontend/src/components/layout/LeftSideBar.jsx`
 - `frontend/src/components/filters/FilterForm.jsx`
