@@ -137,12 +137,12 @@ const LeftSideBar = ({ style = {}, onMouseEnter, onMouseLeave, headerHeight = 58
           <button 
             type="button"
             onClick={() => toggleSection('corpus')}
-            style={{ ...accordionStyles.trigger, backgroundColor: '#0f172a' }}
+            style={accordionStyles.trigger}
             aria-expanded={openSection === 'corpus'}
           >
             <div style={accordionStyles.triggerIcon}>
-              <Layers size={16} color="#f59e0b" />
-              <span>Fosas y Hallazgos Colectivos (Corpus)</span>
+              <Layers size={16} />
+              <span>Cobertura Periodística</span>
             </div>
             <ChevronDown 
               style={{
@@ -153,7 +153,7 @@ const LeftSideBar = ({ style = {}, onMouseEnter, onMouseLeave, headerHeight = 58
             />
           </button>
           {openSection === 'corpus' && (
-            <div style={{ ...accordionStyles.content, padding: '8px', backgroundColor: '#020617' }}>
+            <div style={accordionStyles.content}>
               <PanelHallazgosCorpus />
             </div>
           )}

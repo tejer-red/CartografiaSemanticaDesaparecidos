@@ -13,21 +13,8 @@ import {
 const PanelHallazgosCorpus = () => {
   const { map, remoteNoticias, setGlobalLinkModal, selectedDate, daysRange } = useData();
   const [searchMunicipio, setSearchMunicipio] = useState('');
-  const [selectedColectivo, setSelectedColectivo] = useState('ALL');
-  const [minCuerpos, setMinCuerpos] = useState(0);
   const [filterByTimeline, setFilterByTimeline] = useState(true);
   const [viewportFeatures, setViewportFeatures] = useState([]);
-
-  // Colectivos buscadores conocidos en Jalisco
-  const colectivosList = [
-    { id: 'ALL', name: 'Todos los colectivos' },
-    { id: 'GUERREROS', name: 'Guerreros Buscadores', regex: /guerreros buscadores/i },
-    { id: 'MADRES', name: 'Madres Buscadoras', regex: /madres buscadoras/i },
-    { id: 'LOBOS', name: 'Lobos Buscadores', regex: /lobos buscadores/i },
-    { id: 'CORAZONES', name: 'Corazones Unidos', regex: /corazones unidos/i },
-    { id: 'ENTRE_CIELO_Y_TIERRA', name: 'Entre Cielo y Tierra', regex: /entre cielo y tierra/i },
-    { id: 'OTRO', name: 'Otros colectivos / Sin colectivo', regex: null }
-  ];
 
   // Extraer todas las noticias de hallazgo de corpus en memoria
   const allCorpusFeatures = useMemo(() => {
@@ -114,26 +101,9 @@ const PanelHallazgosCorpus = () => {
         if (!matchesMun && !matchesTit) return false;
       }
 
-      // Filtro Colectivo
-      if (selectedColectivo !== 'ALL') {
-        const target = colectivosList.find(c => c.id === selectedColectivo);
-        if (target && target.regex) {
-          const match = target.regex.test(titular) || target.regex.test(resumen);
-          if (!match) return false;
-        } else if (selectedColectivo === 'OTRO') {
-          const matchedAnyKnown = colectivosList.some(c => c.regex && (c.regex.test(titular) || c.regex.test(resumen)));
-          if (matchedAnyKnown) return false;
-        }
-      }
-
-      // Filtro mínimo de cuerpos
-      if (minCuerpos > 0 && cuerpos < minCuerpos) {
-        return false;
-      }
-
       return true;
     });
-  }, [viewportFeatures, searchMunicipio, selectedColectivo, minCuerpos, filterByTimeline, selectedDate, daysRange]);
+  }, [viewportFeatures, searchMunicipio, filterByTimeline, selectedDate, daysRange]);
 
   // Centrar el mapa y enfocar un hallazgo
   const handleSelectHallazgo = (feature) => {
@@ -168,23 +138,23 @@ const PanelHallazgosCorpus = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {/* Controles de Filtrado */}
       <div style={{
-        backgroundColor: '#0f172a',
+        backgroundColor: '#ffffff',
         padding: '10px',
         borderRadius: '6px',
-        border: '1px solid #1e293b',
+        border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-            Visibles en mapa: <strong style={{ color: '#f59e0b' }}>{filteredHallazgos.length}</strong> de {allCorpusFeatures.length}
+          <span style={{ fontSize: '11px', color: '#64748b' }}>
+            Visibles en mapa: <strong style={{ color: '#d97706' }}>{filteredHallazgos.length}</strong> de {allCorpusFeatures.length}
           </span>
         </div>
 
         {/* Buscador de Municipio */}
         <div style={{ position: 'relative' }}>
-          <Search size={14} style={{ position: 'absolute', left: '8px', top: '8px', color: '#64748b' }} />
+          <Search size={14} style={{ position: 'absolute', left: '8px', top: '8px', color: '#94a3b8' }} />
           <input
             type="text"
             placeholder="Filtrar por municipio o palabra..."
@@ -193,10 +163,10 @@ const PanelHallazgosCorpus = () => {
             style={{
               width: '100%',
               padding: '6px 8px 6px 28px',
-              backgroundColor: '#1e293b',
-              border: '1px solid #334155',
+              backgroundColor: '#ffffff',
+              border: '1px solid #cbd5e1',
               borderRadius: '4px',
-              color: '#f8fafc',
+              color: '#0f172a',
               fontSize: '11px',
               outline: 'none',
               boxSizing: 'border-box'
@@ -204,71 +174,19 @@ const PanelHallazgosCorpus = () => {
           />
         </div>
 
-        {/* Selector de Colectivo y Cuerpos */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '10px', color: '#94a3b8', marginBottom: '2px' }}>
-              Colectivo:
-            </label>
-            <select
-              value={selectedColectivo}
-              onChange={(e) => setSelectedColectivo(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '4px 6px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
-                borderRadius: '4px',
-                color: '#f8fafc',
-                fontSize: '10px',
-                outline: 'none'
-              }}
-            >
-              {colectivosList.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '10px', color: '#94a3b8', marginBottom: '2px' }}>
-              Mín. cuerpos:
-            </label>
-            <select
-              value={minCuerpos}
-              onChange={(e) => setMinCuerpos(Number(e.target.value))}
-              style={{
-                width: '100%',
-                padding: '4px 6px',
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
-                borderRadius: '4px',
-                color: '#f8fafc',
-                fontSize: '10px',
-                outline: 'none'
-              }}
-            >
-              <option value={0}>Todos</option>
-              <option value={1}>≥ 1 cuerpo/resto</option>
-              <option value={5}>≥ 5 cuerpos</option>
-              <option value={15}>≥ 15 cuerpos (Masivos)</option>
-            </select>
-          </div>
-        </div>
-
         {/* Toggle sincronizar con Timeline */}
-        <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#94a3b8', cursor: 'pointer' }}>
+        <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#475569', cursor: 'pointer', fontWeight: 500 }}>
             <input
               type="checkbox"
               checked={filterByTimeline}
               onChange={(e) => setFilterByTimeline(e.target.checked)}
-              style={{ cursor: 'pointer', accentColor: '#38bdf8' }}
+              style={{ cursor: 'pointer', accentColor: '#007bff' }}
             />
             Sincronizar con Timeline
           </label>
           {filterByTimeline && selectedDate && (
-            <span style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 600 }}>
+            <span style={{ fontSize: '9px', color: '#0284c7', fontWeight: 600 }}>
               Ventana: {daysRange || 30} días
             </span>
           )}
@@ -277,7 +195,7 @@ const PanelHallazgosCorpus = () => {
 
       {/* Lista de Hallazgos */}
       <div style={{
-        maxHeight: '340px',
+        maxHeight: '360px',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
@@ -289,11 +207,14 @@ const PanelHallazgosCorpus = () => {
             textAlign: 'center',
             padding: '24px 10px',
             color: '#64748b',
-            fontSize: '12px'
+            fontSize: '12px',
+            backgroundColor: '#ffffff',
+            borderRadius: '6px',
+            border: '1px solid #e2e8f0'
           }}>
-            <Layers size={24} style={{ margin: '0 auto 6px', opacity: 0.5 }} />
-            <p style={{ margin: 0, fontWeight: 600 }}>Sin hallazgos en este viewport</p>
-            <small style={{ color: '#475569', display: 'block', marginTop: '2px' }}>
+            <Layers size={24} style={{ margin: '0 auto 6px', opacity: 0.5, color: '#94a3b8' }} />
+            <p style={{ margin: 0, fontWeight: 600, color: '#334155' }}>Sin hallazgos en este viewport</p>
+            <small style={{ color: '#64748b', display: 'block', marginTop: '2px' }}>
               Mueva el mapa o ajuste los filtros de búsqueda
             </small>
           </div>
@@ -307,14 +228,15 @@ const PanelHallazgosCorpus = () => {
               <div
                 key={p.id || p.uuid}
                 style={{
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #1e293b',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderLeft: '4px solid #f59e0b',
-                  borderRadius: '4px',
-                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  padding: '10px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px'
+                  gap: '5px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}
               >
                 {/* Cabecera */}
@@ -323,7 +245,7 @@ const PanelHallazgosCorpus = () => {
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '4px', 
-                    color: '#f59e0b', 
+                    color: '#b45309', 
                     fontSize: '11px', 
                     fontWeight: 700 
                   }}>
@@ -335,7 +257,7 @@ const PanelHallazgosCorpus = () => {
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '4px', 
-                    color: '#94a3b8', 
+                    color: '#64748b', 
                     fontSize: '10px' 
                   }}>
                     <Calendar size={11} />
@@ -350,8 +272,8 @@ const PanelHallazgosCorpus = () => {
                     margin: 0,
                     fontSize: '12px',
                     fontWeight: 600,
-                    color: '#f8fafc',
-                    lineHeight: '1.3',
+                    color: '#0f172a',
+                    lineHeight: '1.35',
                     cursor: 'pointer'
                   }}
                   title="Clic para centrar en el mapa"
@@ -364,12 +286,12 @@ const PanelHallazgosCorpus = () => {
                   <p style={{
                     margin: 0,
                     fontSize: '10px',
-                    color: '#cbd5e1',
-                    lineHeight: '1.3',
-                    backgroundColor: '#1e293b',
-                    padding: '4px 6px',
+                    color: '#334155',
+                    lineHeight: '1.35',
+                    backgroundColor: '#f8fafc',
+                    padding: '6px 8px',
                     borderRadius: '4px',
-                    border: '1px solid #334155'
+                    border: '1px solid #e2e8f0'
                   }}>
                     {p.resumen}
                   </p>
@@ -379,11 +301,12 @@ const PanelHallazgosCorpus = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
                   {totalCuerpos ? (
                     <span style={{
-                      backgroundColor: '#7f1d1d',
-                      color: '#fecaca',
+                      backgroundColor: '#fee2e2',
+                      color: '#991b1b',
+                      border: '1px solid #fecaca',
                       fontSize: '10px',
                       fontWeight: 700,
-                      padding: '1px 5px',
+                      padding: '1px 6px',
                       borderRadius: '3px'
                     }}>
                       {totalCuerpos} cuerpo{totalCuerpos > 1 ? 's' : ''}
@@ -391,11 +314,12 @@ const PanelHallazgosCorpus = () => {
                   ) : null}
                   {totalRestos ? (
                     <span style={{
-                      backgroundColor: '#78350f',
-                      color: '#fde68a',
+                      backgroundColor: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
                       fontSize: '10px',
                       fontWeight: 700,
-                      padding: '1px 5px',
+                      padding: '1px 6px',
                       borderRadius: '3px'
                     }}>
                       {totalRestos} restos/bolsas
@@ -404,19 +328,20 @@ const PanelHallazgosCorpus = () => {
                 </div>
 
                 {/* Acciones */}
-                <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                   <button
                     onClick={() => handleSelectHallazgo(item)}
                     style={{
                       flex: 1,
-                      backgroundColor: '#1e293b',
-                      color: '#f8fafc',
-                      border: '1px solid #334155',
-                      borderRadius: '3px',
-                      padding: '4px 6px',
-                      fontSize: '10px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#334155',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '4px',
+                      padding: '5px 8px',
+                      fontSize: '11px',
                       fontWeight: 600,
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
                     }}
                   >
                     Centrar
@@ -424,21 +349,22 @@ const PanelHallazgosCorpus = () => {
                   <button
                     onClick={() => handleOpenLinkModal(item)}
                     style={{
-                      backgroundColor: '#4338ca',
-                      color: '#e0e7ff',
+                      backgroundColor: 'var(--primary-color, #007bff)',
+                      color: '#ffffff',
                       border: 'none',
-                      borderRadius: '3px',
-                      padding: '4px 6px',
-                      fontSize: '10px',
+                      borderRadius: '4px',
+                      padding: '5px 10px',
+                      fontSize: '11px',
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '3px'
+                      gap: '4px',
+                      transition: 'background-color 0.2s'
                     }}
                     title="Vincular con caso"
                   >
-                    <LinkIcon size={11} />
+                    <LinkIcon size={12} />
                     Vincular
                   </button>
                   {p.url && (
@@ -447,20 +373,21 @@ const PanelHallazgosCorpus = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
-                        backgroundColor: '#1e293b',
-                        color: '#60a5fa',
-                        border: '1px solid #334155',
-                        borderRadius: '3px',
-                        padding: '4px 6px',
-                        fontSize: '10px',
+                        backgroundColor: '#f1f5f9',
+                        color: '#0284c7',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '4px',
+                        padding: '5px 8px',
+                        fontSize: '11px',
                         textDecoration: 'none',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        transition: 'all 0.2s'
                       }}
                       title="Abrir nota original"
                     >
-                      <ExternalLink size={11} />
+                      <ExternalLink size={12} />
                     </a>
                   )}
                 </div>

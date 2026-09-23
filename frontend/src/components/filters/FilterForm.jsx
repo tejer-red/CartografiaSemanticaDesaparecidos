@@ -241,7 +241,7 @@ const FilterForm = () => {
             onChange={handleMarkerTypeChange}
           />
           <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
-          Fosas y Hallazgos Colectivos (Corpus)
+          Cobertura Periodística
         </label>
       </fieldset>
 

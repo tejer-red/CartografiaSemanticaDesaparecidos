@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 12:51 CST
+- **Última actualización:** 2026-09-23 13:15 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `d556a7e` (`fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel`)
-- **Estado de sincronización:** 1 commit adelante de remoto (`origin/feature/ner-ontologia-mineria`)
-- **Estado general:** En desarrollo activo (Corrección de Filtros, Condición de Localización y Estadísticas)
+- **Último commit:** `5c4f436` (`feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST`)
+- **Estado de sincronización:** 2 commits adelante de remoto (`origin/feature/ner-ontologia-mineria`)
+- **Estado general:** En desarrollo activo (Homologación Visual de Paneles y Hoja de Ruta TODO-LIST)
 
 ---
 
@@ -12,10 +12,27 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| `d556a7e` | 2026-09-23 | abundis | `fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel` |
+| `5c4f436` | 2026-09-23 | abundis | `feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST` |
+| `aeb4263` | 2026-09-23 | abundis | `fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel` |
 | `c5cf358` | 2026-09-23 | abundis | `feat: add ontology matching, OSINT miners, NER pipelines, and frontend analysis views` |
 | `730c15b` | 2026-09-21 | abundis | `chore: add INSTRUCCIONES_GPU.md to gitignore` |
 | `b723624` | 2026-09-21 | abundis | `feat(ner): setup dataset builder, query generator and GPU training plan` |
+
+---
+
+## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### J. Homologación Visual de Paneles (Fondo Blanco y Botón Azul), Renombre y Hoja de Ruta
+- **Justificación técnica:** `PanelHallazgosCorpus.jsx` y su disparador de acordeón en `LeftSideBar.jsx` presentaban un fondo oscuro (`#0f172a`, `#020617`) discordante con el diseño minimalista de la plataforma (fondos blancos `#ffffff`, bordes `#e2e8f0` y botones primarios en azul `#007bff` / `--primary-color`).
+- **Renombre a "Cobertura Periodística":** Se actualizó la nomenclatura del acordeón en `LeftSideBar.jsx` y de la capa en `FilterForm.jsx` de *"Fosas y Hallazgos Colectivos (Corpus)"* a *"Cobertura Periodística"*, reflejando con mayor precisión el origen hemerográfico de los datos.
+- **Simplificación de Controles:** Se removieron los selectores de *"Colectivo"* y *"Mín. cuerpos"* en `PanelHallazgosCorpus.jsx`, dejando una barra limpia de búsqueda por municipio o palabra clave y el conmutador de sincronización con el timeline.
+- **LeftSideBar.jsx:** El acordeón adoptó la clase estándar compartida con *"Filtros"* y *"Estadísticas"* (`accordionStyles.trigger` con fondo azul y contenido en blanco).
+- **PanelHallazgosCorpus.jsx:**
+  - Controles de filtrado y tarjetas de notas refactorizados a fondo blanco con sombra sutil (`box-shadow: 0 1px 3px rgba(0,0,0,0.05)`).
+  - Tipografía oscura de alto contraste (`#0f172a` para titulares, `#334155` para resúmenes).
+  - Botón *"Vincular"* homologado a `var(--primary-color, #007bff)` con texto blanco.
+  - Botón *"Centrar"* adaptado a estilo secundario neutral (`#f1f5f9` con borde `#cbd5e1`).
+- **TODO-LIST.md:** Creación del archivo de hoja de ruta en la raíz del proyecto, detallando la importancia metodológica y arquitectónica de cada una de las tareas prioritarias.
 
 ---
 
@@ -111,6 +128,7 @@
 - `backend/app/routes/anonymize.py`, `ontology.py`, `osint.py`
 - `frontend/src/components/analysis/*` (`PanelHallazgosCorpus.jsx`, `RedContextoPage.jsx`, `RedNoticiasPage.jsx`)
 - `frontend/src/components/map/DrawerHallazgosCorpus.jsx`
+- `TODO-LIST.md` (Hoja de ruta priorizada y justificación metodológica)
 - `reports/*` (Reportes de metodología, despliegue y entrenamiento)
 - `tests/*` (Pruebas unitarias de anonimizador, API, matcher y enriquecedor)
 
@@ -122,6 +140,8 @@
 - `backend/app/routes/casos.py`, `noticias.py`
 - `frontend/src/App.jsx`, `config.js`
 - `frontend/src/context/AuthContext.jsx`, `DataContext.jsx`, `FilteredFeatures.jsx`
+- `frontend/src/components/layout/LeftSideBar.jsx`
+- `frontend/src/components/filters/FilterForm.jsx`
 - `frontend/src/components/analysis/PanelHallazgosCorpus.jsx`
 - `frontend/src/components/filters/FilteredStats.jsx`
 - `frontend/src/utils/filteredStats.jsx`
