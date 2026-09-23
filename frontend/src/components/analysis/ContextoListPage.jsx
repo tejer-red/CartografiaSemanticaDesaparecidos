@@ -67,17 +67,24 @@ const ContextoListPage = () => {
 
             const categories = Object.keys(groups).map(r => {
               const topEntities = Object.entries(groups[r].entities)
-                .map(([name, count]) => ({ name, count }))
-                .sort((a, b) => b.count - a.count)
+                .map(([name, count]) => ({ 
+                  nombre: name,
+                  target_node: name,
+                  repeticiones: count,
+                  count: count 
+                }))
+                .sort((a, b) => b.repeticiones - a.repeticiones)
                 .slice(0, 15);
 
               return {
                 relation_type: r,
                 title: RELATION_TITLES[r] || r.replace(/_/g, ' '),
+                total_vinculos: groups[r].count,
                 count: groups[r].count,
+                entities: topEntities,
                 top_entities: topEntities
               };
-            }).sort((a, b) => b.count - a.count);
+            }).sort((a, b) => b.total_vinculos - a.total_vinculos);
 
             setData({ categories });
             setLoading(false);

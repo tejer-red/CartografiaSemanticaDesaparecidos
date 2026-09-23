@@ -50,7 +50,8 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
           logger.log('[FetchCedulas] Fetching cases directly from Supabase...');
           let query = supabase
             .from('cedulas_anonimizadas')
-            .select('*, repd_vp_inferencia3(*)');
+            .select('*, repd_vp_inferencia3(*)')
+            .limit(10000);
 
           if (start_date) query = query.gte('fecha_desaparicion', start_date);
           if (end_date) query = query.lte('fecha_desaparicion', end_date);

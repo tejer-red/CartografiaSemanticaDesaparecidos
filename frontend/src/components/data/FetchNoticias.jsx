@@ -123,43 +123,39 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
             return t >= minTimestamp && t <= maxTimestamp;
           });
 
-        const featuresCorpus = (responseCorpus.data?.features || [])
-          .map(f => {
-            const p = f.properties || {};
-            let eventTime = 0;
-            
-            if (p.fecha) {
-              const parts = p.fecha.split('-');
-              const year = parseInt(parts[0], 10);
-              const month = parseInt(parts[1], 10) - 1;
-              const day = parseInt(parts[2], 10);
-              const d = new Date(Date.UTC(year, month, day));
-              if (!isNaN(d.getTime())) {
-                eventTime = d.getTime();
-              }
+        const featuresCorpus = corpusFeatures.map(f => {
+          const p = f.properties || {};
+          let eventTime = 0;
+          if (p.fecha) {
+            const parts = p.fecha.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const d = new Date(Date.UTC(year, month, day));
+            if (!isNaN(d.getTime())) {
+              eventTime = d.getTime();
             }
+          }
 
-            return {
-              ...f,
-              properties: {
-                ...p,
-                id: `corpus_${p.id}`,
-                tipo_marcador: 'noticia',
-                subtipo: 'noticia_corpus',
-                timestamp: eventTime,
-                timestamp_start: eventTime,
-                timestamp_end: eventTime
-              }
-            };
-          })
-          .filter(f => {
-            const t = f.properties.timestamp;
-            // Si la fecha es válida, asegurar que caiga dentro del rango seleccionado
-            if (t > 0) {
-              return t >= minTimestamp && t <= maxTimestamp;
+          return {
+            ...f,
+            properties: {
+              ...p,
+              id: `corpus_${p.id}`,
+              tipo_marcador: 'noticia',
+              subtipo: 'noticia_corpus',
+              timestamp: eventTime,
+              timestamp_start: eventTime,
+              timestamp_end: eventTime
             }
-            return true;
-          });
+          };
+        }).filter(f => {
+          const t = f.properties.timestamp;
+          if (t > 0 && (start_date || end_date)) {
+            return t >= minTimestamp && t <= maxTimestamp;
+          }
+          return true;
+        });
 
         const allFeatures = [...featuresCasos, ...featuresCorpus];
 

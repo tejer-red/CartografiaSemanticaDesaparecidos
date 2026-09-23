@@ -112,9 +112,10 @@ const NoticiasListPage = () => {
           municipio: n.municipio_extraido,
           colonia: n.colonia_extraida,
           resumen: n.resumen_hallazgo,
-          cuerpo_completo: n.cuerpo_texto,
-          cuerpos: n.total_cuerpos_estimado,
-          restos: n.total_restos_estimado,
+          cuerpo_texto: n.cuerpo_texto || n.resumen_hallazgo || '',
+          cuerpo_completo: n.cuerpo_texto || n.resumen_hallazgo || '',
+          total_cuerpos_estimado: n.total_cuerpos_estimado,
+          total_restos_estimado: n.total_restos_estimado,
           precision: n.geocode_precision,
           entidades_ner: n.keywords_matched || []
         }));

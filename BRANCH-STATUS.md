@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 16:17 CST
+- **Última actualización:** 2026-09-23 16:27 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `ca79cfb` (`feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync`)
+- **Último commit:** `4f589d9` (`feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Frontend 100% Serverless en Vercel con consultas directas a Supabase verificadas (Vite build exitoso)
+- **Estado general:** Fixes de límites (10,000 casos), renderizado de cuerpo periodístico y total_vinculos completados
 
 ---
 
@@ -12,6 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
+| `4f589d9` | 2026-09-23 | abundis | `feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support` |
 | `ca79cfb` | 2026-09-23 | abundis | `feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync` |
 | `5565d4a` | 2026-09-23 | abundis | `feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology` |
 | `5b309e3` | 2026-09-23 | abundis | `feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST` |
@@ -23,6 +24,18 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### O. Corrección de Límites de Consulta, Carga de Prensa en Mapa y Renderizado de Texto y Vínculos
+- **Justificación técnica:**
+  1. **Tope de 1,000 Registros de Supabase:** Por defecto, Supabase API trunca a 1,000 registros si no se especifica `.limit()`. Se fijó `.limit(10000)` en `FetchCedulas.jsx` para permitir cargar los 1,428 casos del año 2023 o los 5,542 casos históricos completos según el filtro.
+  2. **Noticias del Corpus en Mapa (Prensa 0):** En `FetchNoticias.jsx`, el array de noticias del corpus generado desde Supabase (`corpusFeatures`) no se estaba conectando al array de salida `allFeatures`, provocando que el contador de prensa mostrara 0. Se restauró el mapeo unificado con timestamps válidos para el timeline.
+  3. **Texto Completo en Catálogo de Noticias (`NoticiasListPage.jsx`):** Las notas no mostraban el texto porque el mapeo enviaba `cuerpo_completo` mientras el renderizador esperaba `cuerpo_texto`. Se homologaron ambos campos con fallback al `resumen_hallazgo`.
+  4. **Excepción Fatal en Catálogo de Contexto (`ContextoListPage.jsx`):** El componente lanzaba `Uncaught TypeError: can't access property "toLocaleString", g.total_vinculos is undefined`. Se normalizó la estructura del objeto de respuesta para incluir `total_vinculos` y `entities: [...]` con sus repeticiones correspondientes.
+- **Frontend - Archivos Modificados:**
+  - `frontend/src/components/data/FetchCedulas.jsx`
+  - `frontend/src/components/data/FetchNoticias.jsx`
+  - `frontend/src/components/analysis/NoticiasListPage.jsx`
+  - `frontend/src/components/analysis/ContextoListPage.jsx`
 
 ### N. Desacoplamiento Total de Backend: Frontend 100% Serverless con Consultas Directas a Supabase
 - **Justificación técnica:**
