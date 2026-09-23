@@ -59,7 +59,7 @@ api/user_log.txt
 *.jsonl
 dataset_summary.json
 backend/app/ner/data/
-data/
+/data/
 data_export/
 *_sensitive.*
 

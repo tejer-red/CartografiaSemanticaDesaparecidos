@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
+import { supabase } from '../../utils/supabase';
 
 
 
@@ -52,16 +53,24 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         logger.log('[FetchFosas] Calling updateLoadingStatus(fosas, true)');
         updateLoadingStatus('fosas', true);
         
-        logger.log('[FetchFosas] Calling axios.get');
-        const response = await axios.get(`${API_BASE_URL}/fosas`, {
-          params: {
-            start_date,
-            end_date,
-            limit: 1000 // Get all graves
-          }
-        });
-        const records = response.data || [];
-        logger.log(`[FetchFosas] Axios returned ${records.length} records.`);
+        logger.log('[FetchFosas] Fetching from Supabase...');
+        let records = [];
+        try {
+          let query = supabase.from('fosas').select('*').limit(1000);
+          if (start_date) query = query.gte('fecha_hallazgo', start_date);
+          if (end_date) query = query.lte('fecha_hallazgo', end_date);
+          
+          const { data, error } = await query;
+          if (error) throw error;
+          records = data || [];
+          logger.log(`[FetchFosas] Supabase returned ${records.length} records.`);
+        } catch (supaErr) {
+          logger.warn('[FetchFosas] Supabase fetch failed, falling back to API:', supaErr);
+          const response = await axios.get(`${API_BASE_URL}/fosas`, {
+            params: { start_date, end_date, limit: 1000 }
+          });
+          records = response.data || [];
+        }
 
         logger.log('[FetchFosas] Formatting records...');
         const formattedRecords = records

@@ -14,6 +14,7 @@ import {
   BarChart2
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
+import { supabase } from '../../utils/supabase';
 import '../../styles/ContextoListPage.css';
 import '../../styles/GraphPage.css';
 
@@ -46,6 +47,47 @@ const ContextoListPage = () => {
   useEffect(() => {
     const fetchEntities = async () => {
       try {
+        // 1. Intentar consulta directa a Supabase
+        try {
+          const { data: vinculos, error: supaErr } = await supabase
+            .from('vinculos_entidades')
+            .select('relation_type, target_node, target_type');
+
+          if (supaErr) throw supaErr;
+
+          if (vinculos && vinculos.length > 0) {
+            const groups = {};
+            vinculos.forEach(v => {
+              const r = v.relation_type || 'OTRO';
+              if (!groups[r]) groups[r] = { count: 0, entities: {} };
+              groups[r].count += 1;
+              const target = v.target_node;
+              groups[r].entities[target] = (groups[r].entities[target] || 0) + 1;
+            });
+
+            const categories = Object.keys(groups).map(r => {
+              const topEntities = Object.entries(groups[r].entities)
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 15);
+
+              return {
+                relation_type: r,
+                title: RELATION_TITLES[r] || r.replace(/_/g, ' '),
+                count: groups[r].count,
+                top_entities: topEntities
+              };
+            }).sort((a, b) => b.count - a.count);
+
+            setData({ categories });
+            setLoading(false);
+            return;
+          }
+        } catch (supaErr) {
+          console.warn('Supabase context fetch failed, falling back to API:', supaErr);
+        }
+
+        // 2. Fallback a Backend API
         const res = await fetch(`${API_BASE_URL}/ontology/context-entities`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const result = await res.json();

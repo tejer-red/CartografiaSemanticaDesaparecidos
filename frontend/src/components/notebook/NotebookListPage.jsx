@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/localDatabase';
 import { API_BASE_URL } from '../../config';
+import { supabase } from '../../utils/supabase';
 import { BookOpen, Map, ArrowLeft, Plus, Server, HardDrive, Trash2, Edit2, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import GlobalAuthIndicator from '../auth/GlobalAuthIndicator';
@@ -59,39 +60,57 @@ const NotebookListPage = () => {
 
       let merged = [...mappedLocal];
 
-      // Obtener remotos de la API
+      // Obtener remotos directamente desde Supabase o API
       try {
-        const response = await fetch(`${API_BASE_URL}/notebooks`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.notebooks) {
-            const remoteNbs = data.notebooks.map(r => {
-              const name = typeof r === 'string' ? r : r.name;
-              const notesCount = r.notesCount || 0;
-              logger.log(`[Remote Notebook: ${name}] API Payload:`, r, `Computed notes count: ${notesCount}`);
-              return {
-                id: name,
-                name: name,
-                created_at: r.created_at || r.updated_at,
-                isLocal: false,
-                startDate: r.startDate || null,
-                endDate: r.endDate || null,
-                notesCount: notesCount
-              };
-            });
+        let remoteNbs = [];
+        try {
+          const { data: supaNbs, error: supaErr } = await supabase
+            .from('notebooks')
+            .select('*');
+          if (supaErr) throw supaErr;
 
-            // Combinar evitando duplicados
-            remoteNbs.forEach(remote => {
-              const exists = merged.find(m => m.name === remote.name);
-              if (exists) {
-                // Si existe local y remoto, marcamos que tiene copia en servidor
-                exists.hasRemoteCopy = true;
-              } else {
-                merged.push(remote);
-              }
-            });
+          if (supaNbs) {
+            remoteNbs = supaNbs.map(r => ({
+              id: r.id,
+              name: r.id,
+              created_at: r.created_at,
+              isLocal: false,
+              startDate: r.startDate || null,
+              endDate: r.endDate || null,
+              notesCount: Array.isArray(r.notes) ? r.notes.length : 0
+            }));
+          }
+        } catch (supaErr) {
+          logger.warn('Supabase notebooks list failed, falling back to API:', supaErr);
+          const response = await fetch(`${API_BASE_URL}/notebooks`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.notebooks) {
+              remoteNbs = data.notebooks.map(r => {
+                const name = typeof r === 'string' ? r : r.name;
+                return {
+                  id: name,
+                  name: name,
+                  created_at: r.created_at || r.updated_at,
+                  isLocal: false,
+                  startDate: r.startDate || null,
+                  endDate: r.endDate || null,
+                  notesCount: r.notesCount || 0
+                };
+              });
+            }
           }
         }
+
+        // Combinar evitando duplicados
+        remoteNbs.forEach(remote => {
+          const exists = merged.find(m => m.name === remote.name);
+          if (exists) {
+            exists.hasRemoteCopy = true;
+          } else {
+            merged.push(remote);
+          }
+        });
       } catch (err) {
         logger.error('Error fetching remote notebooks:', err);
       }

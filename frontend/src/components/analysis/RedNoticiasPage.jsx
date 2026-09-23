@@ -25,6 +25,8 @@ import {
   List
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../../config';
+import { supabase } from '../../utils/supabase';
 
 const COLORS = {
   PERSONA: '#e63946',
@@ -118,7 +120,63 @@ const RedNoticiasPage = () => {
   const fetchGraph = async () => {
     setLoading(true);
     try {
-      const url = `http://192.168.1.72:8008/api/v1/ontology/graph?limit_edges=${limitEdges}&include_empty=${includeEmpty}&anonymized=${anonymized}`;
+      // 1. Intentar construir grafo semántico directamente desde Supabase
+      try {
+        const { data: vinculos, error: vErr } = await supabase
+          .from('vinculos_entidades')
+          .select('*')
+          .limit(limitEdges);
+
+        if (vErr) throw vErr;
+
+        if (vinculos && vinculos.length > 0) {
+          const nodesMap = new Map();
+          const edges = [];
+
+          vinculos.forEach((v, idx) => {
+            const sId = v.source_node;
+            const tId = v.target_node;
+
+            if (!nodesMap.has(sId)) {
+              nodesMap.set(sId, {
+                id: sId,
+                label: sId.replace(/^CASO_/, 'Caso '),
+                type: v.source_type || 'PERSONA',
+                metadata: v.metadata_relacion || {}
+              });
+            }
+
+            if (!nodesMap.has(tId)) {
+              nodesMap.set(tId, {
+                id: tId,
+                label: tId.length > 30 ? tId.slice(0, 27) + '...' : tId,
+                type: v.target_type || 'ENTIDAD',
+                metadata: v.metadata_relacion || {}
+              });
+            }
+
+            edges.push({
+              id: `edge_${v.id || idx}`,
+              source: sId,
+              target: tId,
+              label: v.relation_type,
+              confidence: v.confidence_score
+            });
+          });
+
+          setGraphData({
+            nodes: Array.from(nodesMap.values()),
+            edges: edges
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (supaErr) {
+        console.warn('Supabase graph build failed, falling back to API:', supaErr);
+      }
+
+      // 2. Fallback a Backend API
+      const url = `${API_BASE_URL}/ontology/graph?limit_edges=${limitEdges}&include_empty=${includeEmpty}&anonymized=${anonymized}`;
       const res = await fetch(url);
       const data = await res.json();
       setGraphData(data);

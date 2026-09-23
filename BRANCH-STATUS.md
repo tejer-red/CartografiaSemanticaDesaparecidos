@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 13:58 CST
+- **Última actualización:** 2026-09-23 16:17 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `d947313` (`feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology`)
-- **Estado de sincronización:** Commit local registrado en la rama `feature/ner-ontologia-mineria`
-- **Estado general:** Estable y verificado con Vite build
+- **Último commit:** `ca79cfb` (`feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync`)
+- **Estado de sincronización:** Cambios locales listos para commit
+- **Estado general:** Frontend 100% Serverless en Vercel con consultas directas a Supabase verificadas (Vite build exitoso)
 
 ---
 
@@ -12,8 +12,9 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| `d947313` | 2026-09-23 | abundis | `feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology` |
-| `5c4f436` | 2026-09-23 | abundis | `feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST` |
+| `ca79cfb` | 2026-09-23 | abundis | `feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync` |
+| `5565d4a` | 2026-09-23 | abundis | `feat(frontend): sitemap restructuring, light theme CSS homologation, and list views for news and ontology` |
+| `5b309e3` | 2026-09-23 | abundis | `feat(frontend): rename findings to Cobertura Periodística, simplify filters, and add roadmap TODO-LIST` |
 | `aeb4263` | 2026-09-23 | abundis | `fix(frontend): restore localization conditions, resilient stats fallback, and timeline sync for findings panel` |
 | `c5cf358` | 2026-09-23 | abundis | `feat: add ontology matching, OSINT miners, NER pipelines, and frontend analysis views` |
 | `730c15b` | 2026-09-21 | abundis | `chore: add INSTRUCCIONES_GPU.md to gitignore` |
@@ -22,6 +23,23 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### N. Desacoplamiento Total de Backend: Frontend 100% Serverless con Consultas Directas a Supabase
+- **Justificación técnica:**
+  1. **Independencia Operativa y Cero Servidores:** Eliminar la dependencia obligatoria de FastAPI, túneles de Cloudflare o servidores intermedios para la visualización pública en Vercel.
+  2. **Arquitectura Zero-Backend en Nube:** El frontend en React interactúa directamente con la réplica hasheada de Supabase vía `@supabase/supabase-js`, aprovechando las políticas de Row Level Security (RLS) habilitadas para lectura anónima y autenticada.
+  3. **Resiliencia con Fallback:** Todos los componentes mantienen un fallback transparente hacia `API_BASE_URL` en caso de que se requiera alternar a una API local o privada.
+- **Frontend - Componentes Migrados a Supabase Directo:**
+  - `frontend/src/components/data/FetchCedulas.jsx`: Consulta `cedulas_anonimizadas` con join a `repd_vp_inferencia3(*)` para cargar los 5,542 casos con sus coordenadas y sum_score sin tocar FastAPI.
+  - `frontend/src/components/data/FetchFosas.jsx`: Consulta directamente la tabla pública `fosas` en Supabase.
+  - `frontend/src/components/data/FetchNoticias.jsx`: Obtiene las notas del corpus directamente de `noticias_corpus` mapeándolas a GeoJSON en memoria.
+  - `frontend/src/components/analysis/NoticiasListPage.jsx`: Paginación y búsqueda de texto completo con operadores nativos de Supabase (`ilike`, `or`).
+  - `frontend/src/components/analysis/ContextoListPage.jsx`: Agrupación y conteo relacional sobre `vinculos_entidades` directamente en el navegador.
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`: Construcción autónoma del grafo Sigma.js (nodos y aristas) a partir de `vinculos_entidades`.
+  - `frontend/src/components/analysis/RedContextoPage.jsx`: Generación del grafo de contexto y eventos criminales directamente desde Supabase.
+  - `frontend/src/utils/notebook.js` & `NotebookListPage.jsx`: Persistencia y lectura remota de libretas de investigación directamente contra la tabla `notebooks`.
+- **Backend / Scripts:**
+  - `backend/scripts/publish_to_supabase.py`: Se añadió el adaptador `psycopg2.extras.Json` para serializar diccionarios JSONB automáticamente durante la sincronización Abeja ➔ Supabase.
 
 ### M. Arquitectura Master-Réplica (Abeja-Supabase) y Pipeline de Publicación Zero-Knowledge
 - **Justificación técnica:**

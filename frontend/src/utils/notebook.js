@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
+import { supabase } from './supabase';
 import { db } from '../lib/localDatabase';
 import { calculateStats } from './filteredStats';
 
@@ -411,19 +412,36 @@ export function useNotebook(dataContext, id, navigate) {
         endDate: endDate || ''
         // we can also pass configJSON but backend might not support it yet
       };
-      logger.log('Saving notes to the backend...');
+      logger.log('Saving notes to Supabase...');
       console.log('Saving notebook payload:', payload);
-      const response = await fetch(`${API_BASE_URL}/notebooks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        logger.error(`Backend returned ${response.status} ${response.statusText}`);
-        throw new Error('Failed to save notes to backend');
+
+      let saved = false;
+      try {
+        const { error: supaErr } = await supabase
+          .from('notebooks')
+          .upsert({
+            id: String(name),
+            notes: notes || [],
+            startDate: startDate || '',
+            endDate: endDate || ''
+          });
+        if (supaErr) throw supaErr;
+        saved = true;
+        logger.log('Notebook saved directly to Supabase!');
+      } catch (supaErr) {
+        logger.warn('Supabase save failed, falling back to API:', supaErr);
+        const response = await fetch(`${API_BASE_URL}/notebooks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          logger.error(`Backend returned ${response.status} ${response.statusText}`);
+          throw new Error('Failed to save notes to backend');
+        }
+        saved = true;
       }
-      const saveResult = await response.json();
-      logger.log('Backend save successful. Response:', saveResult);
+
       alert('Notes saved successfully!');
 
       if (name !== id) {
@@ -463,21 +481,33 @@ export function useNotebook(dataContext, id, navigate) {
         logger.log('Name has not changed, skipping migration and navigation.');
       }
     } catch (error) {
-      alert('Error saving notes to backend.');
-      logger.error('Error saving notes to backend:', error);
+      alert('Error saving notes.');
+      logger.error('Error saving notes:', error);
     }
   }, [id, notes, startDate, endDate, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange, timeScale, mapType, colorScheme, visibleComponents, navigate]);
 
   const loadNotesFromBackend = useCallback(async (notebookId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/notebooks/${notebookId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return false;
+      let data = null;
+      try {
+        const { data: nbRow, error: supaErr } = await supabase
+          .from('notebooks')
+          .select('*')
+          .eq('id', String(notebookId))
+          .single();
+        if (!supaErr && nbRow) {
+          data = nbRow;
         }
-        throw new Error('Failed to load notes from backend: ' + response.statusText);
+      } catch (e) {}
+
+      if (!data) {
+        const response = await fetch(`${API_BASE_URL}/notebooks/${notebookId}`);
+        if (!response.ok) {
+          if (response.status === 404) return false;
+          throw new Error('Failed to load notes: ' + response.statusText);
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       logger.log('Loaded notebook data from backend:', data);
       
       if (data.notes && Array.isArray(data.notes)) {

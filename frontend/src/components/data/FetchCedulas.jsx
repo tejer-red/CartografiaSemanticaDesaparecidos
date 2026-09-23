@@ -2,12 +2,10 @@ import React, { useEffect } from 'react';
 import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
-
-
+import { supabase } from '../../utils/supabase';
 
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchCedulas');
-
 
 const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
   const {
@@ -47,17 +45,45 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
         setLoading(true);
         updateLoadingStatus('cedulas', true);
 
-        const response = await axios.get(`${API_BASE_URL}/casos`, {
-          headers: {
-            'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
-            'Content-Type': 'application/json'
-          },
-          params: {
-            start_date,
-            end_date
-          }
-        });
-        const records = response.data.records || [];
+        let records = [];
+        try {
+          logger.log('[FetchCedulas] Fetching cases directly from Supabase...');
+          let query = supabase
+            .from('cedulas_anonimizadas')
+            .select('*, repd_vp_inferencia3(*)');
+
+          if (start_date) query = query.gte('fecha_desaparicion', start_date);
+          if (end_date) query = query.lte('fecha_desaparicion', end_date);
+
+          const { data, error } = await query;
+          if (error) throw error;
+
+          records = (data || []).map(row => {
+            const inf = Array.isArray(row.repd_vp_inferencia3) ? row.repd_vp_inferencia3[0] : row.repd_vp_inferencia3;
+            return {
+              ...row,
+              lat_long: inf?.lat_long || null,
+              sum_score: inf?.sum_score != null ? parseFloat(inf.sum_score) : 1.0,
+              violence_score: inf?.violence_score,
+              violence_terms: inf?.violence_terms,
+              condicion_localizacion: row.condicion_localizacion || 'NO APLICA'
+            };
+          });
+          logger.log(`[FetchCedulas] Supabase returned ${records.length} records.`);
+        } catch (supaErr) {
+          logger.warn('[FetchCedulas] Supabase direct query failed, falling back to API:', supaErr);
+          const response = await axios.get(`${API_BASE_URL}/casos`, {
+            headers: {
+              'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
+              'Content-Type': 'application/json'
+            },
+            params: {
+              start_date,
+              end_date
+            }
+          });
+          records = response.data.records || [];
+        }
 
         const formattedRecordsCedula = records.map(record => {
           const [lat, lon] = record.lat_long ? record.lat_long.split(',').map(coord => parseFloat(coord)) : [null, null];

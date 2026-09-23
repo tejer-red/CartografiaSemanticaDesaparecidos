@@ -25,6 +25,8 @@ import {
   List
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../../config';
+import { supabase } from '../../utils/supabase';
 
 const CONTEXT_COLORS = {
   PERSONA: '#e63946',             // Rojo Cédula (Principal caso)
@@ -73,19 +75,74 @@ const RedContextoPage = () => {
   const [timeWindowDays, setTimeWindowDays] = useState(180); // Ventana deslizante en días
   const [sliderIndex, setSliderIndex] = useState(100); // 0 a 100%
 
-  const fetchGraph = () => {
+  const fetchGraph = async () => {
     setLoading(true);
-    const API_BASE = `${window.location.protocol}//${window.location.hostname}:8008`;
-    fetch(`${API_BASE}/api/v1/ontology/context-graph?limit_edges=${limitEdges}`)
-      .then(res => res.json())
-      .then(data => {
-        setGraphData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching context graph:', err);
-        setLoading(false);
-      });
+    try {
+      // 1. Intentar construir grafo de contexto directamente desde Supabase
+      try {
+        const { data: vinculos, error: vErr } = await supabase
+          .from('vinculos_entidades')
+          .select('*')
+          .neq('relation_type', 'POSIBLE_HALLAZGO_RELACIONADO')
+          .limit(limitEdges);
+
+        if (vErr) throw vErr;
+
+        if (vinculos && vinculos.length > 0) {
+          const nodesMap = new Map();
+          const edges = [];
+
+          vinculos.forEach((v, idx) => {
+            const sId = v.source_node;
+            const tId = v.target_node;
+
+            if (!nodesMap.has(sId)) {
+              nodesMap.set(sId, {
+                id: sId,
+                label: sId.replace(/^CASO_/, 'Caso '),
+                type: 'PERSONA',
+                metadata: v.metadata_relacion || {}
+              });
+            }
+
+            if (!nodesMap.has(tId)) {
+              nodesMap.set(tId, {
+                id: tId,
+                label: tId.length > 30 ? tId.slice(0, 27) + '...' : tId,
+                type: v.relation_type?.includes('VEHICULO') ? 'VEHICULO_SOSPECHOSO' : (v.relation_type?.includes('FAMILIAR') ? 'PARENTESCO' : 'MODUS'),
+                metadata: v.metadata_relacion || {}
+              });
+            }
+
+            edges.push({
+              id: `edge_${v.id || idx}`,
+              source: sId,
+              target: tId,
+              label: v.relation_type,
+              confidence: v.confidence_score
+            });
+          });
+
+          setGraphData({
+            nodes: Array.from(nodesMap.values()),
+            edges: edges
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (supaErr) {
+        console.warn('Supabase context graph build failed, falling back to API:', supaErr);
+      }
+
+      // 2. Fallback a Backend API
+      const res = await fetch(`${API_BASE_URL}/ontology/context-graph?limit_edges=${limitEdges}`);
+      const data = await res.json();
+      setGraphData(data);
+    } catch (err) {
+      console.error('Error fetching context graph:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

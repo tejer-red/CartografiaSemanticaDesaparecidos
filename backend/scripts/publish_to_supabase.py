@@ -9,8 +9,11 @@ Este script es unidireccional: ABEJA -> SUPABASE
 import os
 import sys
 import psycopg2
-from psycopg2.extras import execute_batch
+from psycopg2.extras import execute_batch, Json
 from dotenv import load_dotenv
+
+# Registrar adaptador para que psycopg2 serialice diccionarios como JSON automáticamente
+psycopg2.extensions.register_adapter(dict, Json)
 
 # Cargar variables de entorno
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))

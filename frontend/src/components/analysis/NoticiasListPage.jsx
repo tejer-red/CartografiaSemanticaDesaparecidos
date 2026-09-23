@@ -14,6 +14,7 @@ import {
   Filter
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
+import { supabase } from '../../utils/supabase';
 import '../../styles/NoticiasListPage.css';
 import '../../styles/GraphPage.css';
 
@@ -81,6 +82,52 @@ const NoticiasListPage = () => {
     setLoading(true);
     setError(null);
     try {
+      const pageSize = 10;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      // 1. Intentar consulta directa a Supabase
+      try {
+        let query = supabase
+          .from('noticias_corpus')
+          .select('*', { count: 'exact' });
+
+        if (municipio.trim()) {
+          query = query.ilike('municipio_extraido', `%${municipio.trim()}%`);
+        }
+        if (search.trim()) {
+          query = query.or(`titular.ilike.%${search.trim()}%,resumen_hallazgo.ilike.%${search.trim()}%,cuerpo_texto.ilike.%${search.trim()}%`);
+        }
+
+        query = query.order('fecha', { ascending: false, nullsFirst: false }).range(from, to);
+
+        const { data, count, error: supaErr } = await query;
+        if (supaErr) throw supaErr;
+
+        const items = (data || []).map(n => ({
+          id: n.id,
+          titular: n.titular,
+          url: n.url,
+          fecha: n.fecha,
+          municipio: n.municipio_extraido,
+          colonia: n.colonia_extraida,
+          resumen: n.resumen_hallazgo,
+          cuerpo_completo: n.cuerpo_texto,
+          cuerpos: n.total_cuerpos_estimado,
+          restos: n.total_restos_estimado,
+          precision: n.geocode_precision,
+          entidades_ner: n.keywords_matched || []
+        }));
+
+        setNoticias(items);
+        setTotalCount(count || 0);
+        setTotalPages(Math.ceil((count || 0) / pageSize) || 1);
+        return;
+      } catch (supaError) {
+        console.warn('Supabase fetch failed, falling back to API:', supaError);
+      }
+
+      // 2. Fallback a Backend API
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: '10'

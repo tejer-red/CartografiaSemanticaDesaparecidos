@@ -2,12 +2,10 @@ import React, { useEffect } from 'react';
 import axios from 'axios';
 import { useData } from '../../context/DataContext';
 import { API_BASE_URL } from '../../config';
-
-
+import { supabase } from '../../utils/supabase';
 
 import createLogger from '../../utils/logger';
 const logger = createLogger('FetchNoticias');
-
 
 const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
   const { map, mapLoaded, updateLayerData, startDate, endDate, setTimelineData, updateLoadingStatus, updateDataCount, localNoticias, mergeWithLocal, setRemoteNoticias } = useData();
@@ -26,18 +24,63 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
       try {
         logger.log('[FetchNoticias] Setting loading to true');
         updateLoadingStatus('noticias', true);
-        logger.log('[FetchNoticias] Calling axios.get');
-        const [responseCasos, responseCorpus] = await Promise.all([
-          axios.get(`${API_BASE_URL}/noticias`, {
-            params: { start_date, end_date, limit: 1000 }
-          }).catch(err => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/noticias/corpus/geojson`, {
-            params: { start_date, end_date, filter_by_date: true, limit: 1000 }
-          }).catch(err => ({ data: { features: [] } }))
-        ]);
 
-        const records = responseCasos.data || [];
-        logger.log(`[FetchNoticias] Axios returned ${records.length} noticias de caso.`);
+        // 1. Obtener noticias del corpus directamente desde Supabase
+        let corpusFeatures = [];
+        try {
+          let corpusQuery = supabase.from('noticias_corpus').select('*').limit(1000);
+          if (start_date) corpusQuery = corpusQuery.gte('fecha', start_date);
+          if (end_date) corpusQuery = corpusQuery.lte('fecha', end_date);
+          const { data: supaCorpus, error: corpusErr } = await corpusQuery;
+          if (corpusErr) throw corpusErr;
+
+          corpusFeatures = (supaCorpus || [])
+            .filter(n => n.lat != null && n.lng != null)
+            .map(n => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [n.lng, n.lat]
+              },
+              properties: {
+                id: n.id,
+                titular: n.titular,
+                url: n.url,
+                fecha: n.fecha,
+                municipio: n.municipio_extraido,
+                colonia: n.colonia_extraida,
+                referencia_ubicacion: n.referencia_ubicacion,
+                resumen_hallazgo: n.resumen_hallazgo,
+                total_cuerpos: n.total_cuerpos_estimado,
+                total_restos: n.total_restos_estimado,
+                keywords: n.keywords_matched,
+                precision: n.geocode_precision,
+                tipo_marcador: 'noticia',
+                subtipo: 'noticia_corpus'
+              }
+            }));
+        } catch (supaErr) {
+          logger.warn('[FetchNoticias] Fallback a API para corpus:', supaErr);
+          try {
+            const res = await axios.get(`${API_BASE_URL}/noticias/corpus/geojson`, {
+              params: { start_date, end_date, filter_by_date: true, limit: 1000 }
+            });
+            corpusFeatures = res.data?.features || [];
+          } catch (e) {
+            corpusFeatures = [];
+          }
+        }
+
+        // 2. Obtener noticias de caso (si existen en API, o vacío de forma segura)
+        let recordsCasos = [];
+        try {
+          const resCasos = await axios.get(`${API_BASE_URL}/noticias`, {
+            params: { start_date, end_date, limit: 1000 }
+          });
+          recordsCasos = resCasos.data || [];
+        } catch (e) {
+          recordsCasos = [];
+        }
 
         const minTimestamp = start_date ? new Date(`${start_date}T00:00:00Z`).getTime() : -Infinity;
         const maxTimestamp = end_date ? new Date(`${end_date}T23:59:59.999Z`).getTime() : Infinity;
