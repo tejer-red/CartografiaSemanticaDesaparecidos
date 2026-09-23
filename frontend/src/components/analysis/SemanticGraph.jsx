@@ -55,10 +55,9 @@ const SemanticGraph = () => {
           className="violence-cases__graph-wrapper"
           style={{
             display: showSigma ? "block" : "none",
-            width: "25rem",
-            height: "23rem",
-            minWidth: 300,
-            minHeight: 300,
+            width: "100%",
+            height: "100%",
+            minHeight: "450px",
             position: "relative"
           }}
         >
@@ -86,12 +85,33 @@ const SemanticGraph = () => {
         <div className="violence-cases__modal">
           <div className="violence-cases__modal-content">
             <button className="violence-cases__modal-close" onClick={handleBack}>×</button>
-            <h3>Case Details</h3>
+            <h3 style={{ color: selectedCase.color || '#333' }}>
+              {selectedCase.attributes?.type === 'NOTICIA' && '📰 Nota Periodística'}
+              {selectedCase.attributes?.type === 'FOSA' && '🪦 Fosa Clandestina'}
+              {selectedCase.attributes?.type === 'PERSONA' && '👤 Caso / Persona'}
+              {selectedCase.attributes?.type === 'HASH_DOMICILIO' && '📍 Domicilio / Ubicación Anonimizada'}
+              {!['NOTICIA', 'FOSA', 'PERSONA', 'HASH_DOMICILIO'].includes(selectedCase.attributes?.type) && 'Detalle del Nodo'}
+            </h3>
             <div className="violence-cases__modal-details">
-              <p><strong>Name:</strong> {selectedCase.label}</p>
-              <p><strong>Date:</strong> {selectedCase.attributes.date || 'N/A'}</p>
-              <p><strong>Location:</strong> {selectedCase.attributes.location || 'N/A'}</p>
-              <p><strong>Description:</strong> {selectedCase.attributes.description || 'N/A'}</p>
+              <p><strong>Identificador:</strong> {selectedCase.id}</p>
+              <p><strong>Etiqueta:</strong> {selectedCase.label}</p>
+              {selectedCase.attributes?.date && (
+                <p><strong>Fecha:</strong> {selectedCase.attributes.date}</p>
+              )}
+              {selectedCase.attributes?.location && (
+                <p><strong>Municipio / Zona:</strong> {selectedCase.attributes.location}</p>
+              )}
+              {selectedCase.attributes?.description && (
+                <p><strong>Descripción:</strong> {selectedCase.attributes.description}</p>
+              )}
+              {selectedCase.attributes?.url && (
+                <p>
+                  <strong>Fuente:</strong>{' '}
+                  <a href={selectedCase.attributes.url} target="_blank" rel="noreferrer" style={{ color: '#0077b6' }}>
+                    Ver artículo original ↗
+                  </a>
+                </p>
+              )}
             </div>
           </div>
         </div>

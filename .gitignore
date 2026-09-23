@@ -28,7 +28,12 @@ dist-ssr/
 
 # Environment & Secrets
 .env
+.env.*
 .env*.local
+MICROSERVICIOS_CARTOGRAFIA.md
+models/
+*.spacy
+*.db
 
 # Python files
 __pycache__/
@@ -52,9 +57,11 @@ api/user_log.txt
 
 # Datasets and Sensitive Data (PII protection - transfer only via SSH/rsync)
 *.jsonl
+dataset_summary.json
 backend/app/ner/data/
 data/
 data_export/
 *_sensitive.*
 
 INSTRUCCIONES_GPU.md
+REPORTES/

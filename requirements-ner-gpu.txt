@@ -1,0 +1,16 @@
+# requirements-ner-gpu.txt: Dependencias exactas y optimizadas para entrenamiento en GPU RTX 5060 Ti
+# Para instalar en nuevos entornos sin descargas redundantes:
+# pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+# pip install -r requirements-ner-gpu.txt
+
+gliner>=0.2.29
+transformers>=4.40.0
+accelerate>=0.30.0
+seqeval>=1.2.2
+fastapi>=0.110.0
+uvicorn>=0.28.0
+sqlalchemy>=2.0.0
+pytest>=8.0.0
+tqdm>=4.66.0
+safetensors>=0.4.0
+scikit-learn>=1.4.0

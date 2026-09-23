@@ -84,10 +84,15 @@ export function processMapData(map, timeScale) {
 }
 
 export function calculateDateRange(selectedDate, timeScale) {
-  if (!selectedDate) return { start: '', end: '' };
+  if (!selectedDate) return { start: '', end: '', daysRange: 5 };
 
-  const startDate = new Date(selectedDate);
-  const endDate = new Date(selectedDate);
+  const parsed = new Date(selectedDate);
+  if (isNaN(parsed.getTime())) {
+    return { start: '', end: '', daysRange: 5 };
+  }
+
+  const startDate = new Date(parsed.getTime());
+  const endDate = new Date(parsed.getTime());
   let daysRange = 5; // Default value
 
   switch (timeScale) {
@@ -118,9 +123,12 @@ export function calculateDateRange(selectedDate, timeScale) {
       break;
   }
 
+  const startStr = !isNaN(startDate.getTime()) ? startDate.toISOString().split('T')[0] : '';
+  const endStr = !isNaN(endDate.getTime()) ? endDate.toISOString().split('T')[0] : '';
+
   return {
-    start: startDate.toISOString().split('T')[0],
-    end: endDate.toISOString().split('T')[0],
+    start: startStr,
+    end: endStr,
     daysRange
   };
 }

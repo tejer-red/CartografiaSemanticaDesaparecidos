@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Info, X, Save, FolderOpen, List, Calendar, Plus, BookOpen, Eye } from 'lucide-react';
+import { Info, X, Save, FolderOpen, List, Calendar, Plus, BookOpen, Eye, Network } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import GlobalAuthIndicator from '../auth/GlobalAuthIndicator';
@@ -9,7 +9,7 @@ import './HeaderCompact.css';
 
 const logger = createLogger('HeaderCompact');
 
-const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, onHeightChange }) => {
+const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, onOpenGraphClick, onHeightChange }) => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -155,7 +155,14 @@ const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, 
                   id="start-date-picker"
                   type="date"
                   value={dataContext.startDate ? new Date(dataContext.startDate).toISOString().split('T')[0] : ''}
-                  onChange={(e) => dataContext.setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    dataContext.setStartDate(newStart);
+                    sessionStorage.setItem('startDate', newStart);
+                    if (dataContext.setFetchId) {
+                      dataContext.setFetchId(prev => prev + 1);
+                    }
+                  }}
                   className="date-picker-input"
                 />
               </div>
@@ -165,7 +172,14 @@ const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, 
                   id="end-date-picker"
                   type="date"
                   value={dataContext.endDate ? new Date(dataContext.endDate).toISOString().split('T')[0] : ''}
-                  onChange={(e) => dataContext.setEndDate(e.target.value)}
+                  onChange={(e) => {
+                    const newEnd = e.target.value;
+                    dataContext.setEndDate(newEnd);
+                    sessionStorage.setItem('endDate', newEnd);
+                    if (dataContext.setFetchId) {
+                      dataContext.setFetchId(prev => prev + 1);
+                    }
+                  }}
                   className="date-picker-input"
                 />
               </div>
@@ -210,6 +224,7 @@ const HeaderCompact = ({ visibleComponents, toggleComponent, onNewDatasetClick, 
                   <span>Ver Público</span>
                 </button>
               )}
+              {/* Botones de Red Contexto y Grafo eliminados por requerimiento */}
               <button 
                 onClick={onNewDatasetClick}
                 className="btn-accent"

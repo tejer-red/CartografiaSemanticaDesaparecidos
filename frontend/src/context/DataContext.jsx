@@ -50,7 +50,7 @@ export const DataProvider = ({ children }) => {
   const [daysRange, setDaysRange] = useState(30); // Default to 5 days range
   const [activeHeatmapCategories, setActiveHeatmapCategories] = useState([]); // Add this line
   const [selectedSexo, setSelectedSexo] = useState(['HOMBRE', 'MUJER']);
-  const [selectedCondicion, setSelectedCondicion] = useState(['CON VIDA', 'SIN VIDA', 'NO APLICA']);
+  const [selectedCondicion, setSelectedCondicion] = useState(['CON VIDA', 'SIN VIDA', 'NO APLICA', 'NO_LOCALIZADO']);
   const [edadRange, setEdadRange] = useState([0, 100]);
   const [sumScoreRange, setsumScoreRange] = useState([0.5, 20]);
   const [timeScale, setTimeScale] = useState('monthly'); // Set default to "monthly"
@@ -69,7 +69,7 @@ export const DataProvider = ({ children }) => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [timelineVelocity, setTimelineVelocity] = useState(1000);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [selectedMarkerTypes, setSelectedMarkerTypes] = useState(['cedula_busqueda', 'fosa', 'noticia']);
+  const [selectedMarkerTypes, setSelectedMarkerTypes] = useState(['cedula_busqueda', 'fosa', 'noticia_caso', 'noticia_corpus']);
   const layerDataRef = useRef(new Map());
 
   const [loadingStatus, setLoadingStatus] = useState({
@@ -122,7 +122,7 @@ export const DataProvider = ({ children }) => {
     setSelectedDate(null);
     setDaysRange(30);
     setSelectedSexo(['HOMBRE', 'MUJER']);
-    setSelectedCondicion(['CON VIDA', 'SIN VIDA', 'NO APLICA']);
+    setSelectedCondicion(['CON VIDA', 'SIN VIDA', 'NO APLICA', 'NO_LOCALIZADO']);
     setEdadRange([0, 100]);
     setsumScoreRange([0.5, 20]);
     setTimeScale('monthly');
@@ -132,7 +132,7 @@ export const DataProvider = ({ children }) => {
       filterForm: true,
       currentState: true,
     });
-    setSelectedMarkerTypes(['cedula_busqueda', 'fosa', 'noticia']);
+    setSelectedMarkerTypes(['cedula_busqueda', 'fosa', 'noticia_caso', 'noticia_corpus']);
     setFetchedRecords({ type: 'FeatureCollection', features: [] });
     setRemoteFosas({ type: 'FeatureCollection', features: [] });
     setRemoteNoticias({ type: 'FeatureCollection', features: [] });
@@ -204,8 +204,33 @@ export const DataProvider = ({ children }) => {
 
     try {
       if (map.getLayer('noticiasLayer')) {
-        const visible = selectedMarkerTypes.includes('noticia') ? 'visible' : 'none';
-        map.setLayoutProperty('noticiasLayer', 'visibility', visible);
+        const hasCaso = selectedMarkerTypes.includes('noticia_caso') || selectedMarkerTypes.includes('noticia');
+        const hasCorpus = selectedMarkerTypes.includes('noticia_corpus') || selectedMarkerTypes.includes('noticia');
+        
+        if (!hasCaso && !hasCorpus) {
+          map.setLayoutProperty('noticiasLayer', 'visibility', 'none');
+        } else {
+          map.setLayoutProperty('noticiasLayer', 'visibility', 'visible');
+          
+          const currentFilter = map.getFilter('noticiasLayer');
+          // Extraer cualquier filtro de fecha existente (operadores <= y >= con to-number)
+          const dateFiltersOnly = (Array.isArray(currentFilter) && currentFilter[0] === 'all')
+            ? currentFilter.slice(1).filter(f => Array.isArray(f) && (f[0] === '<=' || f[0] === '>='))
+            : [];
+
+          let subtypeCondition = null;
+          if (hasCaso && !hasCorpus) {
+            subtypeCondition = ['==', ['get', 'subtipo'], 'noticia_caso'];
+          } else if (!hasCaso && hasCorpus) {
+            subtypeCondition = ['==', ['get', 'subtipo'], 'noticia_corpus'];
+          }
+
+          const combined = ['all'];
+          if (subtypeCondition) combined.push(subtypeCondition);
+          if (dateFiltersOnly.length > 0) combined.push(...dateFiltersOnly);
+
+          map.setFilter('noticiasLayer', combined.length > 1 ? combined : null);
+        }
       }
     } catch (e) {
       logger.warn('Error setting visibility for noticiasLayer', e);
@@ -466,12 +491,18 @@ export const DataProvider = ({ children }) => {
         `;
       }
       if (properties.tipo_marcador === 'noticia') {
+        const isCorpus = properties.subtipo === 'noticia_corpus';
         return `
           <div style="font-family: inherit; color: #333; padding: 5px;">
-            <h4 style="margin: 0 0 8px 0; color: #e11d48; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 4px;">Reporte de Prensa</h4>
-            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${properties.fecha || 'Desconocido'}</p>
-            <p style="margin: 6px 0; font-style: italic; font-weight: 500;">"${properties.titular}"</p>
-            ${properties.url ? `<p style="margin: 8px 0 0 0;"><a href="${properties.url}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline; font-weight: bold;">Ver noticia completa</a></p>` : ''}
+            <h4 style="margin: 0 0 8px 0; color: ${isCorpus ? '#d97706' : '#e11d48'}; font-size: 15px; font-weight: 700; border-bottom: 2px solid ${isCorpus ? '#f59e0b' : '#f43f5e'}; padding-bottom: 4px;">
+              ${isCorpus ? '📍 Hallazgo Forense / Fosa (Corpus)' : '📰 Reporte de Prensa'}
+            </h4>
+            <p style="margin: 4px 0; font-size: 12px; color: #64748b;"><strong>Fecha:</strong> ${properties.fecha || 'N/D'}</p>
+            ${properties.municipio ? `<p style="margin: 3px 0; font-size: 12px;"><strong>Municipio:</strong> ${properties.municipio}${properties.colonia ? ` (Col. ${properties.colonia})` : ''}</p>` : ''}
+            ${properties.total_cuerpos ? `<p style="margin: 3px 0; font-size: 12px; color: #b91c1c;"><strong>Cuerpos / Restos estimados:</strong> ${properties.total_cuerpos}${properties.total_restos ? ` (Restos: ${properties.total_restos})` : ''}</p>` : ''}
+            <p style="margin: 6px 0; font-size: 13px; font-style: italic; font-weight: 600; line-height: 1.3;">"${properties.titular}"</p>
+            ${properties.resumen ? `<p style="margin: 6px 0; font-size: 12px; background: #fffbeb; padding: 6px; border-left: 3px solid #f59e0b; border-radius: 2px;">${properties.resumen}</p>` : ''}
+            ${properties.url ? `<p style="margin: 8px 0 0 0;"><a href="${properties.url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: bold; font-size: 12px;">🔗 Leer noticia original</a></p>` : ''}
             ${actionButtons}
           </div>
         `;
@@ -575,9 +606,14 @@ export const DataProvider = ({ children }) => {
     let markerType = null;
     if (layerId === 'cedulaLayer') markerType = 'cedula_busqueda';
     else if (layerId === 'fosaLayer') markerType = 'fosa';
-    else if (layerId === 'noticiasLayer') markerType = 'noticia';
+    else if (layerId === 'noticiasLayer') {
+      const hasNoticias = selectedMarkerTypes.includes('noticia') || 
+                          selectedMarkerTypes.includes('noticia_caso') || 
+                          selectedMarkerTypes.includes('noticia_corpus');
+      markerType = hasNoticias ? 'noticiasLayer_active' : 'noticiasLayer_inactive';
+    }
 
-    const isVisible = markerType ? selectedMarkerTypes.includes(markerType) : true;
+    const isVisible = markerType === 'noticiasLayer_active' ? true : (markerType === 'noticiasLayer_inactive' ? false : (markerType ? selectedMarkerTypes.includes(markerType) : true));
     logger.log(`[updateLayerData] Layer: ${layerId}, MarkerType: ${markerType}, SelectedMarkerTypes: ${selectedMarkerTypes.join(', ')}, isVisible: ${isVisible}`);
 
     // Delegate caching and overlap detection to layerManager
@@ -673,61 +709,51 @@ export const DataProvider = ({ children }) => {
     'circle-radius': [
       'interpolate',
       ['linear'],
-      ['to-number', ['get', 'sum_score']],
-      0, 3,
-      5, 6,
-      9, 9,
-      21, 12
+      ['to-number', ['get', 'sum_score'], 1],
+      0, 5,
+      1, 6,
+      5, 8,
+      9, 11,
+      21, 15
     ],
     'circle-color': [
       'case',
-      ['==', ['get', 'sexo'], 'MUJER'], COLORS.MUJER.opacity30,
-      ['==', ['get', 'sexo'], 'HOMBRE'], COLORS.HOMBRE.opacity30,
-      COLORS.UNKNOWN.opacity30,
-    ],
-    'circle-stroke-color': [
-      'case',
-      ['==', ['get', 'isLocal'], true], '#6366f1',
       ['==', ['get', 'sexo'], 'MUJER'], COLORS.MUJER.opacity100,
       ['==', ['get', 'sexo'], 'HOMBRE'], COLORS.HOMBRE.opacity100,
       COLORS.UNKNOWN.opacity100,
     ],
-    'circle-stroke-width': [
+    'circle-stroke-color': [
       'case',
-      ['==', ['get', 'isLocal'], true], 3,
-      2
+      ['==', ['get', 'isLocal'], true], '#6366f1',
+      '#ffffff'
     ],
-    'circle-opacity': 0.8,
-    'circle-stroke-opacity': 1,
+    'circle-stroke-width': 1.5,
+    'circle-opacity': 0.85,
+    'circle-stroke-opacity': 0.95,
   };
 
   const condicionLocalizacionLayout = {
     'circle-radius': [
       'interpolate',
       ['linear'],
-      ['to-number', ['get', 'sum_score']],
-      0, 3,
-      5, 6,
-      9, 9,
-      21, 12
+      ['to-number', ['get', 'sum_score'], 1],
+      0, 5,
+      1, 6,
+      5, 8,
+      9, 11,
+      21, 15
     ],
     'circle-color': [
-      'case',
-      ['==', ['get', 'condicion_localizacion'], 'CON VIDA'], COLORS.CON_VIDA.opacity30,
-      ['==', ['get', 'condicion_localizacion'], 'SIN VIDA'], COLORS.SIN_VIDA.opacity30,
-      ['==', ['get', 'condicion_localizacion'], 'NO APLICA'], COLORS.NO_APLICA.opacity30,
-      COLORS.UNKNOWN.opacity30,
-    ],
-    'circle-stroke-color': [
       'case',
       ['==', ['get', 'condicion_localizacion'], 'CON VIDA'], COLORS.CON_VIDA.opacity100,
       ['==', ['get', 'condicion_localizacion'], 'SIN VIDA'], COLORS.SIN_VIDA.opacity100,
       ['==', ['get', 'condicion_localizacion'], 'NO APLICA'], COLORS.NO_APLICA.opacity100,
-      COLORS.UNKNOWN.opacity100,
+      '#64748b' // Slate para NO_LOCALIZADO
     ],
-    'circle-stroke-width': 2,
-    'circle-opacity': 0.8,
-    'circle-stroke-opacity': 1,
+    'circle-stroke-color': '#ffffff',
+    'circle-stroke-width': 1.5,
+    'circle-opacity': 0.85,
+    'circle-stroke-opacity': 0.95,
   };
 
   const fosasLayout = {
@@ -891,11 +917,27 @@ export const DataProvider = ({ children }) => {
     // Apply the date filter to the "noticiasLayer"
     try {
       if (map.getLayer("noticiasLayer")) {
+        const hasCaso = selectedMarkerTypes.includes('noticia_caso') || selectedMarkerTypes.includes('noticia');
+        const hasCorpus = selectedMarkerTypes.includes('noticia_corpus') || selectedMarkerTypes.includes('noticia');
+
+        let subtypeCondition = null;
+        if (hasCaso && !hasCorpus) {
+          subtypeCondition = ['==', ['get', 'subtipo'], 'noticia_caso'];
+        } else if (!hasCaso && hasCorpus) {
+          subtypeCondition = ['==', ['get', 'subtipo'], 'noticia_corpus'];
+        }
+
         const noticiasDateFilters = [
           ["<=", ["to-number", ["get", "timestamp_start"], 0], endTimestamp],
           [">=", ["to-number", ["get", "timestamp_end"], 0], selectedTimestamp]
         ];
-        map.setFilter("noticiasLayer", ['all', ...noticiasDateFilters]);
+
+        const combinedNoticias = ['all', ...noticiasDateFilters];
+        if (subtypeCondition) {
+          combinedNoticias.push(subtypeCondition);
+        }
+
+        map.setFilter("noticiasLayer", combinedNoticias);
       }
     } catch (e) {
       logger.error("Error applying filter to noticiasLayer:", e);

@@ -45,6 +45,26 @@ def get_casos(
                 "parte_cuerpo": s["parte_cuerpo"]
             })
             
+    # Carga de catálogo de centroides municipales de Jalisco
+    import json, os, hashlib, unicodedata
+    centroides_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "centroides_jalisco.json")
+    centroides_map = {}
+    if os.path.exists(centroides_path):
+        try:
+            with open(centroides_path, "r", encoding="utf-8") as cf:
+                raw_c = json.load(cf)
+                for k, v in raw_c.items():
+                    nk = ''.join(c for c in unicodedata.normalize('NFD', k.upper()) if unicodedata.category(c) != 'Mn').strip()
+                    centroides_map[nk] = (float(v[0]), float(v[1]))
+        except Exception as err:
+            print(f"[casos.py] Error cargando centroides: {err}")
+
+    def get_jitter(key: str, scale=0.015):
+        h = int(hashlib.md5(key.encode()).hexdigest(), 16)
+        dx = ((h % 10000) / 5000.0 - 1.0) * scale
+        dy = (((h >> 16) % 10000) / 5000.0 - 1.0) * scale
+        return dx, dy
+
     formatted_records = []
     for row in cases:
         inferencia_data = {}
@@ -61,10 +81,23 @@ def get_casos(
             
         tatuajes = tatuajes_by_case.get(row["id_cedula_busqueda"], [])
         
+        # Fallback de georreferenciación por centroide de municipio con jitter determinista
+        lat_long = inferencia_data.get("lat_long")
+        if not lat_long and row["municipio"]:
+            mun_norm = ''.join(c for c in unicodedata.normalize('NFD', row["municipio"].upper()) if unicodedata.category(c) != 'Mn').strip()
+            if mun_norm in centroides_map:
+                c_lat, c_lng = centroides_map[mun_norm]
+                j_lat, j_lng = get_jitter(str(row["id_cedula_busqueda"]))
+                lat_long = f"{round(c_lat + j_lat, 6)}, {round(c_lng + j_lng, 6)}"
+
+        # Asegurar sum_score para que los filtros visuales del mapa no descarten la cédula
+        raw_sum_score = inferencia_data.get("sum_score")
+        sum_score = float(raw_sum_score) if raw_sum_score is not None else 1.0
+
         record_dict = {
             "id_cedula_busqueda": row["id_cedula_busqueda"],
             "autorizacion_informacion_publica": row["autorizacion_informacion_publica"],
-            "condicion_localizacion": row["condicion_localizacion"],
+            "condicion_localizacion": row["condicion_localizacion"] or "NO_LOCALIZADO",
             "nombre_completo": row["nombre_completo"],
             "edad_momento_desaparicion": row["edad_momento_desaparicion"],
             "sexo": row["sexo"],
@@ -82,7 +115,9 @@ def get_casos(
             "descripcion_desaparicion": row["descripcion_desaparicion"],
             "ruta_foto": row["ruta_foto"],
             "tatuajes": tatuajes,
-            **inferencia_data
+            "lat_long": lat_long,
+            "sum_score": sum_score,
+            **{k: v for k, v in inferencia_data.items() if k not in ("lat_long", "sum_score")}
         }
         formatted_records.append(record_dict)
         

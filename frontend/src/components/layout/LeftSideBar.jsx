@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronDown, Filter, BarChart } from 'lucide-react';
+import { ChevronDown, Filter, BarChart, Layers } from 'lucide-react';
 import FilterForm from '../filters/FilterForm';
 import FilterFormWrapper from '../filters/FilterFormWrapper';
 import FilteredStats from '../filters/FilteredStats';
+import PanelHallazgosCorpus from '../analysis/PanelHallazgosCorpus';
 import { useData } from '../../context/DataContext';
 import { useZIndex } from '../../utils/useZIndex';
 
@@ -131,6 +132,32 @@ const LeftSideBar = ({ style = {}, onMouseEnter, onMouseLeave, headerHeight = 58
             )}
           </div>
         )}
+
+        <div style={accordionStyles.item}>
+          <button 
+            type="button"
+            onClick={() => toggleSection('corpus')}
+            style={{ ...accordionStyles.trigger, backgroundColor: '#0f172a' }}
+            aria-expanded={openSection === 'corpus'}
+          >
+            <div style={accordionStyles.triggerIcon}>
+              <Layers size={16} color="#f59e0b" />
+              <span>Fosas y Hallazgos Colectivos (Corpus)</span>
+            </div>
+            <ChevronDown 
+              style={{
+                ...accordionStyles.chevron,
+                transform: openSection === 'corpus' ? 'rotate(180deg)' : 'rotate(0deg)'
+              }} 
+              aria-hidden 
+            />
+          </button>
+          {openSection === 'corpus' && (
+            <div style={{ ...accordionStyles.content, padding: '8px', backgroundColor: '#020617' }}>
+              <PanelHallazgosCorpus />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

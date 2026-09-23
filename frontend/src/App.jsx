@@ -9,6 +9,8 @@ import { LoginScreen } from './components/auth';
 import { AppLayout, LoadingOverlay, LandingPage } from './components/layout';
 import { VisibleNotebook, NotebookListPage } from './components/notebook';
 import LinkModal from './components/shared/LinkModal';
+import RedNoticiasPage from './components/analysis/RedNoticiasPage';
+import RedContextoPage from './components/analysis/RedContextoPage';
 import './styles/FilterForm.css'; // Import FilterForm styles
 
 import createLogger from './utils/logger';
@@ -127,7 +129,8 @@ const App = () => {
 
   const isNotebookRoute = location.pathname.includes('/cuaderno/') && !location.pathname.includes('lista');
   const isVisibleRoute = location.pathname.includes('/visible/');
-  const shouldRenderMapAndFetchers = isVisibleRoute || (isNotebookRoute && user);
+  const isGraphRoute = location.pathname.includes('/red-noticias') || location.pathname.includes('/red-contexto');
+  const shouldRenderMapAndFetchers = !isGraphRoute && (isVisibleRoute || (isNotebookRoute && user));
 
   return (
     <>
@@ -143,7 +146,7 @@ const App = () => {
       ) : (
         <>
           <LoadingOverlay />
-          {/* Solo cargar fetchers y mapa si estamos en una ruta interactiva de cuaderno (y logueado) o visible, excluyendo el listado */}
+          {/* Solo cargar fetchers y mapa si estamos en una ruta interactiva de cuaderno (y logueado) o visible, excluyendo el listado y grafos ontológicos */}
           {shouldRenderMapAndFetchers && (
             <>
               <div className="AbstractFetching">
@@ -186,6 +189,8 @@ const App = () => {
               <Route path="/" element={<LandingPage listNotebooksApp={listNotebooksApp} />} />
               <Route path="/cuaderno/lista" element={<NotebookListPage />} />
               <Route path="/visible/:id" element={<VisibleNotebook />} />
+              <Route path="/red-noticias" element={<RedNoticiasPage />} />
+              <Route path="/red-contexto" element={<RedContextoPage />} />
               
               {/* Rutas Privadas */}
               <Route path="/cuaderno/nuevo" element={

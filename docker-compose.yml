@@ -2,17 +2,59 @@ name: cartografia-semantica
 version: "3.8"
 
 services:
+  # 1. API REST Backend (FastAPI)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: cartografia-backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 9090
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
-      - "9090:9090" # Exponer en el puerto no convencional 9090 del host
+      - "8002:8000"
     env_file:
       - .env
     restart: unless-stopped
+    profiles: ["all", "monolith", "backend"]
+    networks:
+      - backend
+
+  # 2. Worker de Minería y Tareas Asíncronas (Redis)
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cartografia-worker
+    command: python3 -m backend.app.miners.worker
+    env_file:
+      - .env
+    restart: unless-stopped
+    profiles: ["all", "worker"]
+    networks:
+      - backend
+
+  # 3. Metabuscador Privado SearXNG
+  searxng:
+    image: searxng/searxng:latest
+    container_name: cartografia-searxng
+    ports:
+      - "8888:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888/
+    restart: unless-stopped
+    profiles: ["all", "searxng"]
+    networks:
+      - backend
+
+  # 4. Frontend Web (React + MapLibre + Sigma.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cartografia-frontend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    profiles: ["all", "frontend"]
     networks:
       - backend
 

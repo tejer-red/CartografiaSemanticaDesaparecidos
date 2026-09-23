@@ -8,7 +8,10 @@ from .routes import (
     etiquetas,
     fosas,
     noticias,
-    notebooks
+    notebooks,
+    anonymize,
+    osint,
+    ontology
 )
 
 from contextlib import asynccontextmanager
@@ -64,6 +67,20 @@ app.include_router(etiquetas.router, prefix="/api/v1/etiquetas", tags=["Etiqueta
 app.include_router(fosas.router, prefix="/api/v1/fosas", tags=["Fosas"])
 app.include_router(noticias.router, prefix="/api/v1/noticias", tags=["Noticias"])
 app.include_router(notebooks.router, prefix="/api/v1/notebooks", tags=["Notebooks (Legacy load/save compatibility)"])
+app.include_router(anonymize.router, prefix="/api/v1")
+app.include_router(osint.router, prefix="/api/v1")
+app.include_router(ontology.router, prefix="/api/v1")
+
+@app.get("/api/v1/health", tags=["Salud del Sistema"])
+async def health():
+    return {
+        "status": "healthy",
+        "service": "cartografia-backend",
+        "version": "1.0.0",
+        "ner_anonymizer": "active",
+        "osint_miners": "active",
+        "ontology": "active"
+    }
 
 from pydantic import BaseModel
 

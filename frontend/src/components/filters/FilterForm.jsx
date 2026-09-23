@@ -210,6 +210,7 @@ const FilterForm = () => {
             checked={selectedMarkerTypes.includes("cedula_busqueda")}
             onChange={handleMarkerTypeChange}
           />
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#6366f1' }}></span>
           Cédula de Búsqueda
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -219,16 +220,28 @@ const FilterForm = () => {
             checked={selectedMarkerTypes.includes("fosa")}
             onChange={handleMarkerTypeChange}
           />
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: COLORS.FOSA?.opacity100 || '#d2691e' }}></span>
           Fosa Clandestina
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <input
             type="checkbox"
-            value="noticia"
-            checked={selectedMarkerTypes.includes("noticia")}
+            value="noticia_caso"
+            checked={selectedMarkerTypes.includes("noticia_caso")}
             onChange={handleMarkerTypeChange}
           />
-          Reporte de Prensa
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#e11d48' }}></span>
+          Noticias de casos individuales
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            type="checkbox"
+            value="noticia_corpus"
+            checked={selectedMarkerTypes.includes("noticia_corpus")}
+            onChange={handleMarkerTypeChange}
+          />
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
+          Fosas y Hallazgos Colectivos (Corpus)
         </label>
       </fieldset>
 

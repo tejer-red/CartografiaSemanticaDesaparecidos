@@ -13,7 +13,11 @@ const logger = createLogger('semanticGraphUtils');
 
 const COLORS = {
   TERM: '#8884d8',
-  CASE: '#82ca9d'
+  CASE: '#e63946',
+  HASH_DOMICILIO: '#457b9d',
+  NOTICIA: '#f4a261',
+  FOSA: '#2a9d8f',
+  SUGERENCIA: '#9d4edd'
 };
 
 function GraphEvents({ onNodeClick }) {
@@ -54,12 +58,85 @@ export function useSemanticGraph() {
   const [currentRoot, setCurrentRoot] = useState(null);
   const [selectedCase, setSelectedCase] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showSigma, setShowSigma] = useState(false);
+  const [showSigma, setShowSigma] = useState(true);
+  const [apiGraphData, setApiGraphData] = useState(null);
+  const [loadingGraph, setLoadingGraph] = useState(true);
+
+  // Consultar la API REST de Ontología activa
+  useEffect(() => {
+    if (!showSigma) return;
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:8008`;
+    fetch(`${API_BASE}/api/v1/ontology/graph?limit_edges=200`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.nodes && data.edges) {
+          setApiGraphData(data);
+        }
+        setLoadingGraph(false);
+      })
+      .catch(err => {
+        logger.error('Error fetching semantic graph from API:', err);
+        setLoadingGraph(false);
+      });
+  }, [showSigma]);
 
   const graph = useMemo(() => {
     if (!showSigma) return null;
 
     const graph = new Graph();
+
+    // Si la API devolvió el grafo consolidado, construirlo directamente
+    if (apiGraphData && apiGraphData.nodes && apiGraphData.nodes.length > 0) {
+      apiGraphData.nodes.forEach(node => {
+        if (!graph.hasNode(node.id)) {
+          graph.addNode(node.id, {
+            label: node.label || node.id,
+            size: node.size || (node.type === 'PERSONA' ? 14 : (node.type === 'FOSA' ? 16 : 10)),
+            color: node.color || COLORS[node.type] || '#4a4e69',
+            x: node.x || Math.random() * 200,
+            y: node.y || Math.random() * 200,
+            type: 'circle',
+            nodeType: node.type,
+            attributes: {
+              type: node.type,
+              label: node.label,
+              ...(node.metadata || {})
+            }
+          });
+        }
+      });
+
+      apiGraphData.edges.forEach(edge => {
+        if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
+          if (!graph.hasEdge(edge.source, edge.target)) {
+            graph.addEdge(edge.source, edge.target, {
+              label: edge.label || edge.relation_type || '',
+              size: edge.size || (edge.estado === 'SUGERIDO' ? 1.2 : 2.5),
+              color: edge.color || (edge.estado === 'SUGERIDO' ? COLORS.SUGERENCIA : '#adb5bd'),
+              attributes: {
+                relation: edge.label,
+                confidence: edge.confidence,
+                estado: edge.estado
+              }
+            });
+          }
+        }
+      });
+
+      forceAtlas2.assign(graph, { 
+        iterations: 60,
+        settings: {
+          gravity: 1.2,
+          scalingRatio: 3,
+          strongGravityMode: true,
+          slowDown: 1.5
+        }
+      });
+
+      return graph;
+    }
+
+    // Fallback: Si no hay respuesta API todavía, usar las features locales del mapa
     const features = getFilteredFeatures(
       map, 
       selectedDate, 
@@ -77,7 +154,7 @@ export function useSemanticGraph() {
       if (!graph.hasNode(caseId)) {
         graph.addNode(caseId, {
           label: feature.properties.nombre_completo || `Case ${caseId}`,
-          size: 5,
+          size: 8,
           color: COLORS.CASE,
           x: Math.random(),
           y: Math.random(),
@@ -119,7 +196,7 @@ export function useSemanticGraph() {
     });
 
     return graph;
-  }, [showSigma, map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange]);
+  }, [showSigma, apiGraphData, map, selectedDate, daysRange, selectedSexo, selectedCondicion, edadRange, sumScoreRange]);
 
   const handleNodeClick = useCallback((nodeId) => {
     const nodeAttrs = graph.getNodeAttributes(nodeId);

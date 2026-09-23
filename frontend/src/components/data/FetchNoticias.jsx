@@ -27,36 +27,33 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
         logger.log('[FetchNoticias] Setting loading to true');
         updateLoadingStatus('noticias', true);
         logger.log('[FetchNoticias] Calling axios.get');
-        const response = await axios.get(`${API_BASE_URL}/noticias`, {
-          params: {
-            start_date,
-            end_date,
-            limit: 1000
-          }
-        });
-        const records = response.data || [];
-        logger.log(`[FetchNoticias] Axios returned ${records.length} records.`);
+        const [responseCasos, responseCorpus] = await Promise.all([
+          axios.get(`${API_BASE_URL}/noticias`, {
+            params: { start_date, end_date, limit: 1000 }
+          }).catch(err => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/noticias/corpus/geojson`, {
+            params: { start_date, end_date, filter_by_date: true, limit: 1000 }
+          }).catch(err => ({ data: { features: [] } }))
+        ]);
 
-        logger.log(`Fetched ${records.length} noticias. Raw response:`, records);
+        const records = responseCasos.data || [];
+        logger.log(`[FetchNoticias] Axios returned ${records.length} noticias de caso.`);
 
-        const features = records
+        const minTimestamp = start_date ? new Date(`${start_date}T00:00:00Z`).getTime() : -Infinity;
+        const maxTimestamp = end_date ? new Date(`${end_date}T23:59:59.999Z`).getTime() : Infinity;
+
+        const featuresCasos = records
           .filter(record => record.coordenadas)
           .map(record => {
             const coords = record.coordenadas.split(',').map(Number);
             
-            // Calculate visualization window (starts on news date, lasts at least 6 months)
-            const parts = record.fecha.split('-');
+            const parts = (record.fecha || '2024-01-01').split('-');
             const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1; // 0-11
+            const month = parseInt(parts[1], 10) - 1;
             const day = parseInt(parts[2], 10);
 
-            const startDateObj = new Date(Date.UTC(year, month, day));
-            const endDateObj = new Date(Date.UTC(year, month + 6, day, 23, 59, 59, 999));
-
-            const timestamp_start = startDateObj.getTime();
-            const timestamp_end = endDateObj.getTime();
-
-            logger.log(`Noticia ID: ${record.id} | Titular: ${record.titular} | Coords: ${coords[0]},${coords[1]} | Visibilidad: ${startDateObj.toISOString().split('T')[0]} a ${endDateObj.toISOString().split('T')[0]}`);
+            const eventDateObj = new Date(Date.UTC(year, month, day));
+            const eventTime = isNaN(eventDateObj.getTime()) ? 0 : eventDateObj.getTime();
 
             return {
               type: 'Feature',
@@ -66,30 +63,83 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
               },
               properties: {
                 ...record,
-                id: record.id,
+                id: `caso_${record.id}`,
                 tipo_marcador: 'noticia',
-                timestamp: timestamp_start, // timeline slider matches the start of display
-                timestamp_start,
-                timestamp_end,
+                subtipo: 'noticia_caso',
+                timestamp: eventTime,
+                timestamp_start: eventTime,
+                timestamp_end: eventTime,
                 fecha: record.fecha,
                 url: record.url,
                 titular: record.titular
               }
             };
+          })
+          .filter(f => {
+            const t = f.properties.timestamp;
+            return t >= minTimestamp && t <= maxTimestamp;
           });
+
+        const featuresCorpus = (responseCorpus.data?.features || [])
+          .map(f => {
+            const p = f.properties || {};
+            let eventTime = 0;
+            
+            if (p.fecha) {
+              const parts = p.fecha.split('-');
+              const year = parseInt(parts[0], 10);
+              const month = parseInt(parts[1], 10) - 1;
+              const day = parseInt(parts[2], 10);
+              const d = new Date(Date.UTC(year, month, day));
+              if (!isNaN(d.getTime())) {
+                eventTime = d.getTime();
+              }
+            }
+
+            return {
+              ...f,
+              properties: {
+                ...p,
+                id: `corpus_${p.id}`,
+                tipo_marcador: 'noticia',
+                subtipo: 'noticia_corpus',
+                timestamp: eventTime,
+                timestamp_start: eventTime,
+                timestamp_end: eventTime
+              }
+            };
+          })
+          .filter(f => {
+            const t = f.properties.timestamp;
+            // Si la fecha es válida, asegurar que caiga dentro del rango seleccionado
+            if (t > 0) {
+              return t >= minTimestamp && t <= maxTimestamp;
+            }
+            return true;
+          });
+
+        const allFeatures = [...featuresCasos, ...featuresCorpus];
 
         const geojsonData = {
           type: 'FeatureCollection',
-          features: features
+          features: allFeatures
         };
-        logger.log('Noticias GeoJSON generated:', geojsonData);
+        logger.log(`Noticias GeoJSON generated: ${allFeatures.length} total (${featuresCasos.length} caso, ${featuresCorpus.length} corpus)`);
         
         setRemoteNoticias(geojsonData);
         const mergedGeoJSON = mergeWithLocal(geojsonData, localNoticias, 'noticia');
 
         const noticiasLayout = {
-          'circle-radius': 8,
-          'circle-color': '#e11d48', // Sleek rose/red for news
+          'circle-radius': [
+            'case',
+            ['==', ['get', 'subtipo'], 'noticia_corpus'], 9,
+            7
+          ],
+          'circle-color': [
+            'case',
+            ['==', ['get', 'subtipo'], 'noticia_corpus'], '#f59e0b', // Amber/gold para hallazgos del corpus
+            '#e11d48' // Rose/red para noticias directas de caso
+          ],
           'circle-stroke-width': [
             'case',
             ['==', ['get', 'isLocal'], true], 3,

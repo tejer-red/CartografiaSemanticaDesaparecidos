@@ -1,0 +1,450 @@
+{
+  "GUADALAJARA": [
+    20.6767,
+    -103.3475
+  ],
+  "ZAPOPAN": [
+    20.7225,
+    -103.3928
+  ],
+  "SAN PEDRO TLAQUEPAQUE": [
+    20.6408,
+    -103.3125
+  ],
+  "TLAQUEPAQUE": [
+    20.6408,
+    -103.3125
+  ],
+  "TONALA": [
+    20.6244,
+    -103.2422
+  ],
+  "TONALÁ": [
+    20.6244,
+    -103.2422
+  ],
+  "TLAJOMULCO DE ZUÑIGA": [
+    20.4744,
+    -103.4475
+  ],
+  "TLAJOMULCO DE ZÚÑIGA": [
+    20.4744,
+    -103.4475
+  ],
+  "TLAJOMULCO": [
+    20.4744,
+    -103.4475
+  ],
+  "EL SALTO": [
+    20.5186,
+    -103.1814
+  ],
+  "LAGOS DE MORENO": [
+    21.3558,
+    -101.9333
+  ],
+  "PUERTO VALLARTA": [
+    20.6534,
+    -105.2253
+  ],
+  "TEPATITLAN DE MORELOS": [
+    20.8167,
+    -102.7667
+  ],
+  "TEPATITLÁN DE MORELOS": [
+    20.8167,
+    -102.7667
+  ],
+  "SAN JUAN DE LOS LAGOS": [
+    21.2464,
+    -102.3353
+  ],
+  "ENCARNACION DE DIAZ": [
+    21.5261,
+    -102.2411
+  ],
+  "TALA": [
+    20.6542,
+    -103.7028
+  ],
+  "ARANDAS": [
+    20.7061,
+    -102.3086
+  ],
+  "IXTLAHUACAN DE LOS MEMBRILLOS": [
+    20.3861,
+    -103.1936
+  ],
+  "IXTLAHUACÁN DE LOS MEMBRILLOS": [
+    20.3861,
+    -103.1936
+  ],
+  "CHAPALA": [
+    20.2917,
+    -103.1917
+  ],
+  "ATOTONILCO EL ALTO": [
+    20.55,
+    -102.5167
+  ],
+  "ZAPOTLANEJO": [
+    20.6231,
+    -103.0672
+  ],
+  "ZAPOTLAN EL GRANDE": [
+    19.7042,
+    -103.4619
+  ],
+  "ZAPOTLÁN EL GRANDE": [
+    19.7042,
+    -103.4619
+  ],
+  "LA BARCA": [
+    20.2903,
+    -102.5481
+  ],
+  "OJUELOS DE JALISCO": [
+    21.8667,
+    -101.5833
+  ],
+  "OCOTLAN": [
+    20.3542,
+    -102.775
+  ],
+  "OCOTLÁN": [
+    20.3542,
+    -102.775
+  ],
+  "JOCOTEPEC": [
+    20.2833,
+    -103.4333
+  ],
+  "AMECA": [
+    20.55,
+    -104.0333
+  ],
+  "AUTLAN DE NAVARRO": [
+    19.7725,
+    -104.3644
+  ],
+  "AUTLÁN DE NAVARRO": [
+    19.7725,
+    -104.3644
+  ],
+  "PONCITLAN": [
+    20.38,
+    -102.9242
+  ],
+  "PONCITLÁN": [
+    20.38,
+    -102.9242
+  ],
+  "EL ARENAL": [
+    20.7739,
+    -103.6931
+  ],
+  "SAN MIGUEL EL ALTO": [
+    21.0306,
+    -102.4042
+  ],
+  "JUANACATLAN": [
+    20.5064,
+    -103.1706
+  ],
+  "JUANACATLÁN": [
+    20.5064,
+    -103.1706
+  ],
+  "TEQUILA": [
+    20.8833,
+    -103.8333
+  ],
+  "JALISCO": [
+    20.6597,
+    -103.3496
+  ],
+  "TAMAZULA DE GORDIANO": [
+    19.6854,
+    -103.1701
+  ],
+  "LA HUERTA": [
+    19.497,
+    -104.8072
+  ],
+  "COLOTLAN": [
+    22.0984,
+    -103.2743
+  ],
+  "COCULA": [
+    20.4036,
+    -103.8174
+  ],
+  "SAN MARTIN HIDALGO": [
+    20.4594,
+    -103.9118
+  ],
+  "VALLE DE JUAREZ": [
+    19.8147,
+    -102.9836
+  ],
+  "AMATITAN": [
+    20.8443,
+    -103.7105
+  ],
+  "ETZATLAN": [
+    20.7612,
+    -104.1306
+  ],
+  "TUXCUECA": [
+    20.1394,
+    -103.1894
+  ],
+  "ACATIC": [
+    20.7806,
+    -102.9102
+  ],
+  "HUEJUCAR": [
+    22.3097,
+    -103.2826
+  ],
+  "ATEMAJAC DE BRIZUELA": [
+    20.1795,
+    -103.7406
+  ],
+  "AYOTLAN": [
+    20.4722,
+    -102.3641
+  ],
+  "GUACHINANGO": [
+    20.6967,
+    -104.4154
+  ],
+  "EL LIMON": [
+    19.8511,
+    -104.1187
+  ],
+  "DEGOLLADO": [
+    20.4563,
+    -102.1748
+  ],
+  "UNION DE SAN ANTONIO": [
+    21.1576,
+    -102.0008
+  ],
+  "AHUALULCO DE MERCADO": [
+    20.7104,
+    -103.9754
+  ],
+  "TECALITLAN": [
+    19.471,
+    -103.3071
+  ],
+  "TEOCALTICHE": [
+    21.4816,
+    -102.5201
+  ],
+  "ACATLAN DE JUAREZ": [
+    20.424,
+    -103.6013
+  ],
+  "TOTOTLAN": [
+    20.5374,
+    -102.7494
+  ],
+  "TUXPAN": [
+    19.4375,
+    -103.4115
+  ],
+  "ZAPOTLAN DEL REY": [
+    20.4668,
+    -102.923
+  ],
+  "CASIMIRO CASTILLO": [
+    19.6135,
+    -104.4749
+  ],
+  "TEUCHITLAN": [
+    20.6806,
+    -103.8328
+  ],
+  "ZAPOTITLAN DE VADILLO": [
+    19.5035,
+    -103.7488
+  ],
+  "TECOLOTLAN": [
+    20.2758,
+    -103.9823
+  ],
+  "AYUTLA": [
+    20.0406,
+    -104.474
+  ],
+  "TECHALUTA DE MONTENEGRO": [
+    20.0939,
+    -103.5802
+  ],
+  "CONCEPCION DE BUENOS AIRES": [
+    19.9786,
+    -103.2321
+  ],
+  "TONILA": [
+    19.4294,
+    -103.53
+  ],
+  "VILLA GUERRERO": [
+    22.0194,
+    -103.6791
+  ],
+  "JALOSTOTITLAN": [
+    21.2011,
+    -102.5107
+  ],
+  "MASCOTA": [
+    20.5533,
+    -104.7634
+  ],
+  "SANTA MARIA DE LOS ANGELES": [
+    22.1905,
+    -103.189
+  ],
+  "LA MANZANILLA DE LA PAZ": [
+    20.0259,
+    -103.097
+  ],
+  "ZAPOTILTIC": [
+    19.6261,
+    -103.4165
+  ],
+  "SAN JUANITO DE ESCOBEDO": [
+    20.8137,
+    -103.9923
+  ],
+  "MEZQUITIC": [
+    22.2313,
+    -104.1103
+  ],
+  "MAGDALENA": [
+    20.9106,
+    -104.1159
+  ],
+  "JILOTLAN DE LOS DOLORES": [
+    19.3169,
+    -102.8897
+  ],
+  "TOMATLAN": [
+    19.9376,
+    -105.151
+  ],
+  "IXTLAHUACAN DEL RIO": [
+    20.9046,
+    -103.2499
+  ],
+  "JUCHITLAN": [
+    20.063,
+    -104.0478
+  ],
+  "CIHUATLAN": [
+    19.2633,
+    -104.605
+  ],
+  "SAN IGNACIO CERRO GORDO": [
+    20.7687,
+    -102.5148
+  ],
+  "HUEJUQUILLA EL ALTO": [
+    22.5281,
+    -103.9299
+  ],
+  "VILLA CORONA": [
+    20.3891,
+    -103.6855
+  ],
+  "CAÑADAS DE OBREGON": [
+    21.1676,
+    -102.7074
+  ],
+  "SAN GABRIEL": [
+    19.7038,
+    -103.7479
+  ],
+  "CABO CORRIENTES": [
+    20.3333,
+    -105.4242
+  ],
+  "VILLA PURIFICACION": [
+    19.8232,
+    -104.7327
+  ],
+  "TAPALPA": [
+    19.9467,
+    -103.7761
+  ],
+  "TARIMBARO": [
+    19.8163,
+    -101.1637
+  ],
+  "MORELIA": [
+    19.6546,
+    -101.2624
+  ],
+  "MAZAMITLA": [
+    19.8906,
+    -103.081
+  ],
+  "JAMAY": [
+    20.2934,
+    -102.6865
+  ],
+  "VILLA HIDALGO": [
+    21.6629,
+    -102.5835
+  ],
+  "ZACOALCO DE TORRES": [
+    20.2441,
+    -103.5931
+  ],
+  "CUAUTITLAN DE GARCIA BARRAGAN": [
+    19.4522,
+    -104.3582
+  ],
+  "QUITUPAN": [
+    19.7944,
+    -102.8872
+  ],
+  "YAHUALICA DE GONZALEZ GALLO": [
+    21.1234,
+    -102.9514
+  ],
+  "JESUS MARIA": [
+    20.6479,
+    -102.1076
+  ],
+  "CUQUIO": [
+    20.9495,
+    -103.0314
+  ],
+  "SAYULA": [
+    19.8572,
+    -103.6089
+  ],
+  "LEON": [
+    21.122,
+    -101.683
+  ],
+  "HOSTOTIPAQUILLO": [
+    21.0585,
+    -104.0506
+  ],
+  "TIZAPAN EL ALTO": [
+    20.1073,
+    -103.0984
+  ],
+  "EL GRULLO": [
+    19.7955,
+    -104.1778
+  ],
+  "ATOYAC": [
+    20.007,
+    -103.4473
+  ]
+}

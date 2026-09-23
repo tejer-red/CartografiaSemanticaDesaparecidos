@@ -54,3 +54,79 @@ def delete_noticia(id: int, db: Session = Depends(database.get_db)):
     db.delete(noticia)
     db.commit()
     return {"message": "Noticia deleted successfully"}
+
+
+# ==============================================================================
+# 📰 ENDPOINTS DE NOTICIAS CORPUS (HALLAZGOS COLECTIVOS / FOSAS)
+# ==============================================================================
+
+@router.get("/corpus/geojson")
+def get_noticias_corpus_geojson(
+    municipio: Optional[str] = Query(None, description="Filtrar por municipio"),
+    start_date: Optional[str] = Query(None, description="Fecha inicio YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="Fecha fin YYYY-MM-DD"),
+    filter_by_date: bool = Query(False, description="Si es False, trae todos los hallazgos con coordenadas para el mapa"),
+    limit: int = 2000,
+    db: Session = Depends(database.get_db)
+):
+    """Devuelve las noticias del corpus de hallazgos en formato FeatureCollection GeoJSON."""
+    query = db.query(models.NoticiaCorpus).filter(models.NoticiaCorpus.lat.isnot(None), models.NoticiaCorpus.lng.isnot(None))
+    
+    if municipio:
+        query = query.filter(models.NoticiaCorpus.municipio_extraido.ilike(f"%{municipio}%"))
+    if filter_by_date and start_date and end_date:
+        try:
+            s_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+            e_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(models.NoticiaCorpus.fecha.between(s_dt, e_dt))
+        except ValueError:
+            pass
+
+    records = query.order_by(models.NoticiaCorpus.fecha.desc().nullslast()).limit(limit).all()
+
+
+    features = []
+    for r in records:
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [r.lng, r.lat]
+            },
+            "properties": {
+                "id": r.id,
+                "titular": r.titular,
+                "url": r.url,
+                "fecha": str(r.fecha) if r.fecha else None,
+                "municipio": r.municipio_extraido,
+                "colonia": r.colonia_extraida,
+                "referencia": r.referencia_ubicacion,
+                "precision": r.geocode_precision,
+                "resumen": r.resumen_hallazgo,
+                "total_cuerpos": r.total_cuerpos_estimado,
+                "total_restos": r.total_restos_estimado,
+                "keywords": r.keywords_matched or [],
+                "confidence": r.confidence_score,
+                "tipo_marcador": "noticia_corpus"
+            }
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "total": len(features),
+        "features": features
+    }
+
+
+@router.get("/corpus/list", response_model=List[schemas.NoticiaCorpusOut])
+def get_noticias_corpus_list(
+    municipio: Optional[str] = Query(None),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(database.get_db)
+):
+    query = db.query(models.NoticiaCorpus)
+    if municipio:
+        query = query.filter(models.NoticiaCorpus.municipio_extraido.ilike(f"%{municipio}%"))
+    return query.order_by(models.NoticiaCorpus.created_at.desc()).offset(skip).limit(limit).all()
+

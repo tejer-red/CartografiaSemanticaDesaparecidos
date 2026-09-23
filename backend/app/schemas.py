@@ -63,6 +63,34 @@ class NoticiaOut(NoticiaBase):
     class Config:
         from_attributes = True
 
+
+# ----------------- NoticiaCorpus -----------------
+class NoticiaCorpusBase(BaseModel):
+    url: str
+    titular: str
+    fecha: Optional[date] = None
+    municipio_extraido: Optional[str] = None
+    colonia_extraida: Optional[str] = None
+    referencia_ubicacion: Optional[str] = None
+    coordenadas: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    geocode_precision: Optional[str] = None
+    cuerpo_texto: Optional[str] = None
+    resumen_hallazgo: Optional[str] = None
+    total_cuerpos_estimado: Optional[int] = None
+    total_restos_estimado: Optional[int] = None
+    keywords_matched: Optional[List[str]] = None
+    ciclo_expansion: Optional[int] = 0
+    confidence_score: Optional[float] = None
+
+class NoticiaCorpusOut(NoticiaCorpusBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
 # ----------------- Fosa -----------------
 class FosaBase(BaseModel):
     coordenadas: str

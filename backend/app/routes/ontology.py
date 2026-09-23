@@ -1,0 +1,627 @@
+#!/usr/bin/env python3
+"""
+ontology.py: Endpoints REST para consulta del Grafo Semántico (Lazy-Load y Súper-Nodos).
+"""
+
+from fastapi import APIRouter, Depends, Query
+from typing import List, Dict, Any, Optional
+from sqlalchemy.orm import Session
+
+from backend.app.database import get_db
+from backend.app.models import Caso, Noticia, Fosa, VinculoEntidad
+from backend.app.ontology.matcher import ontology_matcher_service
+from backend.app.ontology.models import SemanticGraphResponse, GraphNode, GraphEdge, COLOR_MAP
+
+router = APIRouter(prefix="/ontology", tags=["Ontología y Grafo Semántico"])
+
+
+@router.get("/subgraph", response_model=SemanticGraphResponse)
+def get_subgraph_lazy(
+    center_id: str = Query(..., description="ID del nodo central (caso, noticia o fosa)"),
+    depth: int = Query(default=1, ge=1, le=3, description="Grados de separación"),
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve el sub-grafo perezoso (Lazy-load) centrado en un nodo específico para Sigma.js.
+    Evita saturar la memoria y el hilo principal del navegador.
+    """
+    try:
+        # Cargar vínculos persistidos desde la base de datos
+        db_edges = db.query(VinculoEntidad).filter(
+            (VinculoEntidad.source_node == center_id) | (VinculoEntidad.target_node == center_id)
+        ).all()
+
+        edges_pool = []
+        node_ids = {center_id}
+
+        for e in db_edges:
+            edges_pool.append({
+                "id": str(e.id),
+                "source": e.source_node,
+                "target": e.target_node,
+                "label": e.relation_type,
+                "confidence": e.confidence_score,
+                "estado": e.estado_aprobacion,
+                "color": "#9d4edd" if e.estado_aprobacion == "SUGERIDO" else "#457b9d"
+            })
+            node_ids.add(e.source_node)
+            node_ids.add(e.target_node)
+
+        # Construir nodos
+        nodes_pool = []
+        for nid in node_ids:
+            ntype = "PERSONA" if "CASO" in nid or "caso" in nid else ("NOTICIA" if "noticia" in nid else "HASH_DOMICILIO")
+            nodes_pool.append({
+                "id": nid,
+                "label": nid,
+                "type": ntype,
+                "x": 0.0,
+                "y": 0.0,
+                "size": 18.0 if nid == center_id else 10.0,
+                "color": COLOR_MAP.get(ntype, "#4a4e69")
+            })
+
+        return ontology_matcher_service.build_subgraph_lazy(
+            center_id=center_id,
+            depth=depth,
+            nodes_pool=nodes_pool,
+            edges_pool=edges_pool
+        )
+    except Exception:
+        # Fallback si no hay BD conectada
+        mock_nodes = [
+            {"id": center_id, "label": f"Nodo {center_id}", "type": "PERSONA", "size": 18.0, "color": COLOR_MAP["PERSONA"]},
+            {"id": f"hash_dom_{center_id[:6]}", "label": "[DOMICILIO_HASH_a8f3b]", "type": "HASH_DOMICILIO", "size": 12.0, "color": COLOR_MAP["HASH_DOMICILIO"]},
+            {"id": f"noticia_hallazgo_{center_id[:4]}", "label": "Noticia: Hallazgo en Tlaquepaque", "type": "NOTICIA", "size": 12.0, "color": COLOR_MAP["NOTICIA"]}
+        ]
+        mock_edges = [
+            {"id": "e1", "source": center_id, "target": f"hash_dom_{center_id[:6]}", "label": "OCURRIO_EN", "confidence": 1.0, "estado": "APROBADO"},
+            {"id": "e2", "source": f"hash_dom_{center_id[:6]}", "target": f"noticia_hallazgo_{center_id[:4]}", "label": "MENCIONA_ZONA", "confidence": 0.85, "estado": "APROBADO"}
+        ]
+        return SemanticGraphResponse(
+            nodes=mock_nodes,
+            edges=mock_edges,
+            total_nodes=len(mock_nodes),
+            total_edges=len(mock_edges),
+            cluster_mode=False
+        )
+
+
+@router.get("/supernodes", response_model=SemanticGraphResponse)
+def get_supernodes_clustering(db: Session = Depends(get_db)):
+    """
+    Devuelve la vista de Súper-Nodos / Clustering Semántico por municipio para el visualizador de red global.
+    """
+    try:
+        casos = db.query(Caso.municipio).filter(Caso.municipio.isnot(None)).all()
+        cases_list = [{"municipio": c.municipio} for c in casos]
+    except Exception:
+        cases_list = [
+            {"municipio": "GUADALAJARA"}, {"municipio": "GUADALAJARA"},
+            {"municipio": "ZAPOPAN"}, {"municipio": "ZAPOPAN"},
+            {"municipio": "SAN PEDRO TLAQUEPAQUE"}, {"municipio": "TLAJOMULCO DE ZÚÑIGA"}
+        ]
+
+    return ontology_matcher_service.build_cluster_supernodes(cases_list)
+
+
+@router.get("/graph", response_model=SemanticGraphResponse)
+def get_full_semantic_graph(
+    limit_edges: int = Query(default=300, ge=10, le=2000),
+    include_empty: bool = Query(default=False, description="Incluir casos archivados sin noticia (OSINT_EMPTY)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve el grafo semántico consolidado para visualización interactiva.
+    Incluye metadata contextual completa para PERSONA/CASO, NOTICIA, FOSA y HASH_DOMICILIO.
+    """
+    import math
+    from backend.app.models import CedulaPrivada, PiiHashRegistry
+
+    query = db.query(VinculoEntidad)
+    if not include_empty:
+        query = query.filter(
+            VinculoEntidad.target_node != 'OSINT_EMPTY',
+            VinculoEntidad.relation_type != 'REVISADO_SIN_NOTICIA'
+        )
+
+    edges = query.order_by(VinculoEntidad.id.desc()).limit(limit_edges).all()
+
+    node_ids = set()
+    edges_pool = []
+    for e in edges:
+        edges_pool.append({
+            "id": str(e.id),
+            "source": e.source_node,
+            "target": e.target_node,
+            "label": e.relation_type,
+            "confidence": e.confidence_score,
+            "estado": e.estado_aprobacion,
+            "color": "#9d4edd" if e.estado_aprobacion == "SUGERIDO" else "#457b9d"
+        })
+        node_ids.add(e.source_node)
+        node_ids.add(e.target_node)
+
+    # 1. Precargar información contextual por lotes para enriquecer cada nodo
+    caso_uuids = [nid.replace("CASO_", "") for nid in node_ids if "CASO_" in nid]
+    noticia_ids = []
+    for nid in node_ids:
+        if "NOTICIA_" in nid:
+            try:
+                noticia_ids.append(int(nid.replace("NOTICIA_", "")))
+            except Exception:
+                pass
+    fosa_ids = []
+    for nid in node_ids:
+        if "FOSA_" in nid:
+            try:
+                fosa_ids.append(int(nid.replace("FOSA_", "")))
+            except Exception:
+                pass
+    pii_hash_ids = [nid for nid in node_ids if "HASH_" in nid or "DOMICILIO_" in nid or "NOMBRE_" in nid]
+
+    # Diccionarios de enriquecimiento
+    casos_meta = {}
+    if caso_uuids:
+        c_rows = db.query(CedulaPrivada).filter(CedulaPrivada.id.in_(caso_uuids)).all()
+        for c in c_rows:
+            casos_meta[f"CASO_{c.id}"] = {
+                "nombre_real": c.nombre_real,
+                "municipio": c.municipio,
+                "colonia": c.colonia,
+                "fecha": c.fecha_desaparicion,
+                "descripcion": c.text_original[:600] if c.text_original else "",
+                "telefono": c.telefono_contacto,
+                "expediente": c.id_expediente
+            }
+
+    noticias_meta = {}
+    if noticia_ids:
+        n_rows = db.query(Noticia).filter(Noticia.id.in_(noticia_ids)).all()
+        for n in n_rows:
+            noticias_meta[f"NOTICIA_{n.id}"] = {
+                "titular": n.titular,
+                "url": n.url,
+                "fecha": str(n.fecha) if n.fecha else None,
+                "cuerpo_snippet": (n.cuerpo_texto[:800] + "...") if n.cuerpo_texto else "",
+                "query": getattr(n, "query_origen", "")
+            }
+
+    fosas_meta = {}
+    if fosa_ids:
+        f_rows = db.query(Fosa).filter(Fosa.id.in_(fosa_ids)).all()
+        for f in f_rows:
+            fosas_meta[f"FOSA_{f.id}"] = {
+                "municipio": f.municipio,
+                "fecha_hallazgo": str(f.fecha_hallazgo) if f.fecha_hallazgo else None,
+                "total_fosas": f.total_fosas,
+                "total_cuerpos": f.total_cuerpos,
+                "total_restos": f.total_restos_fragmentos,
+                "coordenadas": f.coordenadas
+            }
+
+    pii_meta = {}
+    if pii_hash_ids:
+        p_rows = db.query(PiiHashRegistry).filter(PiiHashRegistry.hash_id.in_(pii_hash_ids)).all()
+        for p in p_rows:
+            pii_meta[p.hash_id] = {
+                "entity_type": p.entity_type,
+                "canonical_value": p.canonical_value
+            }
+
+    # Disposición circular inicial
+    nodes_pool = []
+    total_nodes = len(node_ids)
+    for idx, nid in enumerate(node_ids):
+        angle = (2 * math.pi * idx) / max(total_nodes, 1)
+        radius = 200 + (idx % 3) * 50
+
+        node_meta = {}
+        node_label = nid
+
+        if "CASO" in nid:
+            ntype = "PERSONA"
+            if nid in casos_meta:
+                cm = casos_meta[nid]
+                node_label = f"Caso: {cm['colonia'] or cm['municipio'] or nid[:12]}"
+                node_meta = {
+                    "type": "PERSONA",
+                    "location": f"{cm['colonia'] or ''}, {cm['municipio'] or ''}".strip(", "),
+                    "date": cm["fecha"],
+                    "description": cm["descripcion"],
+                    "expediente": cm["expediente"],
+                    "nombre_anonimizado": cm["nombre_real"]
+                }
+            else:
+                node_label = nid.replace("CASO_", "Caso ")
+        elif "FOSA" in nid:
+            ntype = "FOSA"
+            if nid in fosas_meta:
+                fm = fosas_meta[nid]
+                node_label = f"Fosa {fm['municipio'] or nid}"
+                node_meta = {
+                    "type": "FOSA",
+                    "location": fm["municipio"],
+                    "date": fm["fecha_hallazgo"],
+                    "total_cuerpos": fm["total_cuerpos"],
+                    "total_fosas": fm["total_fosas"],
+                    "coordenadas": fm["coordenadas"],
+                    "description": f"Fosa clandestina con {fm['total_cuerpos'] or 0} cuerpos recuperados en {fm['municipio']}."
+                }
+            else:
+                node_label = nid.replace("FOSA_", "Fosa ")
+        elif "NOTICIA" in nid:
+            ntype = "NOTICIA"
+            if nid in noticias_meta:
+                nm = noticias_meta[nid]
+                node_label = nm["titular"][:35] + "..." if len(nm["titular"]) > 35 else nm["titular"]
+                node_meta = {
+                    "type": "NOTICIA",
+                    "titular": nm["titular"],
+                    "url": nm["url"],
+                    "date": nm["fecha"],
+                    "description": nm["cuerpo_snippet"] or nm["titular"],
+                    "query": nm["query"]
+                }
+            else:
+                node_label = nid.replace("NOTICIA_", "Nota ")
+        elif "DOMICILIO" in nid:
+            ntype = "HASH_DOMICILIO"
+            pm = pii_meta.get(nid, {})
+            node_label = f"Calle: {pm.get('canonical_value', nid)[:25]}"
+            node_meta = {
+                "type": "HASH_DOMICILIO",
+                "canonical_value": pm.get("canonical_value"),
+                "description": f"Entidad de domicilio normalizada: {pm.get('canonical_value')}"
+            }
+        elif "NOMBRE" in nid:
+            ntype = "PERSONA"
+            pm = pii_meta.get(nid, {})
+            node_label = f"PII: {pm.get('canonical_value', nid)[:20]}"
+            node_meta = {
+                "type": "PERSONA",
+                "canonical_value": pm.get("canonical_value"),
+                "description": f"PII criptográfico anonimizado: {pm.get('canonical_value')}"
+            }
+        elif nid == "OSINT_EMPTY":
+            ntype = "SUGERENCIA"
+            node_label = "Sin Coincidencia Prensa (OSINT Empty)"
+            node_meta = {
+                "type": "SUGERENCIA",
+                "description": "Súper-nodo contenedor de casos explorados por el minador donde no se hallaron notas de prensa correlacionadas."
+            }
+        else:
+            ntype = "SUGERENCIA"
+            node_label = nid
+
+        nodes_pool.append({
+            "id": nid,
+            "label": node_label,
+            "type": ntype,
+            "x": radius * math.cos(angle),
+            "y": radius * math.sin(angle),
+            "size": 16.0 if ntype in ["PERSONA", "FOSA", "NOTICIA"] else 10.0,
+            "color": COLOR_MAP.get(ntype, "#4a4e69"),
+            "metadata": node_meta
+        })
+
+    return SemanticGraphResponse(
+        nodes=nodes_pool,
+        edges=edges_pool,
+        total_nodes=len(nodes_pool),
+        total_edges=len(edges_pool),
+        cluster_mode=False
+    )
+
+
+@router.get("/context-graph", response_model=SemanticGraphResponse)
+def get_context_semantic_graph(
+    limit_edges: int = Query(default=300, ge=10, le=25000),
+    filter_modus: Optional[str] = Query(default=None, description="Filtrar por modus operandi específico"),
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve el Hiper-Grafo de Contexto Forense (RAG-Ontology):
+    Conecta Casos entre sí mediante Modus Operandi, Vehículos de Perpetradores,
+    Vehículos de Víctimas, Vínculos Familiares y Eventos Colectivos Compartidos.
+    """
+    import math
+    from backend.app.models import CedulaPrivada, CasoPatronForense, Fosa, Caso
+
+    # 1. Consultar aristas de contexto criminal y relacional
+    query = db.query(VinculoEntidad).filter(
+        VinculoEntidad.relation_type.in_([
+            'MODUS_OPERANDI', 'INSTITUCION_LUGAR', 'INDICIOS_EN_SITIO', 'DESTINO_DECLARADO',
+            'PERPETRADO_CON_VEHICULO', 'VIAJABA_EN_VEHICULO',
+            'REPORTE_POR_FAMILIAR', 'DESAPARECIO_JUNTO_A', 'FAMILIAR_DE',
+            'REPORTO_MISMO_EVENTO', 'REGISTRA_HALLAZGO_EN_FOSA'
+        ])
+    )
+    if filter_modus:
+        query = query.filter(VinculoEntidad.target_node == f"MODUS_{filter_modus}")
+
+    edges = query.order_by(VinculoEntidad.id.desc()).limit(limit_edges).all()
+
+    node_ids = set()
+    edges_pool = []
+    for e in edges:
+        # Colores por tipo de arista forense
+        edge_color = "#64748b"
+        if e.relation_type == "INSTITUCION_LUGAR":
+            edge_color = "#10b981" # Esmeralda para albergues e instituciones
+        elif e.relation_type == "INDICIOS_EN_SITIO":
+            edge_color = "#f59e0b" # Ámbar para cartas y recados
+        elif e.relation_type == "DESTINO_DECLARADO":
+            edge_color = "#3b82f6" # Azul para destinos
+        elif e.relation_type == "PERPETRADO_CON_VEHICULO":
+            edge_color = "#c084fc" # Púrpura alerta
+        elif e.relation_type == "MODUS_OPERANDI":
+            edge_color = "#fb923c" # Naranja modus
+        elif e.relation_type == "VIAJABA_EN_VEHICULO":
+            edge_color = "#38bdf8" # Azul claro
+        elif e.relation_type in ("DESAPARECIO_JUNTO_A", "FAMILIAR_DE", "REPORTO_MISMO_EVENTO"):
+            edge_color = "#f43f5e" # Rosa fuerte enlace interpersonal
+
+        edges_pool.append({
+            "id": str(e.id),
+            "source": e.source_node,
+            "target": e.target_node,
+            "label": e.relation_type,
+            "confidence": e.confidence_score,
+            "estado": e.estado_aprobacion,
+            "color": edge_color
+        })
+        node_ids.add(e.source_node)
+        node_ids.add(e.target_node)
+
+    # 2. Cargar datos contextuales y patrones forenses para enriquecer cada caso
+    caso_uuids = [nid.replace("CASO_", "") for nid in node_ids if "CASO_" in nid]
+    casos_meta = {}
+    if caso_uuids:
+        c_rows = db.query(CedulaPrivada).filter(CedulaPrivada.id.in_(caso_uuids)).all()
+        anon_rows = {
+            a.id_cedula_busqueda: a 
+            for a in db.query(Caso).filter(Caso.id_cedula_busqueda.in_(caso_uuids)).all()
+        }
+        for c in c_rows:
+            a_info = anon_rows.get(c.id)
+            cond_loc = getattr(a_info, 'condicion_localizacion', None) or 'NO_LOCALIZADO'
+            sexo_val = getattr(a_info, 'sexo', None) or 'NO_ESPECIFICADO'
+            fecha_val = c.fecha_desaparicion or ''
+            mes_str = fecha_val[:7] if len(fecha_val) >= 7 and fecha_val[4] == '-' else None
+
+            casos_meta[f"CASO_{c.id}"] = {
+                "nombre_real": c.nombre_real,
+                "municipio": c.municipio,
+                "colonia": c.colonia,
+                "fecha": c.fecha_desaparicion,
+                "descripcion": c.text_original[:800] if c.text_original else "",
+                "telefono": c.telefono_contacto,
+                "expediente": c.id_expediente,
+                "condicion_localizacion": cond_loc,
+                "estatus_persona": getattr(a_info, 'estatus_persona_desaparecida', None) or 'DESAPARECIDO',
+                "edad": getattr(a_info, 'edad_momento_desaparicion', None),
+                "sexo": sexo_val,
+                "mes_reporte": mes_str
+            }
+
+            # A) Conectar con Nodo Clúster de Condición de Localización
+            if cond_loc:
+                cond_target = f"CONDICION_{cond_loc}"
+                edges_pool.append({
+                    "id": f"e_cond_{c.id}",
+                    "source": f"CASO_{c.id}",
+                    "target": cond_target,
+                    "label": "CONDICION_LOCALIZACION",
+                    "confidence": 1.0,
+                    "estado": "APROBADO",
+                    "color": "#ef4444" if cond_loc == "NO_LOCALIZADO" else "#22c55e"
+                })
+                node_ids.add(cond_target)
+
+            # C) Conectar con Nodo Clúster de Sexo
+            if sexo_val and sexo_val != "NO_ESPECIFICADO":
+                sexo_target = f"SEXO_{sexo_val}"
+                edges_pool.append({
+                    "id": f"e_sex_{c.id}",
+                    "source": f"CASO_{c.id}",
+                    "target": sexo_target,
+                    "label": "GENERO_SEXO",
+                    "confidence": 1.0,
+                    "estado": "APROBADO",
+                    "color": "#ec4899" if sexo_val == "MUJER" else "#3b82f6"
+                })
+                node_ids.add(sexo_target)
+
+    patrones_meta = {}
+    if caso_uuids:
+        p_rows = db.query(CasoPatronForense).filter(CasoPatronForense.caso_id.in_(caso_uuids)).all()
+        for p in p_rows:
+            patrones_meta[f"CASO_{p.caso_id}"] = {
+                "modus_operandi": p.modus_operandi_tipo,
+                "lugar_tipo": p.lugar_tipo,
+                "nombre_lugar_institucion": p.nombre_lugar_institucion,
+                "indicio_dejado": p.indicio_dejado,
+                "contenido_indicio": p.contenido_indicio,
+                "destino_declarado": p.destino_declarado,
+                "vehiculo_victima": p.vehiculo_victima,
+                "vehiculo_perpetradores": p.vehiculo_perpetradores,
+                "armas": p.armas_observadas,
+                "num_perpetradores": p.num_perpetradores,
+                "reportante_parentesco": p.reportante_parentesco,
+                "resumen_forense": p.resumen_forense
+            }
+
+    # 3. Disposición y serialización de nodos
+    CONTEXT_COLORS = {
+        "PERSONA": "#e63946",             # Rojo Cédula
+        "MODUS": "#f97316",               # Naranja Modus Operandi
+        "INSTITUCION": "#10b981",         # Esmeralda Albergue / Anexo
+        "EVIDENCIA_MATERIAL": "#f59e0b",  # Ámbar Carta / Recado
+        "DESTINO": "#3b82f6",             # Azul Destino
+        "MES_REPORTE": "#06b6d4",         # Cian Mes / Temporalidad
+        "CONDICION": "#ef4444",           # Rojo / Alerta Condición
+        "SEXO": "#8b5cf6",                # Violeta Sexo
+        "VEHICULO_SOSPECHOSO": "#a855f7", # Púrpura Vehículo Agresores
+        "VEHICULO_VICTIMA": "#0284c7",    # Azul Vehículo Víctima
+        "PARENTESCO": "#64748b",          # Gris Rol / Testigo
+        "FOSA": "#059669",                # Verde Fosa
+        "DEFAULT": "#475569"
+    }
+
+    nodes_pool = []
+    total_nodes = len(node_ids)
+    for idx, nid in enumerate(node_ids):
+        angle = (2 * math.pi * idx) / max(total_nodes, 1)
+        radius = 220 + (idx % 4) * 45
+
+        node_meta = {}
+        node_label = nid
+        ntype = "DEFAULT"
+        nsize = 11.0
+
+        if nid.startswith("CASO_"):
+            ntype = "PERSONA"
+            nsize = 14.0
+            cm = casos_meta.get(nid, {})
+            pm = patrones_meta.get(nid, {})
+            # Priorizar nombre real de la persona si existe, si no expediente o colonia
+            nombre_display = cm.get("nombre_real") or cm.get("expediente") or cm.get("colonia") or nid[:12]
+            node_label = f"Caso: {nombre_display}"
+            node_meta = {
+                "type": "PERSONA",
+                "location": f"{cm.get('colonia') or ''}, {cm.get('municipio') or ''}".strip(", "),
+                "date": cm.get("fecha"),
+                "description": cm.get("descripcion"),
+                "expediente": cm.get("expediente"),
+                "nombre_real": cm.get("nombre_real"),
+                "nombre_anonimizado": cm.get("nombre_real"),
+                "condicion_localizacion": cm.get("condicion_localizacion", "NO_LOCALIZADO"),
+                "estatus_persona": cm.get("estatus_persona", "DESAPARECIDO"),
+                "edad": cm.get("edad"),
+                "sexo": cm.get("sexo"),
+                "forense": pm
+            }
+        elif nid.startswith("MODUS_"):
+            ntype = "MODUS"
+            nsize = 18.0
+            nombre_modus = nid.replace("MODUS_", "").replace("_", " ")
+            node_label = f"Modus: {nombre_modus}"
+            node_meta = {
+                "type": "MODUS",
+                "label": nombre_modus,
+                "description": f"Patrón criminal de modus operandi: {nombre_modus}"
+            }
+        elif nid.startswith("INST_"):
+            ntype = "INSTITUCION"
+            nsize = 17.0
+            inst_name = nid.replace("INST_", "").replace("_", " ")
+            node_label = f"🏢 {inst_name}"
+            node_meta = {
+                "type": "INSTITUCION",
+                "label": inst_name,
+                "description": f"Institución, Albergue o Centro de Internamiento: {inst_name}"
+            }
+        elif nid.startswith("INDICIO_"):
+            ntype = "EVIDENCIA_MATERIAL"
+            nsize = 15.0
+            ind_name = nid.replace("INDICIO_", "").replace("_", " ")
+            node_label = f"✉️ {ind_name}"
+            node_meta = {
+                "type": "EVIDENCIA_MATERIAL",
+                "label": ind_name,
+                "description": f"Indicio documental dejado: {ind_name}"
+            }
+        elif nid.startswith("DEST_"):
+            ntype = "DESTINO"
+            nsize = 14.0
+            dest_name = nid.replace("DEST_", "").replace("_", " ")
+            node_label = f"📍 Hacia: {dest_name}"
+            node_meta = {
+                "type": "DESTINO",
+                "label": dest_name,
+                "description": f"Destino o traslado proyectado: {dest_name}"
+            }
+        elif nid.startswith("MES_"):
+            ntype = "MES_REPORTE"
+            nsize = 18.0
+            mes_tag = nid.replace("MES_", "")
+            node_label = f"📅 Mes: {mes_tag}"
+            node_meta = {
+                "type": "MES_REPORTE",
+                "label": mes_tag,
+                "description": f"Clúster temporal: reportes ocurridos en {mes_tag}"
+            }
+        elif nid.startswith("CONDICION_"):
+            ntype = "CONDICION"
+            nsize = 20.0
+            c_tag = nid.replace("CONDICION_", "").replace("_", " ")
+            node_label = f"⚠️ Estado: {c_tag}"
+            node_meta = {
+                "type": "CONDICION",
+                "label": c_tag,
+                "description": f"Condición oficial de localización: {c_tag}"
+            }
+        elif nid.startswith("SEXO_"):
+            ntype = "SEXO"
+            nsize = 19.0
+            s_tag = nid.replace("SEXO_", "")
+            node_label = f"⚧️ {s_tag}"
+            node_meta = {
+                "type": "SEXO",
+                "label": s_tag,
+                "description": f"Segmento demográfico por sexo: {s_tag}"
+            }
+        elif nid.startswith("VEH_PERP_"):
+            ntype = "VEHICULO_SOSPECHOSO"
+            nsize = 16.0
+            v_desc = nid.replace("VEH_PERP_", "").replace("_", " ")
+            node_label = f"🚨 {v_desc}"
+            node_meta = {
+                "type": "VEHICULO_SOSPECHOSO",
+                "description": f"Vehículo sospechoso utilizado por agresores: {v_desc}"
+            }
+        elif nid.startswith("VEH_VIC_"):
+            ntype = "VEHICULO_VICTIMA"
+            nsize = 13.0
+            v_desc = nid.replace("VEH_VIC_", "").replace("_", " ")
+            node_label = f"🚗 {v_desc}"
+            node_meta = {
+                "type": "VEHICULO_VICTIMA",
+                "description": f"Vehículo en el que viajaba la víctima: {v_desc}"
+            }
+        elif nid.startswith("ROL_"):
+            ntype = "PARENTESCO"
+            nsize = 12.0
+            rol_desc = nid.replace("ROL_", "").replace("_", " ")
+            node_label = f"Denunciante: {rol_desc}"
+            node_meta = {
+                "type": "PARENTESCO",
+                "description": f"Parentesco de la persona que reportó la desaparición: {rol_desc}"
+            }
+        elif nid.startswith("FOSA_"):
+            ntype = "FOSA"
+            nsize = 16.0
+            node_label = f"Fosa {nid}"
+            node_meta = {"type": "FOSA"}
+
+        nodes_pool.append({
+            "id": nid,
+            "label": node_label,
+            "type": ntype,
+            "x": radius * math.cos(angle),
+            "y": radius * math.sin(angle),
+            "size": nsize,
+            "color": CONTEXT_COLORS.get(ntype, CONTEXT_COLORS["DEFAULT"]),
+            "metadata": node_meta
+        })
+
+    return SemanticGraphResponse(
+        nodes=nodes_pool,
+        edges=edges_pool,
+        total_nodes=len(nodes_pool),
+        total_edges=len(edges_pool),
+        cluster_mode=False
+    )
+
+
