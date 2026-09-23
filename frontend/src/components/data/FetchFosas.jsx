@@ -56,13 +56,28 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         logger.log('[FetchFosas] Fetching from Supabase...');
         let records = [];
         try {
-          let query = supabase.from('fosas').select('*').limit(1000);
-          if (start_date) query = query.gte('fecha_hallazgo', start_date);
-          if (end_date) query = query.lte('fecha_hallazgo', end_date);
-          
-          const { data, error } = await query;
-          if (error) throw error;
-          records = data || [];
+          const PAGE_SIZE = 1000;
+          let page = 0;
+          let allRows = [];
+
+          while (true) {
+            let query = supabase
+              .from('fosas')
+              .select('*')
+              .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            if (start_date) query = query.gte('fecha_hallazgo', start_date);
+            if (end_date) query = query.lte('fecha_hallazgo', end_date);
+            
+            const { data, error } = await query;
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allRows.push(...data);
+            if (data.length < PAGE_SIZE) break;
+            page++;
+          }
+          records = allRows;
           logger.log(`[FetchFosas] Supabase returned ${records.length} records.`);
         } catch (supaErr) {
           logger.warn('[FetchFosas] Supabase fetch failed, falling back to API:', supaErr);

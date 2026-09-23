@@ -47,19 +47,30 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
         let records = [];
         try {
-          logger.log('[FetchCedulas] Fetching cases directly from Supabase...');
-          let query = supabase
-            .from('cedulas_anonimizadas')
-            .select('*, repd_vp_inferencia3(*)')
-            .limit(10000);
+          logger.log('[FetchCedulas] Fetching cases directly from Supabase with chunked pagination...');
+          const PAGE_SIZE = 1000;
+          let page = 0;
+          let allRows = [];
 
-          if (start_date) query = query.gte('fecha_desaparicion', start_date);
-          if (end_date) query = query.lte('fecha_desaparicion', end_date);
+          while (true) {
+            let query = supabase
+              .from('cedulas_anonimizadas')
+              .select('*, repd_vp_inferencia3(*)')
+              .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-          const { data, error } = await query;
-          if (error) throw error;
+            if (start_date) query = query.gte('fecha_desaparicion', start_date);
+            if (end_date) query = query.lte('fecha_desaparicion', end_date);
 
-          records = (data || []).map(row => {
+            const { data, error } = await query;
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allRows.push(...data);
+            if (data.length < PAGE_SIZE) break;
+            page++;
+          }
+
+          records = allRows.map(row => {
             const inf = Array.isArray(row.repd_vp_inferencia3) ? row.repd_vp_inferencia3[0] : row.repd_vp_inferencia3;
             return {
               ...row,
@@ -70,7 +81,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
               condicion_localizacion: row.condicion_localizacion || 'NO APLICA'
             };
           });
-          logger.log(`[FetchCedulas] Supabase returned ${records.length} records.`);
+          logger.log(`[FetchCedulas] Supabase returned ${records.length} records across ${page + 1} pages.`);
         } catch (supaErr) {
           logger.warn('[FetchCedulas] Supabase direct query failed, falling back to API:', supaErr);
           const response = await axios.get(`${API_BASE_URL}/casos`, {

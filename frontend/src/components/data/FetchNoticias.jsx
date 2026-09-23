@@ -28,13 +28,29 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
         // 1. Obtener noticias del corpus directamente desde Supabase
         let corpusFeatures = [];
         try {
-          let corpusQuery = supabase.from('noticias_corpus').select('*').limit(1000);
-          if (start_date) corpusQuery = corpusQuery.gte('fecha', start_date);
-          if (end_date) corpusQuery = corpusQuery.lte('fecha', end_date);
-          const { data: supaCorpus, error: corpusErr } = await corpusQuery;
-          if (corpusErr) throw corpusErr;
+          const PAGE_SIZE = 1000;
+          let page = 0;
+          let allCorpus = [];
 
-          corpusFeatures = (supaCorpus || [])
+          while (true) {
+            let corpusQuery = supabase
+              .from('noticias_corpus')
+              .select('*')
+              .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            if (start_date) corpusQuery = corpusQuery.gte('fecha', start_date);
+            if (end_date) corpusQuery = corpusQuery.lte('fecha', end_date);
+
+            const { data: supaCorpus, error: corpusErr } = await corpusQuery;
+            if (corpusErr) throw corpusErr;
+            if (!supaCorpus || supaCorpus.length === 0) break;
+
+            allCorpus.push(...supaCorpus);
+            if (supaCorpus.length < PAGE_SIZE) break;
+            page++;
+          }
+
+          corpusFeatures = allCorpus
             .filter(n => n.lat != null && n.lng != null)
             .map(n => ({
               type: 'Feature',
@@ -193,7 +209,14 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
         };
 
         logger.log(`[FetchNoticias] Updating map layer noticiasLayer... map exists: ${!!map}, isStyleLoaded: ${map?.isStyleLoaded()}`);
-        updateLayerData('noticiasLayer', mergedGeoJSON, noticiasLayout);
+        if (map && map.isStyleLoaded()) {
+          updateLayerData('noticiasLayer', mergedGeoJSON, noticiasLayout);
+        } else if (map) {
+          logger.warn('[FetchNoticias] Map style not loaded yet for noticiasLayer, registering listener');
+          map.once('style.load', () => {
+            updateLayerData('noticiasLayer', mergedGeoJSON, noticiasLayout);
+          });
+        }
         updateDataCount('noticias', mergedGeoJSON.features.length);
         logger.log('[FetchNoticias] Try block finished successfully');
 

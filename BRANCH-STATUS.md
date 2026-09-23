@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 17:11 CST
+- **Última actualización:** 2026-09-23 17:39 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
 - **Último commit:** `32a4b09` (`fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Apertura pública del mapa (acceso libre sin contraseña), homologación integral del tema claro en grafos y controles, y corrección multi-grafo en Graphology (`UsageGraphError`) verificados con Vite build exitoso
+- **Estado general:** Paginación por lotes (.range) para superar el límite estricto de 1,000 registros en PostgREST/Supabase, y desbloqueo del montaje de mapa y fetchers para usuarios anónimos en `/cuaderno/nuevo` y `/cuaderno/:id`
 
 ---
 
@@ -12,6 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
+| *Pendiente* | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
 | `32a4b09` | 2026-09-23 | abundis | `fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties` |
 | `4f589d9` | 2026-09-23 | abundis | `feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support` |
 | `ca79cfb` | 2026-09-23 | abundis | `feat(architecture): implement Abeja master and Supabase public replica schema with zero-knowledge sync` |
@@ -25,6 +26,18 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### R. Paginación por Lotes en Supabase (.range) y Montaje de Fetchers para Rutas Públicas de Cuaderno
+- **Justificación técnica:**
+  1. **Desbloqueo de Descarga en Cuaderno (`App.jsx`):** En `App.jsx`, `shouldRenderMapAndFetchers` estaba condicionado a `(isNotebookRoute && user)`. Al ser el mapa público y no requerir login, `user` es `null` para visitantes sin sesión en `/cuaderno/nuevo` y `/cuaderno/:id`. Esto provocaba que los componentes `<FetchCedulas>`, `<FetchFosas>`, `<FetchNoticias>` y `<MapComponent>` nunca se montaran en el DOM, congelando la pantalla en "Descargando Datos...". Se corrigió la condición a `!isIndependentView && (isVisibleRoute || isNotebookRoute)` para que los fetchers y el mapa se monten siempre.
+  2. **Superación del Límite Estricto de 1,000 Registros de Supabase/PostgREST (`FetchCedulas.jsx`, `FetchFosas.jsx`, `FetchNoticias.jsx`):** Supabase y PostgREST imponen un tope rígido de `max-rows = 1000` por respuesta HTTP, ignorando llamadas directas a `.limit(10000)`. Se implementó un ciclo de paginación por rangos (`.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)`) en lotes de 1,000 registros que continúa iterando hasta que `data.length < PAGE_SIZE`. Esto permite descargar la totalidad de los datos (por ejemplo, los 4,073 casos del período 2020-2024 o los 5,542 casos históricos completos).
+  3. **Carga y Renderizado Resiliente de Capa de Prensa (`FetchNoticias.jsx`):** Se aseguró que si el estilo del mapa aún no ha terminado de cargar al momento de procesar los datos de noticias, se registre un listener preventivo `map.once('style.load')` (idéntico al de cédulas) para garantizar que `noticiasLayer` y sus contadores se actualicen sin bloqueos ni descartes.
+- **Frontend - Archivos Modificados:**
+  - `frontend/src/App.jsx`
+  - `frontend/src/components/data/FetchCedulas.jsx`
+  - `frontend/src/components/data/FetchFosas.jsx`
+  - `frontend/src/components/data/FetchNoticias.jsx`
+
 
 ### Q. Apertura Pública del Mapa (Sin Contraseña) y Homologación Integral de Tema Claro en Grafos
 - **Justificación técnica:**

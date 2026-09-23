@@ -136,7 +136,7 @@ const App = () => {
                             location.pathname.includes('/red-contexto') ||
                             location.pathname.startsWith('/noticias') ||
                             location.pathname.startsWith('/contexto');
-  const shouldRenderMapAndFetchers = !isIndependentView && (isVisibleRoute || (isNotebookRoute && user));
+  const shouldRenderMapAndFetchers = !isIndependentView && (isVisibleRoute || isNotebookRoute);
 
   return (
     <>
