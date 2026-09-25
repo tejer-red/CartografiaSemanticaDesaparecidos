@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 20:00 CST
+- **Última actualización:** 2026-09-24 20:23 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `bf9ded8` (`docs: update BRANCH-STATUS.md with commit hash 1371eff`)
+- **Último commit:** `1b47358` (`feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Redirección integral de todas las peticiones del frontend al Backend FastAPI con fallback resiliente a Supabase
+- **Estado general:** Corrección de driver PostgreSQL (psycopg/psycopg2) y dialect fallback en contenedor Docker de producción
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback` |
+| *Pendiente* | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
+| `1b47358` | 2026-09-24 | abundis | `feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback` |
 | `1371eff` | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
 | `32a4b09` | 2026-09-23 | abundis | `fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties` |
 | `4f589d9` | 2026-09-23 | abundis | `feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support` |
@@ -27,6 +28,15 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### U. Corrección de Driver PostgreSQL en Docker (`requirements.txt` y `database.py`)
+- **Justificación técnica:**
+  1. **Error ModuleNotFoundError en Uvicorn (`psycopg`):** En Python 3.12 con SQLAlchemy 2.0+, al crear el motor con `create_engine("postgresql://...")`, el dialecto predeterminado de SQLAlchemy intenta cargar la librería `psycopg` (Psycopg 3). En el contenedor de Docker de `abeja`, solo estaba instalado `psycopg2-binary`, lo que causaba el fallo fatal `ModuleNotFoundError: No module named 'psycopg'`.
+  2. **Inclusión de `psycopg[binary]`:** Se agregó `psycopg[binary]` en `backend/requirements.txt` junto con `python-dotenv`, `pydantic` y `requests`.
+  3. **Normalización y Resiliencia de Dialecto (`database.py`):** Se implementó normalización de URLs (`postgres://` ➔ `postgresql://`) y un mecanismo de reintento automático: si falla la conexión primaria con `psycopg` v3, el motor intenta automáticamente `postgresql+psycopg2://` antes de recurrir a cualquier fallback.
+- **Archivos Modificados:**
+  - `backend/requirements.txt`
+  - `backend/app/database.py`
 
 ### T. Redirección Integral de Peticiones del Frontend al Backend FastAPI (`API_BASE_URL`)
 - **Justificación técnica:**
