@@ -1,12 +1,14 @@
 const getApiBaseUrl = () => {
-    if (import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) {
+        // Auto-fix typo if Vercel env variable was set as api.carto instead of api-carto
+        return envUrl.replace('api.carto.tejer.red', 'api-carto.tejer.red');
     }
 
     const { protocol, hostname } = window.location;
 
     if (hostname.includes('tejer.red') || hostname.includes('vercel.app')) {
-        return 'https://cartografia.tejer.red/api/v1';
+        return 'https://api-carto.tejer.red/api/v1';
     }
 
     // Dynamic local network or localhost backend on port 8008

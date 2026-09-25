@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { SigmaContainer, useLoadGraph, useRegisterEvents } from '@react-sigma/core';
 import "../../styles/sigma.css";
 import "../../styles/GraphPage.css";
-import Graph from 'graphology';
+import Graph, { MultiDirectedGraph } from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import { 
   Network, 
@@ -100,8 +100,12 @@ function GraphEvents({ onNodeClick }) {
 function LoadGraph({ graph }) {
   const loadGraph = useLoadGraph();
   useEffect(() => {
-    if (graph) {
-      loadGraph(graph);
+    try {
+      if (graph) {
+        loadGraph(graph);
+      }
+    } catch (e) {
+      console.warn('Error importing graph into Sigma container:', e);
     }
   }, [graph, loadGraph]);
   return null;
@@ -363,6 +367,7 @@ const RedNoticiasPage = () => {
 
           {graph && (
             <SigmaContainer
+              graph={MultiDirectedGraph}
               style={{ width: '100%', height: '100%' }}
               settings={{
                 renderLabels: true,

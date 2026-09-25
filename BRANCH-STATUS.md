@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 20:40 CST
+- **Última actualización:** 2026-09-24 20:55 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `3a1633d` (`fix(backend): resolve module import alias and PYTHONPATH in Docker container`)
+- **Último commit:** `29df1e1` (`fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Inclusión de dependencias de minería web (beautifulsoup4 y trafilatura) e importación resiliente de bs4
+- **Estado general:** Enrutamiento del frontend de producción a través de Cloudflare Tunnel (`api-carto.tejer.red`) y resiliencia en consulta de casos
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
+| *Pendiente* | 2026-09-24 | abundis | `fix(frontend): auto-sanitize tunnel url, enable MultiDirectedGraph in sigma, and make casos query resilient` |
+| `29df1e1` | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
 | `3a1633d` | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |
 | `5273ade` | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
 | `1b47358` | 2026-09-24 | abundis | `feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback` |
@@ -30,6 +31,21 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### X. Enrutamiento a Túnel Cloudflare (`api-carto.tejer.red`), Soporte MultiGrafo en Sigma y Resiliencia en Casos
+- **Justificación técnica:**
+  1. **Enrutamiento de Producción a través del Túnel Cloudflare y Auto-Sanitización (`config.js`):** El frontend desplegado en Vercel opera bajo `cartografia.tejer.red` o subdominios `*.vercel.app`. Debido a las reglas de reescritura de Single Page App (`rewrites: source: "/(.*)", destination: "/index.html"`), cualquier petición relativa a `cartografia.tejer.red/api/v1` retornaba el `index.html` de React en vez de JSON. Adicionalmente, existía una discrepancia entre el subdominio configurado en variables de entorno (`api.carto.tejer.red` con punto) y el túnel real activo en Cloudflare (`api-carto.tejer.red` con guión), lo cual causaba errores `ERR_NAME_NOT_RESOLVED`. Se incorporó auto-sanitización de `VITE_API_URL` (`.replace('api.carto.tejer.red', 'api-carto.tejer.red')`) y fallback canónico a `https://api-carto.tejer.red/api/v1`.
+  2. **Resolución de Error Crítico en Sigma/Graphology (`UsageGraphError`):** Al fallar temporalmente el backend o recibir aristas paralelas de Supabase (`vinculos_entidades`), Sigma arrojaba `Graph.addDirectedEdgeWithKey: an edge linking A to B already exists...` congelando la interfaz. Esto ocurría porque `@react-sigma/core` inicializa un grafo simple por defecto (`multi: false`). Se actualizó tanto `RedNoticiasPage.jsx` como `RedContextoPage.jsx` pasando `<SigmaContainer graph={MultiDirectedGraph}>` y protegiendo el hook de carga `loadGraph` con `try/catch`.
+  3. **Tolerancia a Fallos en Consulta de Casos (`casos.py`):** La consulta SQL unificada (`get_casos`) requería la presencia de la vista/tabla de inferencias `repd_vp_inferencia3`. En entornos o réplicas donde esta tabla auxiliar aún no está sincronizada, el endpoint arrojaba un `HTTP 500 Internal Server Error`. Se agregaron bloques defensivos `try/except` que degradan con elegancia a `cedulas_anonimizadas` limpia si las inferencias fallan.
+  4. **Protección contra Desbordamiento de Parámetros (`casos.py`):** Para la extracción de señas y tatuajes (`repd_vp_cedulas_senas`), se implementó un recorte defensivo a los primeros 1,000 identificadores (`case_ids[:1000]`), evitando que listas de varios miles de casos sobrepasen el límite de binds de PostgreSQL en consultas `IN :ids`.
+  5. **Análisis de Blast Radius (`codebase-memory detect_changes`):**
+     - Símbolos semilla modificados: 2. Total impactado: 1 símbolo (`CartografiaSemanticaDesaparecidos.frontend.src.config`, 1 hop).
+- **Archivos Modificados:**
+  - `frontend/src/config.js`
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+  - `backend/app/routes/casos.py`
+  - `README_DESPLIEGUE.md`
 
 ### W. Inclusión de Dependencias de Minería Web (`requirements.txt` y `miner_noticias.py`)
 - **Justificación técnica:**
@@ -376,6 +392,11 @@
   - Coincidencias de certeza máxima detectadas: 5 casos con Score $1.0$ ($\le 1.13\text{ km}$ y $\le 80$ días de diferencia).
 - **Control de Versiones y Autenticación:**
   - Configuración de autenticación mediante `gh auth login` y sincronización exitosa de la rama contra GitHub.
+- **Validación de Túnel Cloudflare y Endpoints en Vivo:**
+  - Verificación de túnel activo: `https://api-carto.tejer.red/api/v1/health` retornando HTTP 200 `{"status":"healthy","service":"cartografia-backend"}`.
+  - Verificación de consulta de fosas: `https://api-carto.tejer.red/api/v1/fosas` retornando 71 fosas con centroides calculados.
+  - Verificación de compilación de frontend: `npm run build` ejecutado limpiamente en Vite (0 errores, bundle generado para producción).
+  - Verificación de resiliencia en casos: `http://localhost:8008/api/v1/casos` respondiendo HTTP 200 con registros anonimizados aun sin tabla de inferencias.
 - **Auditoría de Seguridad y Cero Secretos:**
   - Eliminación total de contraseñas de BD y API keys en texto plano en 9 scripts de `backend/scripts/`.
   - Verificación de conexión limpia a PostgreSQL local y lectura exitosa de variables desde `.env`.

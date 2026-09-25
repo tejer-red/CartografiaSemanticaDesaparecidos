@@ -18,32 +18,46 @@ def get_casos(
         where_clause = "WHERE c.fecha_desaparicion BETWEEN :start_date AND :end_date"
         params = {"start_date": start_date, "end_date": end_date}
         
-    sql_cases = text(f"""
-        SELECT c.*, i.tipo_loc, i.loc, i.lat_long, i.fecha, i.sum_score, i.violence_score, i.violence_terms
-        FROM cedulas_anonimizadas c
-        LEFT JOIN repd_vp_inferencia3 i ON c.id_cedula_busqueda = i.id_cedula_busqueda
-        {where_clause}
-    """)
-    cases = db.execute(sql_cases, params).mappings().all()
-    case_ids = [c["id_cedula_busqueda"] for c in cases]
+    cases = []
+    try:
+        sql_cases = text(f"""
+            SELECT c.*, i.tipo_loc, i.loc, i.lat_long, i.fecha, i.sum_score, i.violence_score, i.violence_terms
+            FROM cedulas_anonimizadas c
+            LEFT JOIN repd_vp_inferencia3 i ON c.id_cedula_busqueda = i.id_cedula_busqueda
+            {where_clause}
+        """)
+        cases = db.execute(sql_cases, params).mappings().all()
+    except Exception as err:
+        print(f"[casos.py] Join con repd_vp_inferencia3 no disponible ({err}), consultando solo cedulas_anonimizadas")
+        try:
+            sql_fallback = text(f"SELECT c.* FROM cedulas_anonimizadas c {where_clause}")
+            cases = db.execute(sql_fallback, params).mappings().all()
+        except Exception as e2:
+            print(f"[casos.py] Error al consultar cedulas_anonimizadas: {e2}")
+            cases = []
+
+    case_ids = [c["id_cedula_busqueda"] for c in cases if "id_cedula_busqueda" in c]
     
     tatuajes_by_case = {}
     if case_ids:
-        sql_senas = text("""
-            SELECT id_cedula_busqueda, descripcion, parte_cuerpo
-            FROM repd_vp_cedulas_senas
-            WHERE tipo_sena = 'TATUAJES' AND id_cedula_busqueda IN :ids
-        """)
-        # Postgres supports tuples for IN queries when bound properly
-        senas = db.execute(sql_senas, {"ids": tuple(case_ids)}).mappings().all()
-        for s in senas:
-            cid = s["id_cedula_busqueda"]
-            if cid not in tatuajes_by_case:
-                tatuajes_by_case[cid] = []
-            tatuajes_by_case[cid].append({
-                "descripcion": s["descripcion"],
-                "parte_cuerpo": s["parte_cuerpo"]
-            })
+        try:
+            sql_senas = text("""
+                SELECT id_cedula_busqueda, descripcion, parte_cuerpo
+                FROM repd_vp_cedulas_senas
+                WHERE tipo_sena = 'TATUAJES' AND id_cedula_busqueda IN :ids
+            """)
+            # Limitar a los primeros 1000 IDs para evitar desbordamiento de parámetros en Postgres
+            senas = db.execute(sql_senas, {"ids": tuple(case_ids[:1000])}).mappings().all()
+            for s in senas:
+                cid = s["id_cedula_busqueda"]
+                if cid not in tatuajes_by_case:
+                    tatuajes_by_case[cid] = []
+                tatuajes_by_case[cid].append({
+                    "descripcion": s["descripcion"],
+                    "parte_cuerpo": s["parte_cuerpo"]
+                })
+        except Exception as senas_err:
+            print(f"[casos.py] Consulta de senas no disponible ({senas_err}), continuando.")
             
     # Carga de catálogo de centroides municipales de Jalisco
     import json, os, hashlib, unicodedata

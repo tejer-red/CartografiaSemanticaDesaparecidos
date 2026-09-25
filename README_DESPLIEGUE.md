@@ -1,8 +1,8 @@
 # 🚀 Guía de Despliegue: Cartografía Semántica de Desaparecidos
 
 Esta guía describe el procedimiento para desplegar la aplicación en producción utilizando una arquitectura mixta:
-1. **Frontend** alojado de forma serverless en **Vercel** (dominio `carto.tejer.red`).
-2. **Backend** ejecutándose bajo **Docker Compose** en tu servidor local Ubuntu y expuesto con **Cloudflare Tunnel** en el subdominio `api.carto.tejer.red` usando un puerto no convencional (`9090`).
+1. **Frontend** alojado de forma serverless en **Vercel** (dominio `cartografia.tejer.red` o `carto.tejer.red`).
+2. **Backend** ejecutándose bajo **Docker Compose** en tu servidor local Ubuntu y expuesto con **Cloudflare Tunnel** en el subdominio `api-carto.tejer.red` usando un puerto no convencional (`9090`).
 
 ---
 
@@ -17,9 +17,9 @@ El frontend se conecta directamente a Vercel desde tu repositorio de GitHub.
 4. **Environment Variables**: Agrega las siguientes variables:
    - `VITE_SUPABASE_URL`: Tu URL de Supabase.
    - `VITE_SUPABASE_PUBLISHABLE_KEY`: Tu clave pública `anon` de Supabase.
-   - `VITE_API_URL`: **`https://api.carto.tejer.red/api/v1`** (apuntando al subdominio del backend).
+   - `VITE_API_URL`: **`https://api-carto.tejer.red/api/v1`** (apuntando al subdominio del backend expuesto por Cloudflare Tunnel).
    - `VITE_ROUTER_BASENAME`: **`/`** (o déjala vacía, ya que por defecto es `/` si no se especifica. Solo cámbiala a `/dist` si usaras rutas heredadas).
-5. **Dominio Personalizado**: Asigna tu dominio **`carto.tejer.red`** en Vercel.
+5. **Dominio Personalizado**: Asigna tu dominio **`cartografia.tejer.red`** en Vercel.
 
 ---
 
@@ -78,7 +78,7 @@ Como el backend y tu contenedor de `cloudflared` comparten la red externa de Doc
 
 ### En la consola de Cloudflare Zero Trust (Tunnels):
 1. Selecciona tu túnel activo y agrega una ruta pública (**Public Hostname**):
-   - **Subdomain**: `api.carto`
+   - **Subdomain**: `api-carto`
    - **Domain**: `tejer.red`
    - **Type**: `HTTP`
    - **URL**: `cartografia-backend:9090` *(Gracias a la red Docker compartida, puedes usar el nombre del contenedor en lugar de localhost)*
