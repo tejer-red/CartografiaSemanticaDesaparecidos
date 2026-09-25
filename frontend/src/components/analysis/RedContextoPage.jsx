@@ -40,7 +40,8 @@ const CONTEXT_COLORS = {
   VEHICULO_SOSPECHOSO: '#9d4edd', // Púrpura estructurado
   VEHICULO_VICTIMA: '#457b9d',    // Azul pizarra
   PARENTESCO: '#64748b',          // Gris pizarra sobrio
-  FOSA: '#2a9d8f',                // Verde azulado frontend
+  FOSA: '#10b981',                // Esmeralda fosa clandestina oficial
+  HASH_DOMICILIO: '#8b5cf6',      // Violeta inmueble / finca
   DEFAULT: '#475569'
 };
 
@@ -629,6 +630,14 @@ const RedContextoPage = () => {
               <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.PARENTESCO }} />
               <span>⚪ Parentesco Denunciante / Testigo</span>
             </div>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.FOSA }} />
+              <span>🟢 Fosa Clandestina (Catálogo Oficial)</span>
+            </div>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ backgroundColor: CONTEXT_COLORS.HASH_DOMICILIO }} />
+              <span>🏠 Domicilio / Finca (Hashes PII)</span>
+            </div>
           </div>
         </div>
 
@@ -657,6 +666,8 @@ const RedContextoPage = () => {
                   {selectedNode.nodeType === 'VEHICULO_SOSPECHOSO' && '🚨 VEHÍCULO SOSPECHOSO'}
                   {selectedNode.nodeType === 'VEHICULO_VICTIMA' && '🚗 VEHÍCULO DE VÍCTIMA'}
                   {selectedNode.nodeType === 'PARENTESCO' && '👥 ROL DENUNCIANTE'}
+                  {selectedNode.nodeType === 'FOSA' && '⚰️ FOSA CLANDESTINA OFICIAL'}
+                  {selectedNode.nodeType === 'HASH_DOMICILIO' && '🏠 FINCA / DOMICILIO (PII)'}
                 </span>
               </div>
               <button 

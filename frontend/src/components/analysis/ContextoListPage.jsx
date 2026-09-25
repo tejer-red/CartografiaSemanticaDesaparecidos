@@ -11,7 +11,9 @@ import {
   Clock, 
   ChevronDown, 
   ChevronUp,
-  BarChart2
+  BarChart2,
+  Home,
+  Crosshair
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
 import { supabase } from '../../utils/supabase';
@@ -25,7 +27,9 @@ const RELATION_ICONS = {
   VIAJABA_EN_VEHICULO: <Car size={18} color="#0284c7" />,
   PERPETRADO_CON_VEHICULO: <Car size={18} color="#a855f7" />,
   INSTITUCION_LUGAR: <Layers size={18} color="#10b981" />,
-  INDICIOS_EN_SITIO: <FileText size={18} color="#f59e0b" />
+  INDICIOS_EN_SITIO: <FileText size={18} color="#f59e0b" />,
+  DESAPARECIO_EN_DOMICILIO: <Home size={18} color="#8b5cf6" />,
+  POSIBLE_HALLAZGO_EN_FOSA: <Crosshair size={18} color="#10b981" />
 };
 
 const RELATION_TITLES = {
@@ -35,7 +39,9 @@ const RELATION_TITLES = {
   VIAJABA_EN_VEHICULO: 'Vehículo en el que se Desplazaba la Víctima',
   PERPETRADO_CON_VEHICULO: 'Vehículo Identificado de los Perpetradores',
   INSTITUCION_LUGAR: 'Instituciones, Albergues y Centros de Retención',
-  INDICIOS_EN_SITIO: 'Indicios Materiales Localizados en Escena'
+  INDICIOS_EN_SITIO: 'Indicios Materiales Localizados en Escena',
+  DESAPARECIO_EN_DOMICILIO: 'Domicilios y Fincas de Desaparición (Hashes PII Compartidos)',
+  POSIBLE_HALLAZGO_EN_FOSA: 'Fosas Clandestinas y Sitios de Inhumación (Catálogo Oficial)'
 };
 
 const ContextoListPage = () => {

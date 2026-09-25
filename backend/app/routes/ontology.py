@@ -121,7 +121,13 @@ def get_full_semantic_graph(
     import re
     from backend.app.models import CedulaPrivada, PiiHashRegistry, Caso, Fosa
 
-    query = db.query(VinculoEntidad)
+    news_relation_types = ['POSIBLE_HALLAZGO_RELACIONADO', 'MENCIONADO_EN_NOTICIA']
+    if include_empty:
+        news_relation_types.append('REVISADO_SIN_NOTICIA')
+
+    query = db.query(VinculoEntidad).filter(
+        VinculoEntidad.relation_type.in_(news_relation_types)
+    )
     if not include_empty:
         query = query.filter(
             VinculoEntidad.target_node != 'OSINT_EMPTY',
@@ -462,18 +468,28 @@ def get_context_semantic_graph(
     from backend.app.models import CedulaPrivada, CasoPatronForense, Fosa, Caso
 
     # 1. Consultar aristas de contexto criminal y relacional
-    query = db.query(VinculoEntidad).filter(
-        VinculoEntidad.relation_type.in_([
-            'MODUS_OPERANDI', 'INSTITUCION_LUGAR', 'INDICIOS_EN_SITIO', 'DESTINO_DECLARADO',
-            'PERPETRADO_CON_VEHICULO', 'VIAJABA_EN_VEHICULO',
-            'REPORTE_POR_FAMILIAR', 'DESAPARECIO_JUNTO_A', 'FAMILIAR_DE',
-            'REPORTO_MISMO_EVENTO', 'REGISTRA_HALLAZGO_EN_FOSA'
-        ])
-    )
-    if filter_modus:
-        query = query.filter(VinculoEntidad.target_node == f"MODUS_{filter_modus}")
+    context_relation_types = [
+        'MODUS_OPERANDI', 'POSIBLE_HALLAZGO_EN_FOSA', 'DESAPARECIO_EN_DOMICILIO',
+        'INSTITUCION_LUGAR', 'DESTINO_DECLARADO', 'INDICIOS_EN_SITIO',
+        'PERPETRADO_CON_VEHICULO', 'VIAJABA_EN_VEHICULO', 'REPORTE_POR_FAMILIAR',
+        'DESAPARECIO_JUNTO_A'
+    ]
 
-    edges = query.order_by(VinculoEntidad.id.desc()).limit(limit_edges).all()
+    if filter_modus:
+        edges = db.query(VinculoEntidad).filter(
+            VinculoEntidad.relation_type == 'MODUS_OPERANDI',
+            VinculoEntidad.target_node == f"MODUS_{filter_modus}"
+        ).order_by(VinculoEntidad.id.desc()).limit(limit_edges).all()
+    else:
+        # Muestreo estratificado balanceado para representar todas las dimensiones del contexto
+        limit_per_type = max(15, limit_edges // len(context_relation_types))
+        edges = []
+        for rt in context_relation_types:
+            sub_edges = db.query(VinculoEntidad).filter(
+                VinculoEntidad.relation_type == rt
+            ).order_by(VinculoEntidad.id.desc()).limit(limit_per_type).all()
+            edges.extend(sub_edges)
+        edges = edges[:limit_edges]
 
     node_ids = set()
     edges_pool = []
@@ -482,6 +498,10 @@ def get_context_semantic_graph(
         edge_color = "#64748b"
         if e.relation_type == "INSTITUCION_LUGAR":
             edge_color = "#10b981" # Esmeralda para albergues e instituciones
+        elif e.relation_type == "POSIBLE_HALLAZGO_EN_FOSA":
+            edge_color = "#10b981" # Esmeralda para fosas oficiales
+        elif e.relation_type == "DESAPARECIO_EN_DOMICILIO":
+            edge_color = "#8b5cf6" # Violeta para domicilios
         elif e.relation_type == "INDICIOS_EN_SITIO":
             edge_color = "#f59e0b" # Ámbar para cartas y recados
         elif e.relation_type == "DESTINO_DECLARADO":
@@ -585,6 +605,26 @@ def get_context_semantic_graph(
                 "resumen_forense": p.resumen_forense
             }
 
+    fosa_ids = []
+    for nid in node_ids:
+        if nid.startswith("FOSA_"):
+            try:
+                fosa_ids.append(int(nid.replace("FOSA_", "")))
+            except Exception:
+                pass
+    fosas_meta = {}
+    if fosa_ids:
+        f_rows = db.query(Fosa).filter(Fosa.id.in_(fosa_ids)).all()
+        for f in f_rows:
+            fosas_meta[f"FOSA_{f.id}"] = {
+                "municipio": f.municipio,
+                "fecha_hallazgo": str(f.fecha_hallazgo) if f.fecha_hallazgo else None,
+                "total_fosas": f.total_fosas,
+                "total_cuerpos": f.total_cuerpos,
+                "total_restos": f.total_restos_fragmentos,
+                "coordenadas": f.coordenadas
+            }
+
     # 3. Disposición y serialización de nodos
     CONTEXT_COLORS = {
         "PERSONA": "#e63946",             # Rojo Cédula
@@ -598,7 +638,8 @@ def get_context_semantic_graph(
         "VEHICULO_SOSPECHOSO": "#a855f7", # Púrpura Vehículo Agresores
         "VEHICULO_VICTIMA": "#0284c7",    # Azul Vehículo Víctima
         "PARENTESCO": "#64748b",          # Gris Rol / Testigo
-        "FOSA": "#059669",                # Verde Fosa
+        "FOSA": "#10b981",                # Esmeralda Fosa Clandestina
+        "HASH_DOMICILIO": "#8b5cf6",      # Violeta Domicilio Hasheado
         "DEFAULT": "#475569"
     }
 
@@ -732,11 +773,27 @@ def get_context_semantic_graph(
                 "type": "PARENTESCO",
                 "description": f"Parentesco de la persona que reportó la desaparición: {rol_desc}"
             }
+        elif nid.startswith("DOMICILIO_HASH_") or "DOMICILIO" in nid:
+            ntype = "HASH_DOMICILIO"
+            nsize = 15.0
+            node_label = f"🏠 {nid[:22]}"
+            node_meta = {
+                "type": "HASH_DOMICILIO",
+                "label": nid,
+                "description": f"Inmueble / Finca de desaparición (Hash PII): [{nid}]"
+            }
         elif nid.startswith("FOSA_"):
             ntype = "FOSA"
-            nsize = 16.0
-            node_label = f"Fosa {nid}"
-            node_meta = {"type": "FOSA"}
+            nsize = 18.0
+            fid = int(nid.replace("FOSA_", "")) if nid.replace("FOSA_", "").isdigit() else None
+            fm = fosas_meta.get(nid, {})
+            node_label = f"⚰️ Fosa #{fid} ({fm.get('municipio', '')})" if fid and fm.get('municipio') else f"⚰️ {nid}"
+            node_meta = {
+                "type": "FOSA",
+                "label": node_label,
+                "description": f"Fosa Clandestina en {fm.get('municipio', 'Jalisco')} ({fm.get('total_cuerpos', 0)} cuerpos exhumados)",
+                **fm
+            }
 
         nodes_pool.append({
             "id": nid,
@@ -860,7 +917,8 @@ def get_context_entities_list(
         VinculoEntidad.relation_type.in_([
             'MODUS_OPERANDI', 'INSTITUCION_LUGAR', 'DESTINO_DECLARADO',
             'VIAJABA_EN_VEHICULO', 'PERPETRADO_CON_VEHICULO',
-            'REPORTE_POR_FAMILIAR', 'INDICIOS_EN_SITIO'
+            'REPORTE_POR_FAMILIAR', 'INDICIOS_EN_SITIO',
+            'DESAPARECIO_EN_DOMICILIO', 'POSIBLE_HALLAZGO_EN_FOSA'
         ])
     ).group_by(
         VinculoEntidad.relation_type,
@@ -870,15 +928,32 @@ def get_context_entities_list(
         func.count(VinculoEntidad.id).desc()
     ).all()
 
+    # Precargar fosas para enriquecer los nombres de FOSA_X
+    fosa_ids_list = [
+        int(t.replace("FOSA_", "")) 
+        for r, t, _ in target_counts 
+        if t.startswith("FOSA_") and t.replace("FOSA_", "").isdigit()
+    ]
+    fosas_dict = {}
+    if fosa_ids_list:
+        from backend.app.models import Fosa
+        f_records = db.query(Fosa).filter(Fosa.id.in_(fosa_ids_list)).all()
+        for f in f_records:
+            fosas_dict[f"FOSA_{f.id}"] = f"Fosa #{f.id} en {f.municipio} ({f.total_cuerpos or 0} cuerpos)"
+
     grouped_targets: Dict[str, List[Dict[str, Any]]] = {}
     for r_type, target, cnt in target_counts:
-        # Limpiar identificadores tipo MODUS_..., INST_..., etc.
-        clean_name = target
-        for prefix in ["MODUS_", "INST_", "DESTINO_", "VEH_VIC_", "VEH_PERP_", "ROL_", "CONDICION_", "SEXO_"]:
-            if clean_name.startswith(prefix):
-                clean_name = clean_name[len(prefix):]
-                break
-        clean_name = clean_name.replace("_", " ").strip()
+        if target in fosas_dict:
+            clean_name = fosas_dict[target]
+        elif target.startswith("DOMICILIO_HASH_"):
+            clean_name = f"Inmueble / Finca [{target}]"
+        else:
+            clean_name = target
+            for prefix in ["MODUS_", "INST_", "DESTINO_", "VEH_VIC_", "VEH_PERP_", "ROL_", "CONDICION_", "SEXO_"]:
+                if clean_name.startswith(prefix):
+                    clean_name = clean_name[len(prefix):]
+                    break
+            clean_name = clean_name.replace("_", " ").strip()
 
         if r_type not in grouped_targets:
             grouped_targets[r_type] = []

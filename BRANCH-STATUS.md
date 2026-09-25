@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 20:55 CST
+- **Última actualización:** 2026-09-24 22:05 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
 - **Último commit:** `29df1e1` (`fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient`)
-- **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Enrutamiento del frontend de producción a través de Cloudflare Tunnel (`api-carto.tejer.red`) y resiliencia en consulta de casos
+- **Estado de sincronización:** Cambios locales listos en GPU (desarrollo local activo)
+- **Estado general:** Separación ontológica entre Contexto Forense y OSINT Periodístico, e implementación del Timeline Dinámico en el Grafo de Noticias
 
 ---
 
@@ -12,7 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `fix(frontend): auto-sanitize tunnel url, enable MultiDirectedGraph in sigma, and make casos query resilient` |
+| *Pendiente* | 2026-09-24 | abundis | `feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint` |
 | `29df1e1` | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
 | `3a1633d` | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |
 | `5273ade` | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
@@ -31,6 +31,26 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### Y. Separación Epistemológica de Redes, Timeline Dinámico en Grafo de Noticias y Correlación de Contexto
+- **Justificación técnica:**
+  1. **Separación Estricta de Dominios de Conocimiento:**
+     - **Módulo de Noticias (`/noticias/grafo`):** Se restringió la consulta de `/ontology/graph` exclusivamente a tipos de vínculo periodístico (`POSIBLE_HALLAZGO_RELACIONADO`, `MENCIONADO_EN_NOTICIA`), eliminando la contaminación cruzada con fosas y domicilios y preservando la topología bipartita canónica (Cédulas ↔ Noticias Periodísticas Minadas).
+     - **Matriz de Contexto (`/contexto/grafo` y `/contexto`):** Se enriquecieron los endpoints `/context-graph` y `/context-entities` con muestreo estratificado balanceado para reflejar todas las dimensiones estructurales del delito (`MODUS_OPERANDI`, `POSIBLE_HALLAZGO_EN_FOSA`, `DESAPARECIO_EN_DOMICILIO`, `INSTITUCION_LUGAR`, `VEHICULO_SOSPECHOSO`, `DESTINO_DECLARADO`, etc.).
+  2. **Pipeline de Enlace de Contexto Forense (`link_contexto_fosas_domicilios.py`):**
+     - Se correlacionaron 265 domicilios y fincas de desaparición compartidas mediante hashes criptográficos (`DESAPARECIO_EN_DOMICILIO`, 603 aristas).
+     - Se correlacionaron 71 fosas clandestinas oficiales con casos basados en proximidad geográfica (Haversine $\le 10$ km), causalidad temporal ($\le 2$ años) y concordancia municipal (`POSIBLE_HALLAZGO_EN_FOSA`, 4,411 aristas).
+  3. **Timeline Dinámico y Reproductor Temporal en Grafo de Noticias (`RedNoticiasPage.jsx`):**
+     - Se calculó el espacio temporal global a partir de las marcas temporales (`date`) de casos y notas periodísticas (abarcando desde 2007 hasta 2024).
+     - Se implementó una barra flotante con slider arrastrable (0 a 100), botón Play/Pausa (bucle a 350ms) y selector de ancho de ventana configurable (30, 90, 180, 365, 730 días).
+     - Se preservó la coherencia relacional: al activarse el timeline, se conservan los nodos comprendidos en el intervalo temporal junto con sus vecinos inmediatos conectados, permitiendo ver la evolución secuencial de la cobertura de prensa a lo largo de los años.
+- **Archivos Modificados:**
+  - `backend/app/routes/ontology.py`
+  - `backend/scripts/link_contexto_fosas_domicilios.py` (nuevo script)
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+  - `frontend/src/components/analysis/ContextoListPage.jsx`
+  - `BRANCH-STATUS.md`
 
 ### X. Enrutamiento a Túnel Cloudflare (`api-carto.tejer.red`), Soporte MultiGrafo en Sigma y Resiliencia en Casos
 - **Justificación técnica:**
@@ -360,15 +380,16 @@
 - `TODO-LIST.md` (Hoja de ruta priorizada y justificación metodológica)
 - `reports/*` (Reportes de metodología, despliegue y entrenamiento)
 - `tests/*` (Pruebas unitarias de anonimizador, API, matcher y enriquecedor)
+- `backend/scripts/link_contexto_fosas_domicilios.py` (Vinculador contextual de fosas estatales y domicilios/fincas PII compartidas)
 
 ### Modificados (`[MODIFY]`):
 - `backend/app/models.py` (incorporación de `NoticiaCorpus`, `VinculoEntidad`, `CasoPatronForense`, `PiiHashRegistry`, `CedulaPrivada`)
 - `backend/app/schemas.py`
 - `backend/app/database.py`
 - `backend/app/main.py`
-- `backend/app/routes/casos.py`, `noticias.py`
+- `backend/app/routes/casos.py`, `noticias.py`, `ontology.py`
 - `frontend/src/App.jsx`, `config.js`
-- `frontend/src/components/analysis/RedContextoPage.jsx`, `RedNoticiasPage.jsx`
+- `frontend/src/components/analysis/RedContextoPage.jsx`, `RedNoticiasPage.jsx`, `ContextoListPage.jsx`
 - `frontend/src/utils/semanticGraphUtils.jsx`
 - `frontend/src/context/AuthContext.jsx`, `DataContext.jsx`, `FilteredFeatures.jsx`
 - `frontend/src/components/layout/LeftSideBar.jsx`
@@ -382,29 +403,29 @@
 
 ## 4. Pruebas y Validaciones Ejecutadas
 
+- **Separación Epistemológica de Grafos:**
+  - Endpoint `/api/v1/ontology/graph`: Verificado con `curl` y `jq` (`limit_edges=100`) confirmando retorno estricto de nodos `NOTICIA` (20) y `PERSONA` (68), sin contaminación cruzada con fosas ni domicilios.
+  - Endpoint `/api/v1/ontology/context-graph`: Verificado con 134 nodos y 248 vínculos balanceados estratificadamente (`PERSONA`, `FOSA`, `HASH_DOMICILIO`, `MODUS`, `INSTITUCION`, `DESTINO`, `VEHICULO_SOSPECHOSO`).
+- **Timeline Temporal y Animación en Grafo de Noticias:**
+  - Slider dinámico interactivo (0 a 100) y ventana móvil configurable (30d a 730d).
+  - Reproductor con bucle a 350ms y auto-pausa al 100%.
+  - Preservación de vecindad de 1-hop en el grafo bipartito (Caso ↔ Noticia).
+  - Compilación exitosa en producción: `npm run build` ejecutado limpiamente en Vite (0 errores, bundle generado para producción).
+- **Correlación de Contexto Forense (`link_contexto_fosas_domicilios.py`):**
+  - Domicilios hasheados: 265 fincas de desaparición compartidas vinculando 603 aristas `DESAPARECIO_EN_DOMICILIO`.
+  - Fosas oficiales: 71 fosas correlacionadas espacio-temporalmente generando 4,411 aristas `POSIBLE_HALLAZGO_EN_FOSA`.
 - **Extracción OSINT de Corpus:**
   - Total de notas aprobadas por Gatekeeper LLM y geocodificadas en `noticias_corpus`: **307 noticias**.
   - Rango temporal validado: **2020 – 2024** (con 219+ notas estrictamente dentro del periodo histórico).
-  - Georreferenciación: 100% de registros con lat/lng (131 a nivel colonia/cruce exacto, 144 a nivel municipal).
-- **Vinculación Espacio-Temporal:**
-  - Total de cédulas evaluadas con coordenadas: **5,542 casos**.
-  - Total de aristas de afinidad generadas y persistidas en `vinculos_entidades`: **1,290 vínculos** (`relation_type = 'POSIBLE_HALLAZGO_RELACIONADO'`).
-  - Coincidencias de certeza máxima detectadas: 5 casos con Score $1.0$ ($\le 1.13\text{ km}$ y $\le 80$ días de diferencia).
-- **Control de Versiones y Autenticación:**
-  - Configuración de autenticación mediante `gh auth login` y sincronización exitosa de la rama contra GitHub.
-- **Validación de Túnel Cloudflare y Endpoints en Vivo:**
-  - Verificación de túnel activo: `https://api-carto.tejer.red/api/v1/health` retornando HTTP 200 `{"status":"healthy","service":"cartografia-backend"}`.
-  - Verificación de consulta de fosas: `https://api-carto.tejer.red/api/v1/fosas` retornando 71 fosas con centroides calculados.
-  - Verificación de compilación de frontend: `npm run build` ejecutado limpiamente en Vite (0 errores, bundle generado para producción).
-  - Verificación de resiliencia en casos: `http://localhost:8008/api/v1/casos` respondiendo HTTP 200 con registros anonimizados aun sin tabla de inferencias.
+  - Georreferenciación: 100% de registros con lat/lng.
 - **Auditoría de Seguridad y Cero Secretos:**
-  - Eliminación total de contraseñas de BD y API keys en texto plano en 9 scripts de `backend/scripts/`.
+  - Eliminación total de contraseñas de BD y API keys en texto plano en todos los scripts de `backend/scripts/`.
   - Verificación de conexión limpia a PostgreSQL local y lectura exitosa de variables desde `.env`.
 
 ---
 
 ## 5. Tareas Pendientes en la Rama
 
-- [ ] **Cruce contra Catálogo Oficial `fosas`:** Extender `linker_noticias_casos.py` con parámetro `--source fosas` para evaluar correlaciones contra los 71 registros oficiales de fosas de Jalisco además de las notas de prensa.
+- [x] **Cruce contra Catálogo Oficial `fosas`:** Completado mediante `link_contexto_fosas_domicilios.py` (4,411 aristas con $\le 10$ km y $\le 2$ años).
 - [ ] **Endpoint `POST /api/v1/ontology/edges`:** Implementar en `backend/app/routes/ontology.py` las rutas REST para creación y validación manual de aristas por parte de investigadores.
 - [ ] **Fusión/PR hacia rama principal:** Preparar pull request una vez completadas las pruebas forenses.

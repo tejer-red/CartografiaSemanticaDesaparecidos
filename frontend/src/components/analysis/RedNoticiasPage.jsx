@@ -22,7 +22,11 @@ import {
   Unlock,
   Sparkles,
   X,
-  List
+  List,
+  Play,
+  Pause,
+  RotateCcw,
+  Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
@@ -120,6 +124,10 @@ const RedNoticiasPage = () => {
   const [anonymized, setAnonymized] = useState(true);
   const [highlightEntities, setHighlightEntities] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [timelineEnabled, setTimelineEnabled] = useState(false);
+  const [sliderIndex, setSliderIndex] = useState(100);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [timeWindowDays, setTimeWindowDays] = useState(365);
 
   const fetchGraph = async () => {
     setLoading(true);
@@ -199,13 +207,91 @@ const RedNoticiasPage = () => {
     fetchGraph();
   }, [limitEdges, includeEmpty, anonymized]);
 
+  // Extraer rango global de fechas válidas (casos y noticias)
+  const dateBounds = useMemo(() => {
+    if (!graphData || !graphData.nodes) return null;
+    const timestamps = [];
+    graphData.nodes.forEach(n => {
+      const dStr = n.metadata?.date || n.date;
+      if (dStr && dStr.length >= 10) {
+        const t = new Date(dStr).getTime();
+        if (!isNaN(t)) timestamps.push(t);
+      }
+    });
+    if (timestamps.length === 0) return null;
+    const minT = Math.min(...timestamps);
+    const maxT = Math.max(...timestamps);
+    return { min: minT, max: maxT, spanDays: Math.max(1, Math.round((maxT - minT) / (1000 * 3600 * 24))) };
+  }, [graphData]);
+
+  // Calcular la ventana de fecha actual según el slider
+  const currentTimelineDate = useMemo(() => {
+    if (!dateBounds) return null;
+    const currentT = dateBounds.min + (dateBounds.max - dateBounds.min) * (sliderIndex / 100);
+    const windowMs = timeWindowDays * 24 * 3600 * 1000;
+    const startT = Math.max(dateBounds.min, currentT - windowMs);
+    return {
+      start: new Date(startT),
+      current: new Date(currentT),
+      startStr: new Date(startT).toISOString().slice(0, 10),
+      currentStr: new Date(currentT).toISOString().slice(0, 10),
+      startMs: startT,
+      endMs: currentT
+    };
+  }, [dateBounds, sliderIndex, timeWindowDays]);
+
+  // Reproductor automático del timeline (Animation loop)
+  useEffect(() => {
+    let interval = null;
+    if (isPlaying && timelineEnabled) {
+      interval = setInterval(() => {
+        setSliderIndex(prev => {
+          if (prev >= 100) {
+            setIsPlaying(false);
+            return 100;
+          }
+          return Math.min(100, prev + 1);
+        });
+      }, 350);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, timelineEnabled]);
+
   const graph = useMemo(() => {
     if (!graphData || !graphData.nodes) return null;
 
     const g = new Graph({ type: 'directed', multi: true, allowSelfLoops: true });
 
+    // 1. Filtrar nodos según ventana temporal
+    const temporallyActiveNodeIds = new Set();
+    if (timelineEnabled && currentTimelineDate) {
+      graphData.nodes.forEach(node => {
+        const dStr = node.metadata?.date || node.date;
+        if (dStr && dStr.length >= 10) {
+          const t = new Date(dStr).getTime();
+          if (!isNaN(t) && t >= currentTimelineDate.startMs && t <= currentTimelineDate.endMs) {
+            temporallyActiveNodeIds.add(node.id);
+          }
+        } else if (sliderIndex >= 95) {
+          temporallyActiveNodeIds.add(node.id);
+        }
+      });
+    }
+
+    // 2. Incluir vecinos conectados para preservar la relación Cédula ↔ Noticia
+    const activeNodeIds = new Set(temporallyActiveNodeIds);
+    if (timelineEnabled && currentTimelineDate) {
+      graphData.edges.forEach(edge => {
+        if (temporallyActiveNodeIds.has(edge.source)) activeNodeIds.add(edge.target);
+        if (temporallyActiveNodeIds.has(edge.target)) activeNodeIds.add(edge.source);
+      });
+    }
+
     graphData.nodes.forEach(node => {
       if (filterType !== 'ALL' && node.type !== filterType) return;
+      if (timelineEnabled && currentTimelineDate && !activeNodeIds.has(node.id)) return;
 
       const size = node.size || (node.type === 'PERSONA' ? 14 : (node.type === 'NOTICIA' ? 18 : 10));
       const color = node.color || COLORS[node.type] || COLORS.DEFAULT;
@@ -243,22 +329,24 @@ const RedNoticiasPage = () => {
     });
 
     try {
-      forceAtlas2.assign(g, {
-        iterations: 60,
-        settings: {
-          gravity: 1.2,
-          scalingRatio: 8,
-          slowDown: 3,
-          barnesHutOptimize: true,
-          linLogMode: true
-        }
-      });
+      if (g.order > 0) {
+        forceAtlas2.assign(g, {
+          iterations: 60,
+          settings: {
+            gravity: 1.2,
+            scalingRatio: 8,
+            slowDown: 3,
+            barnesHutOptimize: true,
+            linLogMode: true
+          }
+        });
+      }
     } catch (e) {
       console.warn('ForceAtlas2 layout error:', e);
     }
 
     return g;
-  }, [graphData, filterType]);
+  }, [graphData, filterType, timelineEnabled, currentTimelineDate, sliderIndex]);
 
   const handleNodeClick = (nodeId) => {
     if (!graph) return;
@@ -277,7 +365,7 @@ const RedNoticiasPage = () => {
           </Link>
           <div className="graph-toolbar-title">
             <Network size={20} color="#007bff" />
-            <span>Red de Inteligencia: Casos, Noticias y Fosas</span>
+            <span>Red de Inteligencia OSINT: Casos y Cobertura Periodística</span>
           </div>
         </div>
 
@@ -303,6 +391,16 @@ const RedNoticiasPage = () => {
             <span>{highlightEntities ? "NER: Subrayado" : "Texto Plano"}</span>
           </button>
 
+          {/* Conmutador de Barra Temporal (Timeline) */}
+          <button
+            onClick={() => setTimelineEnabled(!timelineEnabled)}
+            className={`graph-btn-action ${timelineEnabled ? 'active' : ''}`}
+            title="Activar o desactivar barra temporal para observar evolución cronológica de casos y notas"
+          >
+            <Clock size={15} color={timelineEnabled ? '#2563eb' : '#64748b'} />
+            <span>{timelineEnabled ? 'Timeline Activo' : 'Activar Timeline'}</span>
+          </button>
+
           {/* Selector de Filtro de Nodos */}
           <select 
             value={filterType} 
@@ -312,8 +410,6 @@ const RedNoticiasPage = () => {
             <option value="ALL">Todas las Entidades</option>
             <option value="PERSONA">Solo Cédulas / Casos</option>
             <option value="NOTICIA">Solo Noticias (OSINT)</option>
-            <option value="FOSA">Solo Fosas Clandestinas</option>
-            <option value="HASH_DOMICILIO">Solo Domicilios Hasheados</option>
           </select>
 
           {/* Selector de Límite de Vínculos */}
@@ -386,6 +482,124 @@ const RedNoticiasPage = () => {
             </SigmaContainer>
           )}
 
+          {/* Floating Draggable Timeline Bar */}
+          {timelineEnabled && currentTimelineDate && (
+            <div style={{
+              position: 'absolute',
+              bottom: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 30,
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+              borderRadius: '8px',
+              padding: '12px 20px',
+              width: '660px',
+              maxWidth: '90%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              backdropFilter: 'blur(8px)'
+            }}>
+              {/* Header Timeline: Fechas y Ventana de Días */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Clock size={16} color="#007bff" />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                    Ventana Temporal:
+                  </span>
+                  <span style={{
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    color: '#0f172a',
+                    backgroundColor: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontWeight: 600
+                  }}>
+                    {currentTimelineDate.startStr}  ⟶  {currentTimelineDate.currentStr}
+                  </span>
+                  {graph && (
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                      ({graph.order} nodos visibles)
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569' }}>
+                  <span>Rango ventana:</span>
+                  <select
+                    value={timeWindowDays}
+                    onChange={(e) => setTimeWindowDays(Number(e.target.value))}
+                    className="graph-select-filter"
+                    style={{ fontSize: '12px', padding: '3px 8px' }}
+                  >
+                    <option value={30}>30 días (1 mes)</option>
+                    <option value={90}>90 días (3 meses)</option>
+                    <option value={180}>180 días (6 meses)</option>
+                    <option value={365}>365 días (1 año)</option>
+                    <option value={730}>730 días (2 años)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Slider Draggable y Controles */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  style={{
+                    backgroundColor: isPlaying ? '#dc2626' : '#007bff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}
+                >
+                  {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                  {isPlaying ? 'Pausar' : 'Play'}
+                </button>
+
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={sliderIndex}
+                  onChange={(e) => {
+                    setSliderIndex(Number(e.target.value));
+                    if (isPlaying) setIsPlaying(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    accentColor: '#007bff',
+                    cursor: 'ew-resize',
+                    height: '6px'
+                  }}
+                />
+
+                <button
+                  onClick={() => {
+                    setSliderIndex(0);
+                    setIsPlaying(true);
+                  }}
+                  title="Reiniciar timeline"
+                  className="graph-btn-action"
+                  style={{ padding: '6px' }}
+                >
+                  <RotateCcw size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Leyenda en esquina inferior izquierda */}
           <div className="graph-legend-box">
             <span className="graph-legend-title">Convenciones del Grafo</span>
@@ -396,14 +610,6 @@ const RedNoticiasPage = () => {
             <div className="graph-legend-item">
               <span className="graph-legend-dot" style={{ backgroundColor: COLORS.NOTICIA }} />
               <span>Noticia Periodística Minada</span>
-            </div>
-            <div className="graph-legend-item">
-              <span className="graph-legend-dot" style={{ backgroundColor: COLORS.FOSA }} />
-              <span>Fosa Clandestina</span>
-            </div>
-            <div className="graph-legend-item">
-              <span className="graph-legend-dot" style={{ backgroundColor: COLORS.HASH_DOMICILIO }} />
-              <span>Domicilio Anonimizado (PII)</span>
             </div>
           </div>
         </div>
