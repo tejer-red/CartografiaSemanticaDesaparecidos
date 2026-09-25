@@ -39,21 +39,7 @@ def create_noticia(noticia: schemas.NoticiaCreate, db: Session = Depends(databas
     db.refresh(db_noticia)
     return db_noticia
 
-@router.get("/{id}", response_model=schemas.NoticiaOut)
-def get_noticia(id: int, db: Session = Depends(database.get_db)):
-    noticia = db.query(models.Noticia).filter(models.Noticia.id == id).first()
-    if not noticia:
-        raise HTTPException(status_code=404, detail="Noticia not found")
-    return noticia
 
-@router.delete("/{id}")
-def delete_noticia(id: int, db: Session = Depends(database.get_db)):
-    noticia = db.query(models.Noticia).filter(models.Noticia.id == id).first()
-    if not noticia:
-        raise HTTPException(status_code=404, detail="Noticia not found")
-    db.delete(noticia)
-    db.commit()
-    return {"message": "Noticia deleted successfully"}
 
 
 # ==============================================================================
@@ -129,4 +115,20 @@ def get_noticias_corpus_list(
     if municipio:
         query = query.filter(models.NoticiaCorpus.municipio_extraido.ilike(f"%{municipio}%"))
     return query.order_by(models.NoticiaCorpus.created_at.desc()).offset(skip).limit(limit).all()
+ 
+@router.get("/{id}", response_model=schemas.NoticiaOut)
+def get_noticia(id: int, db: Session = Depends(database.get_db)):
+    noticia = db.query(models.Noticia).filter(models.Noticia.id == id).first()
+    if not noticia:
+        raise HTTPException(status_code=404, detail="Noticia not found")
+    return noticia
+
+@router.delete("/{id}")
+def delete_noticia(id: int, db: Session = Depends(database.get_db)):
+    noticia = db.query(models.Noticia).filter(models.Noticia.id == id).first()
+    if not noticia:
+        raise HTTPException(status_code=404, detail="Noticia not found")
+    db.delete(noticia)
+    db.commit()
+    return {"message": "Noticia deleted successfully"}
 

@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 22:05 CST
+- **Última actualización:** 2026-09-24 22:30 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `29df1e1` (`fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient`)
-- **Estado de sincronización:** Cambios locales listos en GPU (desarrollo local activo)
-- **Estado general:** Separación ontológica entre Contexto Forense y OSINT Periodístico, e implementación del Timeline Dinámico en el Grafo de Noticias
+- **Último commit:** `2784d43` (`feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint`)
+- **Estado de sincronización:** Cambios locales listos para commit
+- **Estado general:** Corrección de colisión de rutas en noticias `/corpus`, resiliencia temporal en grafo de contexto y degradación automática a Supabase
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint` |
+| *Pendiente* | 2026-09-24 | abundis | `fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates` |
+| `2784d43` | 2026-09-24 | abundis | `feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint` |
 | `29df1e1` | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
 | `3a1633d` | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |
 | `5273ade` | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
@@ -31,6 +32,20 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### Z. Desbloqueo de Rutas `/corpus`, Resiliencia de Fechas en Grafo de Contexto y Fallback a Supabase
+- **Justificación técnica:**
+  1. **Resolución de Conflicto de Rutas en FastAPI (`backend/app/routes/noticias.py`):** La ruta comodín `@router.get("/{id}")` estaba registrada antes de `@router.get("/corpus/geojson")` y `@router.get("/corpus/list")`. FastAPI interceptaba `/noticias/corpus/geojson` intentando convertir la cadena `"corpus"` a `int`, arrojando un error HTTP 422 (`int_parsing`) e impidiendo la descarga de noticias en `/cuaderno/nuevo`. Se reubicaron las rutas parametrizadas al final del archivo.
+  2. **Activación de Fechas en Grafo de Contexto (`backend/app/routes/ontology.py`):** El endpoint `/context-graph` iteraba únicamente sobre `CedulaPrivada` para poblar metadatos. En entornos donde `CedulaPrivada` no está presente, los casos quedaban con `date: null`, provocando que el cálculo de límites temporales (`dateBounds`) fuera nulo y la barra flotante del Timeline no se renderizara. Se reescribió la población iterando sobre `caso_uuids` con fallback automático a `Caso` (`cedulas_anonimizadas`).
+  3. **Fallback Robusto a Supabase en Listados y Grafos (`NoticiasListPage.jsx`, `RedNoticiasPage.jsx`):** La condición de éxito previa (`if (data && data.items)`) evaluaba arreglos vacíos `[]` como verdaderos, abortando el fallback a Supabase a pesar de que la base en la nube contiene 307 noticias y 12,268 vínculos. Se condicionó el retorno a `data.items.length > 0` y `data.nodes.length > 0`.
+  4. **Enlace Simbólico de Scripts en Contenedor (`backend/Dockerfile`):** Se incorporó `ln -s /app/scripts /app/backend/scripts` para garantizar la ejecución directa de módulos con `python -m backend.scripts.*`.
+- **Archivos Modificados:**
+  - `backend/app/routes/noticias.py`
+  - `backend/app/routes/ontology.py`
+  - `backend/Dockerfile`
+  - `frontend/src/components/analysis/NoticiasListPage.jsx`
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`
+  - `BRANCH-STATUS.md`
 
 ### Y. Separación Epistemológica de Redes, Timeline Dinámico en Grafo de Noticias y Correlación de Contexto
 - **Justificación técnica:**

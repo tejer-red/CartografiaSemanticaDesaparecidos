@@ -11,7 +11,7 @@ COPY . .
 
 # Ensure 'backend' module is resolvable in sys.path
 ENV PYTHONPATH="/app"
-RUN mkdir -p /app/backend && ln -s /app/app /app/backend/app
+RUN mkdir -p /app/backend && ln -s /app/app /app/backend/app && ln -s /app/scripts /app/backend/scripts
 
 EXPOSE 8000
 

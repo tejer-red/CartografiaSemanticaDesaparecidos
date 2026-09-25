@@ -531,26 +531,29 @@ def get_context_semantic_graph(
     caso_uuids = [nid.replace("CASO_", "") for nid in node_ids if "CASO_" in nid]
     casos_meta = {}
     if caso_uuids:
-        c_rows = db.query(CedulaPrivada).filter(CedulaPrivada.id.in_(caso_uuids)).all()
-        anon_rows = {
-            a.id_cedula_busqueda: a 
-            for a in db.query(Caso).filter(Caso.id_cedula_busqueda.in_(caso_uuids)).all()
-        }
-        for c in c_rows:
-            a_info = anon_rows.get(c.id)
+        cp_map = {c.id: c for c in db.query(CedulaPrivada).filter(CedulaPrivada.id.in_(caso_uuids)).all()}
+        ca_map = {a.id_cedula_busqueda: a for a in db.query(Caso).filter(Caso.id_cedula_busqueda.in_(caso_uuids)).all()}
+        for cid in caso_uuids:
+            c = cp_map.get(cid)
+            a_info = ca_map.get(cid)
+            nombre = (c.nombre_real if c and c.nombre_real else None) or (a_info.nombre_completo if a_info and a_info.nombre_completo else None) or f"Caso {cid[:8]}"
+            mun = (c.municipio if c else None) or (a_info.municipio if a_info else None)
+            col = c.colonia if c else None
+            fecha_val = (c.fecha_desaparicion if c and c.fecha_desaparicion else None) or (a_info.fecha_desaparicion if a_info and a_info.fecha_desaparicion else None) or ''
+            desc = (c.text_original[:800] if c and c.text_original else "") or (a_info.descripcion_desaparicion if a_info and a_info.descripcion_desaparicion else "")
+            exp = (c.id_expediente if c and c.id_expediente else None) or f"EXP-***-{cid[:6]}"
             cond_loc = getattr(a_info, 'condicion_localizacion', None) or 'NO_LOCALIZADO'
             sexo_val = getattr(a_info, 'sexo', None) or 'NO_ESPECIFICADO'
-            fecha_val = c.fecha_desaparicion or ''
             mes_str = fecha_val[:7] if len(fecha_val) >= 7 and fecha_val[4] == '-' else None
 
-            casos_meta[f"CASO_{c.id}"] = {
-                "nombre_real": c.nombre_real,
-                "municipio": c.municipio,
-                "colonia": c.colonia,
-                "fecha": c.fecha_desaparicion,
-                "descripcion": c.text_original[:800] if c.text_original else "",
-                "telefono": c.telefono_contacto,
-                "expediente": c.id_expediente,
+            casos_meta[f"CASO_{cid}"] = {
+                "nombre_real": nombre,
+                "municipio": mun,
+                "colonia": col,
+                "fecha": fecha_val,
+                "descripcion": desc,
+                "telefono": c.telefono_contacto if c else None,
+                "expediente": exp,
                 "condicion_localizacion": cond_loc,
                 "estatus_persona": getattr(a_info, 'estatus_persona_desaparecida', None) or 'DESAPARECIDO',
                 "edad": getattr(a_info, 'edad_momento_desaparicion', None),
@@ -562,8 +565,8 @@ def get_context_semantic_graph(
             if cond_loc:
                 cond_target = f"CONDICION_{cond_loc}"
                 edges_pool.append({
-                    "id": f"e_cond_{c.id}",
-                    "source": f"CASO_{c.id}",
+                    "id": f"e_cond_{cid}",
+                    "source": f"CASO_{cid}",
                     "target": cond_target,
                     "label": "CONDICION_LOCALIZACION",
                     "confidence": 1.0,
@@ -576,8 +579,8 @@ def get_context_semantic_graph(
             if sexo_val and sexo_val != "NO_ESPECIFICADO":
                 sexo_target = f"SEXO_{sexo_val}"
                 edges_pool.append({
-                    "id": f"e_sex_{c.id}",
-                    "source": f"CASO_{c.id}",
+                    "id": f"e_sex_{cid}",
+                    "source": f"CASO_{cid}",
                     "target": sexo_target,
                     "label": "GENERO_SEXO",
                     "confidence": 1.0,

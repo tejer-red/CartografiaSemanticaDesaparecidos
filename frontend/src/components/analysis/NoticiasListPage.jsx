@@ -98,10 +98,13 @@ const NoticiasListPage = () => {
         const res = await fetch(`${API_BASE_URL}/ontology/noticias-list?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        setNoticias(data.items || []);
-        setTotalPages(data.pages || 1);
-        setTotalCount(data.total || 0);
-        return;
+        if (data && data.items && data.items.length > 0) {
+          setNoticias(data.items);
+          setTotalPages(data.pages || 1);
+          setTotalCount(data.total || 0);
+          return;
+        }
+        console.warn('Backend API returned 0 noticias, falling back to Supabase...');
       } catch (apiError) {
         console.warn('Backend API noticias-list fetch failed, falling back to Supabase:', apiError);
       }

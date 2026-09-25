@@ -138,11 +138,12 @@ const RedNoticiasPage = () => {
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (data && data.nodes) {
+          if (data && data.nodes && data.nodes.length > 0) {
             setGraphData(data);
             setLoading(false);
             return;
           }
+          console.warn('Backend API returned empty nodes, falling back to Supabase...');
         }
       } catch (apiErr) {
         console.warn('Backend API graph fetch failed, falling back to Supabase:', apiErr);
@@ -152,6 +153,7 @@ const RedNoticiasPage = () => {
       const { data: vinculos, error: vErr } = await supabase
         .from('vinculos_entidades')
         .select('*')
+        .in('relation_type', ['POSIBLE_HALLAZGO_RELACIONADO', 'MENCIONADO_EN_NOTICIA'])
         .limit(limitEdges);
 
       if (vErr) throw vErr;
