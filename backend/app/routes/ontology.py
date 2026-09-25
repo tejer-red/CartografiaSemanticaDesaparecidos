@@ -457,6 +457,7 @@ def get_full_semantic_graph(
 def get_context_semantic_graph(
     limit_edges: int = Query(default=300, ge=10, le=25000),
     filter_modus: Optional[str] = Query(default=None, description="Filtrar por modus operandi específico"),
+    anonymized: bool = Query(default=True, description="Mostrar nombres y domicilios de cédulas anonimizados bajo hashes criptográficos"),
     db: Session = Depends(get_db)
 ):
     """
@@ -536,29 +537,43 @@ def get_context_semantic_graph(
         for cid in caso_uuids:
             c = cp_map.get(cid)
             a_info = ca_map.get(cid)
-            nombre = (c.nombre_real if c and c.nombre_real else None) or (a_info.nombre_completo if a_info and a_info.nombre_completo else None) or f"Caso {cid[:8]}"
-            mun = (c.municipio if c else None) or (a_info.municipio if a_info else None)
+
+            if anonymized:
+                # MODO ANÓNIMO: Respetar hashes criptográficos de Caso
+                nombre = (a_info.nombre_completo if a_info and a_info.nombre_completo else f"Caso {cid[:8]}")
+                desc = (a_info.descripcion_desaparicion if a_info and a_info.descripcion_desaparicion else (c.text_original[:800] if c else ""))
+                exp = f"EXP-***-{cid[:6]}"
+                is_anon = True
+            else:
+                # MODO AUDITORÍA / CONFIDENCIAL: Exponer datos reales de CedulaPrivada
+                nombre = (c.nombre_real if c and c.nombre_real else (a_info.nombre_completo if a_info else f"Caso {cid[:8]}"))
+                desc = (c.text_original if c and c.text_original else (a_info.descripcion_desaparicion if a_info else ""))
+                exp = (c.id_expediente if c and c.id_expediente else None) or f"EXP-***-{cid[:6]}"
+                is_anon = False
+
+            mun = (a_info.municipio if a_info else (c.municipio if c else None))
             col = c.colonia if c else None
-            fecha_val = (c.fecha_desaparicion if c and c.fecha_desaparicion else None) or (a_info.fecha_desaparicion if a_info and a_info.fecha_desaparicion else None) or ''
-            desc = (c.text_original[:800] if c and c.text_original else "") or (a_info.descripcion_desaparicion if a_info and a_info.descripcion_desaparicion else "")
-            exp = (c.id_expediente if c and c.id_expediente else None) or f"EXP-***-{cid[:6]}"
+            fecha_val = (a_info.fecha_desaparicion if a_info else (c.fecha_desaparicion if c else None)) or ''
             cond_loc = getattr(a_info, 'condicion_localizacion', None) or 'NO_LOCALIZADO'
             sexo_val = getattr(a_info, 'sexo', None) or 'NO_ESPECIFICADO'
             mes_str = fecha_val[:7] if len(fecha_val) >= 7 and fecha_val[4] == '-' else None
 
             casos_meta[f"CASO_{cid}"] = {
-                "nombre_real": nombre,
+                "nombre_real": c.nombre_real if c and c.nombre_real else nombre,
+                "nombre_display": nombre,
+                "nombre_anonimizado": a_info.nombre_completo if a_info and a_info.nombre_completo else nombre,
                 "municipio": mun,
                 "colonia": col,
                 "fecha": fecha_val,
                 "descripcion": desc,
-                "telefono": c.telefono_contacto if c else None,
+                "telefono": c.telefono_contacto if (c and not anonymized) else None,
                 "expediente": exp,
                 "condicion_localizacion": cond_loc,
                 "estatus_persona": getattr(a_info, 'estatus_persona_desaparecida', None) or 'DESAPARECIDO',
                 "edad": getattr(a_info, 'edad_momento_desaparicion', None),
                 "sexo": sexo_val,
-                "mes_reporte": mes_str
+                "mes_reporte": mes_str,
+                "is_anonymized": is_anon
             }
 
             # A) Conectar con Nodo Clúster de Condición de Localización
@@ -628,6 +643,16 @@ def get_context_semantic_graph(
                 "coordenadas": f.coordenadas
             }
 
+    pii_hash_ids = [nid for nid in node_ids if "HASH_" in nid or "DOMICILIO_" in nid or "NOMBRE_" in nid]
+    pii_meta = {}
+    if pii_hash_ids:
+        p_rows = db.query(PiiHashRegistry).filter(PiiHashRegistry.hash_id.in_(pii_hash_ids)).all()
+        for p in p_rows:
+            pii_meta[p.hash_id] = {
+                "entity_type": p.entity_type,
+                "canonical_value": p.canonical_value
+            }
+
     # 3. Disposición y serialización de nodos
     CONTEXT_COLORS = {
         "PERSONA": "#e63946",             # Rojo Cédula
@@ -662,9 +687,8 @@ def get_context_semantic_graph(
             nsize = 14.0
             cm = casos_meta.get(nid, {})
             pm = patrones_meta.get(nid, {})
-            # Priorizar nombre real de la persona si existe, si no expediente o colonia
-            nombre_display = cm.get("nombre_real") or cm.get("expediente") or cm.get("colonia") or nid[:12]
-            node_label = f"Caso: {nombre_display}"
+            nombre_label = cm.get("nombre_display") or cm.get("expediente") or cm.get("colonia") or nid[:12]
+            node_label = f"Caso: {nombre_label}" if not anonymized else f"Caso {nombre_label}"
             node_meta = {
                 "type": "PERSONA",
                 "location": f"{cm.get('colonia') or ''}, {cm.get('municipio') or ''}".strip(", "),
@@ -672,12 +696,13 @@ def get_context_semantic_graph(
                 "description": cm.get("descripcion"),
                 "expediente": cm.get("expediente"),
                 "nombre_real": cm.get("nombre_real"),
-                "nombre_anonimizado": cm.get("nombre_real"),
+                "nombre_anonimizado": cm.get("nombre_anonimizado"),
                 "condicion_localizacion": cm.get("condicion_localizacion", "NO_LOCALIZADO"),
                 "estatus_persona": cm.get("estatus_persona", "DESAPARECIDO"),
                 "edad": cm.get("edad"),
                 "sexo": cm.get("sexo"),
-                "forense": pm
+                "forense": pm,
+                "is_anonymized": cm.get("is_anonymized", True)
             }
         elif nid.startswith("MODUS_"):
             ntype = "MODUS"
@@ -779,12 +804,24 @@ def get_context_semantic_graph(
         elif nid.startswith("DOMICILIO_HASH_") or "DOMICILIO" in nid:
             ntype = "HASH_DOMICILIO"
             nsize = 15.0
-            node_label = f"🏠 {nid[:22]}"
-            node_meta = {
-                "type": "HASH_DOMICILIO",
-                "label": nid,
-                "description": f"Inmueble / Finca de desaparición (Hash PII): [{nid}]"
-            }
+            if not anonymized and nid in pii_meta:
+                real_val = pii_meta[nid]["canonical_value"]
+                node_label = f"🏠 {real_val[:24]}"
+                node_meta = {
+                    "type": "HASH_DOMICILIO",
+                    "label": real_val,
+                    "canonical_value": real_val,
+                    "description": f"Inmueble / Domicilio Real: {real_val} (Auditoría: {nid})",
+                    "is_anonymized": False
+                }
+            else:
+                node_label = f"🏠 {nid[:22]}"
+                node_meta = {
+                    "type": "HASH_DOMICILIO",
+                    "label": nid,
+                    "description": f"Inmueble / Finca de desaparición (Hash PII): [{nid}]",
+                    "is_anonymized": True
+                }
         elif nid.startswith("FOSA_"):
             ntype = "FOSA"
             nsize = 18.0

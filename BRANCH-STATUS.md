@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-25 13:48 CST
+- **Última actualización:** 2026-09-25 14:15 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
 - **Último commit:** `0b28c7e` (`fix(frontend): trigger supabase fallback in FetchNoticias when backend returns 0 corpus features`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Desglose ontológico y resolución de nombres para relaciones interpersonales y de prensa (DESAPARECIO_JUNTO_A, REPORTO_MISMO_EVENTO, FAMILIAR_DE, MENCIONADO_EN_NOTICIA), junto con actualización de README.md
+- **Estado general:** Conmutadores de Privacidad PII (Hasheada vs Real) y Subrayado Semántico NER implementados en Hiper-Grafo de Contexto, con resolución de domicilios desde PiiHashRegistry y desglose ontológico completo.
 
 ---
 
@@ -12,7 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-25 | abundis | `fix(analysis): enrich context-entities breakdown and titles for interpersonal and media relations` |
+| *Pendiente* | 2026-09-25 | abundis | `feat(context): implement PII hasheada/real and NER entity highlight toggles in context hyper-graph` |
 | `0b28c7e` | 2026-09-24 | abundis | `fix(frontend): trigger supabase fallback in FetchNoticias when backend returns 0 corpus features` |
 | `e6548fe` | 2026-09-24 | abundis | `fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates` |
 | `2784d43` | 2026-09-24 | abundis | `feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint` |
@@ -34,6 +34,34 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### CC. Conmutadores de Privacidad PII (Hasheada vs Real) y Subrayado Semántico NER en Hiper-Grafo de Contexto
+- **Justificación técnica:**
+  1. **Conmutador de Privacidad PII (`anonymized: bool`) en Backend (`backend/app/routes/ontology.py`):**
+     - Se añadió el parámetro query `anonymized: bool = Query(default=True)` al endpoint `/ontology/context-graph`.
+     - En modo anónimo (`anonymized=True`): Serializa los nodos `CASO_` utilizando la entidad pública `Caso` con hashes criptográficos HMAC-SHA256 (`[NOMBRE_HASH_xxxx]`), expedientes enmascarados `EXP-***-xxxxxx`, y domicilios hasheados `[DOMICILIO_HASH_xxxx]`.
+     - En modo confidencial/auditoría (`anonymized=False`): Accede a `CedulaPrivada` para exponer el nombre real auditado de la persona desaparecida, su número de expediente judicial completo y teléfono de contacto.
+     - **Resolución Canónica de Domicilios desde `PiiHashRegistry`:** Para los nodos de tipo inmueble / finca (`DOMICILIO_HASH_xxxx`), el backend consulta en lote la tabla `pii_hash_registry`. En modo desanonimizado, resuelve el hash directamente hacia su dirección postal real canónica (ej. `DOMICILIO_HASH_28feed03` $\rightarrow$ `OTHÓN BLANCO #189` o `DOMICILIO_HASH_5f4a8579` $\rightarrow$ `PRIVADA LÁZARO CÁRDENAS #326`), permitiendo análisis territorial auditable.
+  2. **Controles Reactivos en Interfaz (`frontend/src/components/analysis/RedContextoPage.jsx`):**
+     - Se agregaron las variables de estado reactivo `anonymized` (por defecto `true`) y `highlightEntities` (por defecto `true`).
+     - **Botón Conmutador PII:** Botón interactivo con iconos `<Lock />` / `<Unlock />` y estilos condicionales (`graph-btn-lock-active` vs `graph-btn-lock-inactive`) para alternar entre `PII: Hasheada` y `PII: Real`.
+     - **Botón Conmutador NER:** Botón interactivo con icono `<Sparkles />` para alternar entre `NER: Subrayado` y `Texto Plano`.
+     - **Hook de Sincronización Reactiva:** Se incorporó un efecto secundario que mantiene sincronizado en tiempo real el nodo seleccionado en el panel lateral (`selectedNode`) al alternar entre modos, actualizando instantáneamente el nombre, etiquetas, descripción y credencial de auditoría sin necesidad de deseleccionar el nodo en el canvas.
+  3. **Componente de Subrayado Semántico Forense (`HighlightedContextText`):**
+     - Componente declarativo que parsea expresiones regulares y tokens PII:
+       - Hashes de domicilio (`[DOMICILIO_HASH_...]`): Insignia violeta (`#8b5cf6`).
+       - Hashes de nombre (`[NOMBRE_HASH_...]`): Insignia carmesí (`#e11d48`).
+       - Hashes de teléfono/expediente: Insignia azul cian (`#0284c7`).
+       - Patrones de violencia y modus operandi (`sujetos armados`, `levantón`, `privaron de la libertad`, etc.): Resaltado ámbar (`#d97706`).
+       - Albergues e instituciones (`centro de rehabilitación`, `albergue`, `anexo`, `casa hogar`): Resaltado esmeralda (`#10b981`).
+       - Vehículos (`camioneta`, `motocicleta`, `vehículo`): Resaltado celeste (`#38bdf8`).
+       - Indicios forenses y cartas (`fosa clandestina`, `cuerpos`, `restos humanos`, `carta`, `recado`): Resaltado rojo y terracota.
+  4. **Análisis de Blast Radius (`codebase-memory detect_changes`):**
+     - Símbolos semilla modificados: 5. Total impactado: 0 módulos externos rotos.
+- **Archivos Modificados:**
+  - `backend/app/routes/ontology.py`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+  - `BRANCH-STATUS.md`
 
 ### BB. Desglose Completo de Entidades Ontológicas y Resolución de Nombres en Catálogo de Contexto
 - **Justificación técnica:**
@@ -441,6 +469,12 @@
 
 ## 4. Pruebas y Validaciones Ejecutadas
 
+- **Conmutadores de Privacidad PII y Subrayado Semántico NER en Hiper-Grafo de Contexto:**
+  - Endpoint `/api/v1/ontology/context-graph?anonymized=true`: Comprobado con `curl` y `jq` (`limit_edges=20`); serializa cédulas bajo hashes criptográficos (`Caso [NOMBRE_HASH_ba0502fa]`, `anon: true`, expedientes `EXP-***-xxxxxx`).
+  - Endpoint `/api/v1/ontology/context-graph?anonymized=false`: Comprobado con `curl` y `jq`; serializa cédulas exponiendo nombres reales auditados de `CedulaPrivada` (`Caso: FELIPE DE JESUS ALCALA JARAMILLO`, `anon: false`, expedientes completos).
+  - Resolución canónica de domicilios en `pii_hash_registry`: Comprobado con nodo `DOMICILIO_HASH_5f4a8579`; en modo anónimo entrega `🏠 DOMICILIO_HASH_5f4a857` (`is_anonymized: true`), mientras que en modo desanonimizado resuelve la dirección canónica `🏠 PRIVADA LÁZARO CÁRDENAS #326` (`is_anonymized: false`).
+  - Compilación frontend de producción: `npm run build` ejecutado limpiamente en Vite en 5.34s (0 errores, 0 advertencias críticas).
+  - Renderizado de subrayado semántico: Componente `HighlightedContextText` probado con marcado dinámico para hashes PII, instituciones, modus operandi y vehículos.
 - **Separación Epistemológica de Grafos:**
   - Endpoint `/api/v1/ontology/graph`: Verificado con `curl` y `jq` (`limit_edges=100`) confirmando retorno estricto de nodos `NOTICIA` (20) y `PERSONA` (68), sin contaminación cruzada con fosas ni domicilios.
   - Endpoint `/api/v1/ontology/context-graph`: Verificado con 134 nodos y 248 vínculos balanceados estratificadamente (`PERSONA`, `FOSA`, `HASH_DOMICILIO`, `MODUS`, `INSTITUCION`, `DESTINO`, `VEHICULO_SOSPECHOSO`).

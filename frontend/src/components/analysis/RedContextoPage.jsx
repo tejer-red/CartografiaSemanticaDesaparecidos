@@ -23,6 +23,9 @@ import {
   RotateCcw,
   Clock,
   List,
+  Lock,
+  Unlock,
+  Sparkles,
   X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -45,6 +48,63 @@ const CONTEXT_COLORS = {
   HASH_DOMICILIO: '#8b5cf6',      // Violeta inmueble / finca
   DEFAULT: '#475569'
 };
+
+/**
+ * Resaltador Semántico de Entidades Forenses y Hashes Criptográficos para Cédulas de Contexto.
+ */
+function HighlightedContextText({ text, enabled = true }) {
+  if (!text) return null;
+  if (!enabled) {
+    return <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.7' }}>{text}</p>;
+  }
+
+  const combinedRegex = /(\[(?:DOMICILIO|NOMBRE|TELEFONO|EXPEDIENTE)_HASH_[a-f0-9]+\]|\b(?:sujetos armados|hombres armados|grupo armado|armas de fuego|armas largas|levantón|levantaron|privaron de la libertad|privada de su libertad|privado de su libertad|encapuchados|golpearon|amenazaron|centro de rehabilitación|albergue|anexo|casa hogar|fosa clandestina|fosas clandestinas|fosa|cuerpos|restos humanos|bolsas con restos|camioneta|motocicleta|vehículo|carta|recado|audio)\b)/gi;
+
+  const parts = text.split(combinedRegex);
+
+  const getStyleForToken = (token) => {
+    const t = token.toLowerCase();
+    if (t.startsWith('[domicilio_hash_')) {
+      return { backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#6d28d9', borderBottom: '2px solid #8b5cf6', borderRadius: '3px', padding: '1px 4px', fontFamily: 'monospace', fontWeight: 600 };
+    }
+    if (t.startsWith('[nombre_hash_')) {
+      return { backgroundColor: 'rgba(225, 29, 72, 0.15)', color: '#be123c', borderBottom: '2px solid #e11d48', borderRadius: '3px', padding: '1px 4px', fontFamily: 'monospace', fontWeight: 600 };
+    }
+    if (t.startsWith('[telefono_hash_') || t.startsWith('[expediente_hash_')) {
+      return { backgroundColor: 'rgba(2, 132, 199, 0.15)', color: '#0369a1', borderBottom: '2px solid #0284c7', borderRadius: '3px', padding: '1px 4px', fontFamily: 'monospace', fontWeight: 600 };
+    }
+    if (t.includes('rehabilitación') || t.includes('albergue') || t.includes('anexo') || t.includes('hogar')) {
+      return { backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#065f46', borderBottom: '2px solid #10b981', borderRadius: '3px', padding: '1px 4px', fontWeight: 600 };
+    }
+    if (t.includes('camioneta') || t.includes('motocicleta') || t.includes('vehículo')) {
+      return { backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', borderBottom: '2px solid #38bdf8', borderRadius: '3px', padding: '1px 4px', fontWeight: 600 };
+    }
+    if (t.includes('fosa') || t.includes('cuerpo') || t.includes('resto')) {
+      return { backgroundColor: 'rgba(220, 38, 38, 0.15)', color: '#991b1b', borderBottom: '2px solid #dc2626', borderRadius: '3px', padding: '1px 4px', fontWeight: 600 };
+    }
+    if (t.includes('carta') || t.includes('recado') || t.includes('audio')) {
+      return { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#92400e', borderBottom: '2px solid #f59e0b', borderRadius: '3px', padding: '1px 4px', fontWeight: 600 };
+    }
+    return { backgroundColor: 'rgba(217, 119, 6, 0.15)', color: '#92400e', borderBottom: '2px solid #d97706', borderRadius: '3px', padding: '1px 4px', fontWeight: 600 };
+  };
+
+  return (
+    <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.75' }}>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        if (part.match(combinedRegex)) {
+          const style = getStyleForToken(part);
+          return (
+            <mark key={i} style={style}>
+              {part}
+            </mark>
+          );
+        }
+        return part;
+      })}
+    </p>
+  );
+}
 
 function GraphEvents({ onNodeClick }) {
   const registerEvents = useRegisterEvents();
@@ -76,6 +136,8 @@ const RedContextoPage = () => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [filterType, setFilterType] = useState('ALL');
   const [limitEdges, setLimitEdges] = useState(300);
+  const [anonymized, setAnonymized] = useState(true);
+  const [highlightEntities, setHighlightEntities] = useState(true);
   const [timelineEnabled, setTimelineEnabled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeWindowDays, setTimeWindowDays] = useState(180); // Ventana deslizante en días
@@ -86,7 +148,7 @@ const RedContextoPage = () => {
     try {
       // 1. Intentar consulta primariamente al Backend API
       try {
-        const res = await fetch(`${API_BASE_URL}/ontology/context-graph?limit_edges=${limitEdges}`);
+        const res = await fetch(`${API_BASE_URL}/ontology/context-graph?limit_edges=${limitEdges}&anonymized=${anonymized}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.nodes) {
@@ -178,7 +240,7 @@ const RedContextoPage = () => {
 
   useEffect(() => {
     fetchGraph();
-  }, [limitEdges]);
+  }, [limitEdges, anonymized]);
 
   // Extraer rango global de fechas válidas de las cédulas cargadas
   const dateBounds = useMemo(() => {
@@ -359,6 +421,14 @@ const RedContextoPage = () => {
     setSelectedNode({ id: nodeId, ...attrs });
   };
 
+  // Mantener sincronizado el panel de detalles si cambia graphData (ej. toggle PII Hasheada <-> Real)
+  useEffect(() => {
+    if (selectedNode && graph && graph.hasNode(selectedNode.id)) {
+      const attrs = graph.getNodeAttributes(selectedNode.id);
+      setSelectedNode({ id: selectedNode.id, ...attrs });
+    }
+  }, [graph]);
+
   return (
     <div className="graph-page-container">
       {/* Topbar */}
@@ -391,6 +461,26 @@ const RedContextoPage = () => {
 
         {/* Filtros y Opciones */}
         <div className="graph-toolbar-right">
+          {/* Conmutador de Anonimización PII */}
+          <button
+            onClick={() => setAnonymized(!anonymized)}
+            title={anonymized ? "Modo confidencial para ver PII real y direcciones canónicas" : "Modo público con PII hasheada"}
+            className={`graph-btn-action ${anonymized ? 'graph-btn-lock-active' : 'graph-btn-lock-inactive'}`}
+          >
+            {anonymized ? <Lock size={14} /> : <Unlock size={14} />}
+            <span>{anonymized ? "PII: Hasheada" : "PII: Real"}</span>
+          </button>
+
+          {/* Conmutador de Resaltado de Entidades NER */}
+          <button
+            onClick={() => setHighlightEntities(!highlightEntities)}
+            title="Activar o desactivar el subrayado semántico de entidades forenses y tokens PII"
+            className={`graph-btn-action ${highlightEntities ? 'active' : ''}`}
+          >
+            <Sparkles size={14} />
+            <span>{highlightEntities ? "NER: Subrayado" : "Texto Plano"}</span>
+          </button>
+
           <select 
             value={filterType} 
             onChange={(e) => setFilterType(e.target.value)}
@@ -704,7 +794,7 @@ const RedContextoPage = () => {
             <div className="graph-sidebar-content">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {selectedNode.nodeType === 'PERSONA' && (
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{
                       fontSize: '11px',
                       fontWeight: 700,
@@ -728,10 +818,36 @@ const RedContextoPage = () => {
                         {selectedNode.attributes.sexo} {selectedNode.attributes?.edad ? `• ${selectedNode.attributes.edad} AÑOS` : ''}
                       </span>
                     )}
+                    <span style={{ 
+                      fontSize: '11px', 
+                      fontWeight: 700, 
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: selectedNode.attributes?.is_anonymized ? '#e0f2fe' : '#dcfce7',
+                      color: selectedNode.attributes?.is_anonymized ? '#0369a1' : '#15803d',
+                      border: `1px solid ${selectedNode.attributes?.is_anonymized ? '#bae6fd' : '#bbf7d0'}`
+                    }}>
+                      {selectedNode.attributes?.is_anonymized ? '🔒 PII Hasheada' : '🔓 Desanonimizada'}
+                    </span>
+                  </div>
+                )}
+                {selectedNode.nodeType === 'HASH_DOMICILIO' && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      fontWeight: 700, 
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: selectedNode.attributes?.is_anonymized ? '#f3e8ff' : '#dcfce7',
+                      color: selectedNode.attributes?.is_anonymized ? '#7e22ce' : '#15803d',
+                      border: `1px solid ${selectedNode.attributes?.is_anonymized ? '#e9d5ff' : '#bbf7d0'}`
+                    }}>
+                      {selectedNode.attributes?.is_anonymized ? '🔒 Domicilio Hasheado' : '🔓 Dirección Real Revelada'}
+                    </span>
                   </div>
                 )}
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '6px 0 0 0', color: '#0f172a', lineHeight: 1.3 }}>
-                  {selectedNode.attributes?.nombre_real || selectedNode.label || selectedNode.id}
+                  {(anonymized ? selectedNode.attributes?.nombre_anonimizado : selectedNode.attributes?.nombre_real) || selectedNode.label || selectedNode.id}
                 </h3>
               </div>
 
@@ -894,10 +1010,13 @@ const RedContextoPage = () => {
               {selectedNode.attributes?.description && selectedNode.nodeType === 'PERSONA' && (
                 <div>
                   <span style={{ color: '#64748b', fontSize: '11px', fontWeight: 700, display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Narrativa Original de los Hechos
+                    Narrativa de los Hechos {highlightEntities ? '(NER Resaltado)' : ''}
                   </span>
                   <div className="graph-sidebar-article-box">
-                    {selectedNode.attributes.description}
+                    <HighlightedContextText 
+                      text={selectedNode.attributes.description} 
+                      enabled={highlightEntities} 
+                    />
                   </div>
                 </div>
               )}
