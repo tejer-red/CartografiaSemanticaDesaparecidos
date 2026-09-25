@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 22:50 CST
+- **Última actualización:** 2026-09-25 13:48 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `e6548fe` (`fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates`)
+- **Último commit:** `0b28c7e` (`fix(frontend): trigger supabase fallback in FetchNoticias when backend returns 0 corpus features`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Activación de fallback en FetchNoticias cuando el backend retorna 0 noticias
+- **Estado general:** Desglose ontológico y resolución de nombres para relaciones interpersonales y de prensa (DESAPARECIO_JUNTO_A, REPORTO_MISMO_EVENTO, FAMILIAR_DE, MENCIONADO_EN_NOTICIA), junto con actualización de README.md
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `fix(frontend): trigger supabase fallback in FetchNoticias when backend returns 0 corpus features` |
+| *Pendiente* | 2026-09-25 | abundis | `fix(analysis): enrich context-entities breakdown and titles for interpersonal and media relations` |
+| `0b28c7e` | 2026-09-24 | abundis | `fix(frontend): trigger supabase fallback in FetchNoticias when backend returns 0 corpus features` |
 | `e6548fe` | 2026-09-24 | abundis | `fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates` |
 | `2784d43` | 2026-09-24 | abundis | `feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint` |
 | `29df1e1` | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
@@ -33,6 +34,27 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### BB. Desglose Completo de Entidades Ontológicas y Resolución de Nombres en Catálogo de Contexto
+- **Justificación técnica:**
+  1. **Eliminación de Filtro Rígido en Backend (`backend/app/routes/ontology.py`):** El endpoint `/ontology/context-entities` limitaba el desglose `target_counts` con una cláusula `.filter(VinculoEntidad.relation_type.in_([...]))` que excluía relaciones válidas (`DESAPARECIO_JUNTO_A`, `REPORTO_MISMO_EVENTO`, `FAMILIAR_DE`, `MENCIONADO_EN_NOTICIA`, `POSIBLE_HALLAZGO_RELACIONADO`). Esto provocaba que en `/contexto` apareciera el aviso *"Sin desglose de entidades para esta categoría en la muestra"*. Se removió el filtro restrictivo para que el desglose estadístico cubra el 100% de categorías de la ontología.
+  2. **Resolución y Precarga Batch de Metadatos (`ontology.py`):** Se implementó precarga en lote para:
+     - `Caso` (`cedulas_anonimizadas`): Transforma `CASO_<uuid>` en `[NOMBRE_HASH_xxxx] (MUNICIPIO)` o nombre legible.
+     - `NoticiaCorpus` y `Noticia`: Transforma `corpus_<id>` y `NOTICIA_<id>` en titulares reales de prensa.
+     - `Fosa`: Mantiene el formato descriptivo con municipio y recuento de cuerpos recuperados.
+  3. **Títulos e Iconografía Semántica (`ContextoListPage.jsx`):** Se añadieron títulos descriptivos e iconos especializados para las 5 categorías omitidas (`Desaparición Conjunta`, `Mismo Evento de Desaparición Coincidente`, `Parentesco Directo entre Víctimas Correlacionadas`, `Menciones Directas en Notas Periodísticas`, `Correlación Espacio-Temporal con Prensa`), y se mejoró el fallback de Supabase con formateo limpio de nombres.
+  4. **Tipado de Nodos y Corrección de `X` en Hiper-Grafo (`RedContextoPage.jsx`):**
+     - Se importó el componente `<X />` de `lucide-react`, eliminando la excepción `ReferenceError: X is not defined` que bloqueaba el renderizado del panel lateral de detalle al seleccionar cualquier nodo del grafo.
+     - Se corrigió la asignación de tipos en el fallback de Supabase para evitar que nodos de casos o fosas se clasificaran erróneamente como `MODUS`.
+  5. **Actualización de Documentación (`README.md`):** Se documentaron comandos de desarrollo local, despliegue en producción y funciones del modelo NER.
+  6. **Análisis de Blast Radius (`codebase-memory detect_changes`):**
+     - Símbolos semilla modificados: 0. Total impactado: 0 símbolos directos, 4 archivos modificados.
+- **Archivos Modificados:**
+  - `backend/app/routes/ontology.py`
+  - `frontend/src/components/analysis/ContextoListPage.jsx`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+  - `README.md`
+  - `BRANCH-STATUS.md`
 
 ### Z. Desbloqueo de Rutas `/corpus`, Resiliencia de Fechas en Grafo de Contexto y Fallback a Supabase
 - **Justificación técnica:**

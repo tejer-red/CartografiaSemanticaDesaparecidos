@@ -22,7 +22,8 @@ import {
   Pause,
   RotateCcw,
   Clock,
-  List
+  List,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
@@ -125,10 +126,31 @@ const RedContextoPage = () => {
           }
 
           if (!nodesMap.has(tId)) {
+            let nodeType = 'MODUS';
+            let nodeLabel = tId.length > 30 ? tId.slice(0, 27) + '...' : tId;
+
+            if (tId.startsWith('CASO_') || tId.startsWith('cedula_')) {
+              nodeType = 'PERSONA';
+              nodeLabel = tId.replace(/^(CASO_|cedula_)/, 'Caso ');
+            } else if (tId.startsWith('FOSA_') || tId.startsWith('fosa_')) {
+              nodeType = 'FOSA';
+              nodeLabel = tId.replace(/^(FOSA_|fosa_)/, 'Fosa #');
+            } else if (tId.startsWith('DOMICILIO_HASH_')) {
+              nodeType = 'HASH_DOMICILIO';
+              nodeLabel = `Finca [${tId.slice(15, 23)}]`;
+            } else if (v.relation_type?.includes('VEHICULO')) {
+              nodeType = 'VEHICULO_SOSPECHOSO';
+            } else if (v.relation_type?.includes('FAMILIAR')) {
+              nodeType = 'PARENTESCO';
+            } else if (tId.startsWith('corpus_') || tId.startsWith('NOTICIA_')) {
+              nodeType = 'NOTICIA';
+              nodeLabel = tId.replace(/^(corpus_|NOTICIA_)/, 'Nota #');
+            }
+
             nodesMap.set(tId, {
               id: tId,
-              label: tId.length > 30 ? tId.slice(0, 27) + '...' : tId,
-              type: v.relation_type?.includes('VEHICULO') ? 'VEHICULO_SOSPECHOSO' : (v.relation_type?.includes('FAMILIAR') ? 'PARENTESCO' : 'MODUS'),
+              label: nodeLabel,
+              type: nodeType,
               metadata: v.metadata_relacion || {}
             });
           }

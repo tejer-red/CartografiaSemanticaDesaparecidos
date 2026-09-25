@@ -472,7 +472,7 @@ def get_context_semantic_graph(
         'MODUS_OPERANDI', 'POSIBLE_HALLAZGO_EN_FOSA', 'DESAPARECIO_EN_DOMICILIO',
         'INSTITUCION_LUGAR', 'DESTINO_DECLARADO', 'INDICIOS_EN_SITIO',
         'PERPETRADO_CON_VEHICULO', 'VIAJABA_EN_VEHICULO', 'REPORTE_POR_FAMILIAR',
-        'DESAPARECIO_JUNTO_A'
+        'DESAPARECIO_JUNTO_A', 'FAMILIAR_DE', 'REPORTO_MISMO_EVENTO'
     ]
 
     if filter_modus:
@@ -901,28 +901,23 @@ def get_context_entities_list(
 ):
     """
     Devuelve el catálogo agregado de convenciones y entidades ontológicas
-    ordenadas por frecuencia descendente (repeticiones), agrupadas por tipo.
+    ordenadas por frecuencia descendente (repeticiones), agrupadas por tipo,
+    con desglose completo de entidades para todas las categorías del grafo.
     """
     from sqlalchemy import func
+    from backend.app.models import Fosa, Caso, NoticiaCorpus, Noticia
 
-    # Conteo por relation_type
+    # Conteo global por relation_type
     rel_counts = db.query(
         VinculoEntidad.relation_type,
         func.count(VinculoEntidad.id).label("total")
     ).group_by(VinculoEntidad.relation_type).order_by(func.count(VinculoEntidad.id).desc()).all()
 
-    # Desglose de entidades destino para relaciones clave
+    # Desglose de entidades destino para todas las relaciones del grafo ontológico
     target_counts = db.query(
         VinculoEntidad.relation_type,
         VinculoEntidad.target_node,
         func.count(VinculoEntidad.id).label("total")
-    ).filter(
-        VinculoEntidad.relation_type.in_([
-            'MODUS_OPERANDI', 'INSTITUCION_LUGAR', 'DESTINO_DECLARADO',
-            'VIAJABA_EN_VEHICULO', 'PERPETRADO_CON_VEHICULO',
-            'REPORTE_POR_FAMILIAR', 'INDICIOS_EN_SITIO',
-            'DESAPARECIO_EN_DOMICILIO', 'POSIBLE_HALLAZGO_EN_FOSA'
-        ])
     ).group_by(
         VinculoEntidad.relation_type,
         VinculoEntidad.target_node
@@ -931,28 +926,96 @@ def get_context_entities_list(
         func.count(VinculoEntidad.id).desc()
     ).all()
 
-    # Precargar fosas para enriquecer los nombres de FOSA_X
+    # 1. Precargar fosas para enriquecer los nombres de FOSA_X / fosa_X
     fosa_ids_list = [
-        int(t.replace("FOSA_", "")) 
+        int(t.replace("FOSA_", "").replace("fosa_", "")) 
         for r, t, _ in target_counts 
-        if t.startswith("FOSA_") and t.replace("FOSA_", "").isdigit()
+        if (t.startswith("FOSA_") or t.startswith("fosa_")) and t.replace("FOSA_", "").replace("fosa_", "").isdigit()
     ]
     fosas_dict = {}
     if fosa_ids_list:
-        from backend.app.models import Fosa
         f_records = db.query(Fosa).filter(Fosa.id.in_(fosa_ids_list)).all()
         for f in f_records:
             fosas_dict[f"FOSA_{f.id}"] = f"Fosa #{f.id} en {f.municipio} ({f.total_cuerpos or 0} cuerpos)"
+            fosas_dict[f"fosa_{f.id}"] = f"Fosa #{f.id} en {f.municipio} ({f.total_cuerpos or 0} cuerpos)"
+
+    # 2. Precargar casos para enriquecer DESAPARECIO_JUNTO_A, REPORTO_MISMO_EVENTO, FAMILIAR_DE
+    caso_uuids = list({
+        t.replace("CASO_", "").replace("cedula_", "")
+        for _, t, _ in target_counts
+        if t.startswith("CASO_") or t.startswith("cedula_")
+    })
+    casos_dict = {}
+    if caso_uuids:
+        c_records = db.query(Caso).filter(Caso.id_cedula_busqueda.in_(caso_uuids)).all()
+        for c in c_records:
+            casos_dict[c.id_cedula_busqueda] = c
+
+    # 3. Precargar corpus periodístico para POSIBLE_HALLAZGO_RELACIONADO
+    corpus_ids = list({
+        int(t.replace("corpus_", ""))
+        for _, t, _ in target_counts
+        if t.startswith("corpus_") and t.replace("corpus_", "").isdigit()
+    })
+    corpus_dict = {}
+    if corpus_ids:
+        nc_records = db.query(NoticiaCorpus).filter(NoticiaCorpus.id.in_(corpus_ids)).all()
+        for nc in nc_records:
+            corpus_dict[nc.id] = nc
+
+    # 4. Precargar notas de prensa para MENCIONADO_EN_NOTICIA
+    noticia_ids = list({
+        int(t.replace("NOTICIA_", ""))
+        for _, t, _ in target_counts
+        if t.startswith("NOTICIA_") and t.replace("NOTICIA_", "").isdigit()
+    })
+    noticias_dict = {}
+    if noticia_ids:
+        n_records = db.query(Noticia).filter(Noticia.id.in_(noticia_ids)).all()
+        for n in n_records:
+            noticias_dict[n.id] = n
 
     grouped_targets: Dict[str, List[Dict[str, Any]]] = {}
     for r_type, target, cnt in target_counts:
+        cid = target.replace("CASO_", "").replace("cedula_", "")
+
         if target in fosas_dict:
             clean_name = fosas_dict[target]
         elif target.startswith("DOMICILIO_HASH_"):
             clean_name = f"Inmueble / Finca [{target}]"
+        elif (target.startswith("CASO_") or target.startswith("cedula_")) and cid in casos_dict:
+            c = casos_dict[cid]
+            nom = c.nombre_completo or f"Víctima {cid[:8]}"
+            mun = f" ({c.municipio})" if c.municipio else ""
+            clean_name = f"{nom}{mun}"
+        elif target.startswith("CASO_") or target.startswith("cedula_"):
+            clean_name = f"Caso Correlacionado #{cid[:8]}"
+        elif target.startswith("corpus_"):
+            try:
+                nid = int(target.replace("corpus_", ""))
+                nc = corpus_dict.get(nid)
+                if nc and nc.titular:
+                    tit = nc.titular[:55] + "..." if len(nc.titular) > 55 else nc.titular
+                    mun = f" [{nc.municipio_extraido}]" if nc.municipio_extraido else ""
+                    clean_name = f"Nota: {tit}{mun}"
+                else:
+                    clean_name = f"Nota de Prensa #{nid}"
+            except Exception:
+                clean_name = target
+        elif target.startswith("NOTICIA_"):
+            try:
+                nid = int(target.replace("NOTICIA_", ""))
+                n = noticias_dict.get(nid)
+                if n and n.titular:
+                    tit = n.titular[:55] + "..." if len(n.titular) > 55 else n.titular
+                    clean_name = f"Nota: {tit}"
+                else:
+                    clean_name = f"Nota Periodística #{nid}"
+            except Exception:
+                clean_name = target
         else:
             clean_name = target
-            for prefix in ["MODUS_", "INST_", "DESTINO_", "VEH_VIC_", "VEH_PERP_", "ROL_", "CONDICION_", "SEXO_"]:
+            for prefix in ["MODUS_", "INST_", "DESTINO_", "DEST_", "VEH_VIC_", "VEH_PERP_", "INDICIO_", "ROL_", "CONDICION_", "SEXO_"]:
                 if clean_name.startswith(prefix):
                     clean_name = clean_name[len(prefix):]
                     break
@@ -972,7 +1035,7 @@ def get_context_entities_list(
         categories.append({
             "relation_type": r_type,
             "total_vinculos": total_r,
-            "entities": entities
+            "entities": entities[:60]
         })
 
     return {

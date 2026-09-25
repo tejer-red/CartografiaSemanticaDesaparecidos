@@ -29,7 +29,12 @@ const RELATION_ICONS = {
   INSTITUCION_LUGAR: <Layers size={18} color="#10b981" />,
   INDICIOS_EN_SITIO: <FileText size={18} color="#f59e0b" />,
   DESAPARECIO_EN_DOMICILIO: <Home size={18} color="#8b5cf6" />,
-  POSIBLE_HALLAZGO_EN_FOSA: <Crosshair size={18} color="#10b981" />
+  POSIBLE_HALLAZGO_EN_FOSA: <Crosshair size={18} color="#10b981" />,
+  DESAPARECIO_JUNTO_A: <Users size={18} color="#ec4899" />,
+  REPORTO_MISMO_EVENTO: <FileText size={18} color="#6366f1" />,
+  FAMILIAR_DE: <Users size={18} color="#e11d48" />,
+  MENCIONADO_EN_NOTICIA: <FileText size={18} color="#0ea5e9" />,
+  POSIBLE_HALLAZGO_RELACIONADO: <Crosshair size={18} color="#0284c7" />
 };
 
 const RELATION_TITLES = {
@@ -41,7 +46,12 @@ const RELATION_TITLES = {
   INSTITUCION_LUGAR: 'Instituciones, Albergues y Centros de Retención',
   INDICIOS_EN_SITIO: 'Indicios Materiales Localizados en Escena',
   DESAPARECIO_EN_DOMICILIO: 'Domicilios y Fincas de Desaparición (Hashes PII Compartidos)',
-  POSIBLE_HALLAZGO_EN_FOSA: 'Fosas Clandestinas y Sitios de Inhumación (Catálogo Oficial)'
+  POSIBLE_HALLAZGO_EN_FOSA: 'Fosas Clandestinas y Sitios de Inhumación (Catálogo Oficial)',
+  DESAPARECIO_JUNTO_A: 'Desaparición Conjunta (Víctimas Sustraídas en Mismo Evento)',
+  REPORTO_MISMO_EVENTO: 'Mismo Evento de Desaparición Coincidente',
+  FAMILIAR_DE: 'Parentesco Directo entre Víctimas Correlacionadas',
+  MENCIONADO_EN_NOTICIA: 'Menciones Directas en Notas Periodísticas',
+  POSIBLE_HALLAZGO_RELACIONADO: 'Correlación Espacio-Temporal con Prensa'
 };
 
 const ContextoListPage = () => {
@@ -88,14 +98,32 @@ const ContextoListPage = () => {
 
             const categories = Object.keys(groups).map(r => {
               const topEntities = Object.entries(groups[r].entities)
-                .map(([name, count]) => ({ 
-                  nombre: name,
-                  target_node: name,
-                  repeticiones: count,
-                  count: count 
-                }))
+                .map(([name, count]) => {
+                  let cleanName = name;
+                  if (cleanName.startsWith("FOSA_")) cleanName = `Fosa #${cleanName.replace("FOSA_", "")}`;
+                  else if (cleanName.startsWith("DOMICILIO_HASH_")) cleanName = `Inmueble / Finca [${cleanName}]`;
+                  else if (cleanName.startsWith("CASO_")) cleanName = `Caso Correlacionado #${cleanName.replace("CASO_", "").slice(0, 8)}`;
+                  else if (cleanName.startsWith("corpus_")) cleanName = `Nota de Prensa #${cleanName.replace("corpus_", "")}`;
+                  else if (cleanName.startsWith("NOTICIA_")) cleanName = `Nota Periodística #${cleanName.replace("NOTICIA_", "")}`;
+                  else {
+                    for (const p of ["MODUS_", "INST_", "DESTINO_", "DEST_", "VEH_VIC_", "VEH_PERP_", "INDICIO_", "ROL_", "CONDICION_", "SEXO_"]) {
+                      if (cleanName.startsWith(p)) {
+                        cleanName = cleanName.slice(p.length);
+                        break;
+                      }
+                    }
+                    cleanName = cleanName.replace(/_/g, ' ');
+                  }
+
+                  return { 
+                    nombre: cleanName,
+                    target_node: name,
+                    repeticiones: count,
+                    count: count 
+                  };
+                })
                 .sort((a, b) => b.repeticiones - a.repeticiones)
-                .slice(0, 15);
+                .slice(0, 30);
 
               return {
                 relation_type: r,
