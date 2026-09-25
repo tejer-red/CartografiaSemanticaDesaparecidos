@@ -15,8 +15,10 @@ import random
 import urllib.request
 import urllib.parse
 from typing import List, Dict, Any, Optional
-from pathlib import Path
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
 
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://127.0.0.1:8888")
 PLAYWRIGHT_CONCURRENCY = int(os.getenv("PLAYWRIGHT_CONCURRENCY", "1"))

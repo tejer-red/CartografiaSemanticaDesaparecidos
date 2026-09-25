@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 20:35 CST
+- **Última actualización:** 2026-09-24 20:40 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `5273ade` (`fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker`)
+- **Último commit:** `3a1633d` (`fix(backend): resolve module import alias and PYTHONPATH in Docker container`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Resolución de alias de importación de módulos (`backend.app`) y PYTHONPATH en Dockerfile
+- **Estado general:** Inclusión de dependencias de minería web (beautifulsoup4 y trafilatura) e importación resiliente de bs4
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |
+| *Pendiente* | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
+| `3a1633d` | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |
 | `5273ade` | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
 | `1b47358` | 2026-09-24 | abundis | `feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback` |
 | `1371eff` | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
@@ -29,6 +30,15 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### W. Inclusión de Dependencias de Minería Web (`requirements.txt` y `miner_noticias.py`)
+- **Justificación técnica:**
+  1. **Error ModuleNotFoundError en Uvicorn (`bs4`):** Al importar las rutas de minería OSINT (`osint.py` ➔ `worker.py` ➔ `miner_noticias.py`), la importación estricta de `from bs4 import BeautifulSoup` fallaba porque `beautifulsoup4` no estaba en `requirements.txt`.
+  2. **Inclusión de `beautifulsoup4` y `trafilatura`:** Se añadieron ambas librerías a `backend/requirements.txt` para garantizar la capacidad de parsing HTML y extracción ultrarrápida de notas periodísticas en producción.
+  3. **Importación Resiliente:** Se envolvió la importación de `bs4` en un bloque `try/except ImportError` en `miner_noticias.py` para permitir que el backend levante y atienda endpoints generales aún si el parser web no estuviera disponible temporalmente.
+- **Archivos Modificados:**
+  - `backend/requirements.txt`
+  - `backend/app/miners/miner_noticias.py`
 
 ### V. Resolución de Importación de Módulos en Contenedor Docker (`backend.app` y `PYTHONPATH`)
 - **Justificación técnica:**
