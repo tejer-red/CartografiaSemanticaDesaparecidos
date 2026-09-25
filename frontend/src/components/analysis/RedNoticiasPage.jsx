@@ -120,66 +120,70 @@ const RedNoticiasPage = () => {
   const fetchGraph = async () => {
     setLoading(true);
     try {
-      // 1. Intentar construir grafo semántico directamente desde Supabase
+      // 1. Intentar consulta primariamente al Backend API
       try {
-        const { data: vinculos, error: vErr } = await supabase
-          .from('vinculos_entidades')
-          .select('*')
-          .limit(limitEdges);
-
-        if (vErr) throw vErr;
-
-        if (vinculos && vinculos.length > 0) {
-          const nodesMap = new Map();
-          const edges = [];
-
-          vinculos.forEach((v, idx) => {
-            const sId = v.source_node;
-            const tId = v.target_node;
-
-            if (!nodesMap.has(sId)) {
-              nodesMap.set(sId, {
-                id: sId,
-                label: sId.replace(/^CASO_/, 'Caso '),
-                type: v.source_type || 'PERSONA',
-                metadata: v.metadata_relacion || {}
-              });
-            }
-
-            if (!nodesMap.has(tId)) {
-              nodesMap.set(tId, {
-                id: tId,
-                label: tId.length > 30 ? tId.slice(0, 27) + '...' : tId,
-                type: v.target_type || 'ENTIDAD',
-                metadata: v.metadata_relacion || {}
-              });
-            }
-
-            edges.push({
-              id: `edge_${v.id || idx}`,
-              source: sId,
-              target: tId,
-              label: v.relation_type,
-              confidence: v.confidence_score
-            });
-          });
-
-          setGraphData({
-            nodes: Array.from(nodesMap.values()),
-            edges: edges
-          });
-          setLoading(false);
-          return;
+        const url = `${API_BASE_URL}/ontology/graph?limit_edges=${limitEdges}&include_empty=${includeEmpty}&anonymized=${anonymized}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.nodes) {
+            setGraphData(data);
+            setLoading(false);
+            return;
+          }
         }
-      } catch (supaErr) {
-        console.warn('Supabase graph build failed, falling back to API:', supaErr);
+      } catch (apiErr) {
+        console.warn('Backend API graph fetch failed, falling back to Supabase:', apiErr);
       }
 
-      // 2. Fallback a Backend API
-      const url = `${API_BASE_URL}/ontology/graph?limit_edges=${limitEdges}&include_empty=${includeEmpty}&anonymized=${anonymized}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setGraphData(data);
+      // 2. Fallback: construir grafo semántico directamente desde Supabase
+      const { data: vinculos, error: vErr } = await supabase
+        .from('vinculos_entidades')
+        .select('*')
+        .limit(limitEdges);
+
+      if (vErr) throw vErr;
+
+      if (vinculos && vinculos.length > 0) {
+        const nodesMap = new Map();
+        const edges = [];
+
+        vinculos.forEach((v, idx) => {
+          const sId = v.source_node;
+          const tId = v.target_node;
+
+          if (!nodesMap.has(sId)) {
+            nodesMap.set(sId, {
+              id: sId,
+              label: sId.replace(/^CASO_/, 'Caso '),
+              type: v.source_type || 'PERSONA',
+              metadata: v.metadata_relacion || {}
+            });
+          }
+
+          if (!nodesMap.has(tId)) {
+            nodesMap.set(tId, {
+              id: tId,
+              label: tId.length > 30 ? tId.slice(0, 27) + '...' : tId,
+              type: v.target_type || 'ENTIDAD',
+              metadata: v.metadata_relacion || {}
+            });
+          }
+
+          edges.push({
+            id: `edge_${v.id || idx}`,
+            source: sId,
+            target: tId,
+            label: v.relation_type,
+            confidence: v.confidence_score
+          });
+        });
+
+        setGraphData({
+          nodes: Array.from(nodesMap.values()),
+          edges: edges
+        });
+      }
     } catch (err) {
       console.error('Error fetching semantic graph:', err);
     } finally {

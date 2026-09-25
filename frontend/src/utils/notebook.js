@@ -412,34 +412,39 @@ export function useNotebook(dataContext, id, navigate) {
         endDate: endDate || ''
         // we can also pass configJSON but backend might not support it yet
       };
-      logger.log('Saving notes to Supabase...');
+      logger.log('Saving notes to Backend API...');
       console.log('Saving notebook payload:', payload);
 
       let saved = false;
       try {
-        const { error: supaErr } = await supabase
-          .from('notebooks')
-          .upsert({
-            id: String(name),
-            notes: notes || [],
-            startDate: startDate || '',
-            endDate: endDate || ''
-          });
-        if (supaErr) throw supaErr;
-        saved = true;
-        logger.log('Notebook saved directly to Supabase!');
-      } catch (supaErr) {
-        logger.warn('Supabase save failed, falling back to API:', supaErr);
         const response = await fetch(`${API_BASE_URL}/notebooks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         if (!response.ok) {
-          logger.error(`Backend returned ${response.status} ${response.statusText}`);
-          throw new Error('Failed to save notes to backend');
+          throw new Error(`Backend returned ${response.status} ${response.statusText}`);
         }
         saved = true;
+        logger.log('Notebook saved directly to Backend API!');
+      } catch (apiErr) {
+        logger.warn('Backend API save failed, falling back to Supabase:', apiErr);
+        try {
+          const { error: supaErr } = await supabase
+            .from('notebooks')
+            .upsert({
+              id: String(name),
+              notes: notes || [],
+              startDate: startDate || '',
+              endDate: endDate || ''
+            });
+          if (supaErr) throw supaErr;
+          saved = true;
+          logger.log('Notebook saved to Supabase fallback!');
+        } catch (supaErr2) {
+          logger.error('Both Backend API and Supabase save failed:', supaErr2);
+          throw supaErr2;
+        }
       }
 
       alert('Notes saved successfully!');
@@ -490,24 +495,30 @@ export function useNotebook(dataContext, id, navigate) {
     try {
       let data = null;
       try {
-        const { data: nbRow, error: supaErr } = await supabase
-          .from('notebooks')
-          .select('*')
-          .eq('id', String(notebookId))
-          .single();
-        if (!supaErr && nbRow) {
-          data = nbRow;
+        const response = await fetch(`${API_BASE_URL}/notebooks/${notebookId}`);
+        if (response.ok) {
+          data = await response.json();
+        } else if (response.status === 404) {
+          // not found on backend, try supabase fallback
         }
-      } catch (e) {}
+      } catch (apiErr) {
+        logger.warn('Backend load failed, trying Supabase fallback:', apiErr);
+      }
 
       if (!data) {
-        const response = await fetch(`${API_BASE_URL}/notebooks/${notebookId}`);
-        if (!response.ok) {
-          if (response.status === 404) return false;
-          throw new Error('Failed to load notes: ' + response.statusText);
-        }
-        data = await response.json();
+        try {
+          const { data: nbRow, error: supaErr } = await supabase
+            .from('notebooks')
+            .select('*')
+            .eq('id', String(notebookId))
+            .single();
+          if (!supaErr && nbRow) {
+            data = nbRow;
+          }
+        } catch (e) {}
       }
+
+      if (!data) return false;
       logger.log('Loaded notebook data from backend:', data);
       
       if (data.notes && Array.isArray(data.notes)) {

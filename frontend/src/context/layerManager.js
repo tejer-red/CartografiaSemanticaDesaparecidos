@@ -64,7 +64,16 @@ export const detectAndJitterOverlaps = (cacheMap) => {
 export const applyVisibility = (map, layerId, markerType, selectedMarkerTypes) => {
   if (!map || !map.isStyleLoaded() || !map.getLayer(layerId)) return null;
   
-  const isVisible = markerType ? selectedMarkerTypes.includes(markerType) : true;
+  let isVisible = true;
+  if (typeof markerType === 'boolean') {
+    isVisible = markerType;
+  } else if (markerType === 'noticiasLayer_active') {
+    isVisible = true;
+  } else if (markerType === 'noticiasLayer_inactive') {
+    isVisible = false;
+  } else if (markerType) {
+    isVisible = selectedMarkerTypes.includes(markerType);
+  }
   map.setLayoutProperty(layerId, 'visibility', isVisible ? 'visible' : 'none');
   return isVisible;
 };

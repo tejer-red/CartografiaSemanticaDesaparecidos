@@ -86,62 +86,62 @@ const NoticiasListPage = () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // 1. Intentar consulta directa a Supabase
+      // 1. Intentar consulta primariamente al Backend API
       try {
-        let query = supabase
-          .from('noticias_corpus')
-          .select('*', { count: 'exact' });
+        const params = new URLSearchParams({
+          page: page.toString(),
+          page_size: '10'
+        });
+        if (search.trim()) params.append('search', search.trim());
+        if (municipio.trim()) params.append('municipio', municipio.trim());
 
-        if (municipio.trim()) {
-          query = query.ilike('municipio_extraido', `%${municipio.trim()}%`);
-        }
-        if (search.trim()) {
-          query = query.or(`titular.ilike.%${search.trim()}%,resumen_hallazgo.ilike.%${search.trim()}%,cuerpo_texto.ilike.%${search.trim()}%`);
-        }
-
-        query = query.order('fecha', { ascending: false, nullsFirst: false }).range(from, to);
-
-        const { data, count, error: supaErr } = await query;
-        if (supaErr) throw supaErr;
-
-        const items = (data || []).map(n => ({
-          id: n.id,
-          titular: n.titular,
-          url: n.url,
-          fecha: n.fecha,
-          municipio: n.municipio_extraido,
-          colonia: n.colonia_extraida,
-          resumen: n.resumen_hallazgo,
-          cuerpo_texto: n.cuerpo_texto || n.resumen_hallazgo || '',
-          cuerpo_completo: n.cuerpo_texto || n.resumen_hallazgo || '',
-          total_cuerpos_estimado: n.total_cuerpos_estimado,
-          total_restos_estimado: n.total_restos_estimado,
-          precision: n.geocode_precision,
-          entidades_ner: n.keywords_matched || []
-        }));
-
-        setNoticias(items);
-        setTotalCount(count || 0);
-        setTotalPages(Math.ceil((count || 0) / pageSize) || 1);
+        const res = await fetch(`${API_BASE_URL}/ontology/noticias-list?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        setNoticias(data.items || []);
+        setTotalPages(data.pages || 1);
+        setTotalCount(data.total || 0);
         return;
-      } catch (supaError) {
-        console.warn('Supabase fetch failed, falling back to API:', supaError);
+      } catch (apiError) {
+        console.warn('Backend API noticias-list fetch failed, falling back to Supabase:', apiError);
       }
 
-      // 2. Fallback a Backend API
-      const params = new URLSearchParams({
-        page: page.toString(),
-        page_size: '10'
-      });
-      if (search.trim()) params.append('search', search.trim());
-      if (municipio.trim()) params.append('municipio', municipio.trim());
+      // 2. Fallback a Supabase directo
+      let query = supabase
+        .from('noticias_corpus')
+        .select('*', { count: 'exact' });
 
-      const res = await fetch(`${API_BASE_URL}/ontology/noticias-list?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      setNoticias(data.items || []);
-      setTotalPages(data.pages || 1);
-      setTotalCount(data.total || 0);
+      if (municipio.trim()) {
+        query = query.ilike('municipio_extraido', `%${municipio.trim()}%`);
+      }
+      if (search.trim()) {
+        query = query.or(`titular.ilike.%${search.trim()}%,resumen_hallazgo.ilike.%${search.trim()}%,cuerpo_texto.ilike.%${search.trim()}%`);
+      }
+
+      query = query.order('fecha', { ascending: false, nullsFirst: false }).range(from, to);
+
+      const { data, count, error: supaErr } = await query;
+      if (supaErr) throw supaErr;
+
+      const items = (data || []).map(n => ({
+        id: n.id,
+        titular: n.titular,
+        url: n.url,
+        fecha: n.fecha,
+        municipio: n.municipio_extraido,
+        colonia: n.colonia_extraida,
+        resumen: n.resumen_hallazgo,
+        cuerpo_texto: n.cuerpo_texto || n.resumen_hallazgo || '',
+        cuerpo_completo: n.cuerpo_texto || n.resumen_hallazgo || '',
+        total_cuerpos_estimado: n.total_cuerpos_estimado,
+        total_restos_estimado: n.total_restos_estimado,
+        precision: n.geocode_precision,
+        entidades_ner: n.keywords_matched || []
+      }));
+
+      setNoticias(items);
+      setTotalCount(count || 0);
+      setTotalPages(Math.ceil((count || 0) / pageSize) || 1);
     } catch (err) {
       console.error('Error fetching noticias list:', err);
       setError(err.message);

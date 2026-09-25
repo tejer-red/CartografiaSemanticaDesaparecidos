@@ -5,7 +5,7 @@ const getApiBaseUrl = () => {
 
     const { protocol, hostname } = window.location;
 
-    if (window.location.origin.includes('tejer.red')) {
+    if (hostname.includes('tejer.red') || hostname.includes('vercel.app')) {
         return 'https://cartografia.tejer.red/api/v1';
     }
 

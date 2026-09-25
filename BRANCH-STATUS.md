@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-23 17:39 CST
+- **Última actualización:** 2026-09-24 20:00 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `1371eff` (`fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes`)
-- **Estado de sincronización:** Sincronizado con `origin/feature/ner-ontologia-mineria`
-- **Estado general:** Paginación por lotes (.range) para superar el límite estricto de 1,000 registros en PostgREST/Supabase, y desbloqueo del montaje de mapa y fetchers para usuarios anónimos en `/cuaderno/nuevo` y `/cuaderno/:id`
+- **Último commit:** `bf9ded8` (`docs: update BRANCH-STATUS.md with commit hash 1371eff`)
+- **Estado de sincronización:** Cambios locales listos para commit
+- **Estado general:** Redirección integral de todas las peticiones del frontend al Backend FastAPI con fallback resiliente a Supabase
 
 ---
 
@@ -12,6 +12,7 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
+| *Pendiente* | 2026-09-24 | abundis | `feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback` |
 | `1371eff` | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
 | `32a4b09` | 2026-09-23 | abundis | `fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties` |
 | `4f589d9` | 2026-09-23 | abundis | `feat(frontend): decouple from FastAPI with direct Supabase client queries and RLS support` |
@@ -26,6 +27,48 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### T. Redirección Integral de Peticiones del Frontend al Backend FastAPI (`API_BASE_URL`)
+- **Justificación técnica:**
+  1. **Unificación Arquitectónica hacia FastAPI:** Se configuró el FastAPI Backend (`http://0.0.0.0:8008/api/v1` en desarrollo o `https://cartografia.tejer.red/api/v1` en producción) como la fuente primaria y central de datos para todas las operaciones del frontend, aprovechando los cálculos enriquecidos del backend (geocodificación por centroides municipales con jitter determinista, resolución de tatuajes, NER tags clasificados, grafos con clustering y super-nodos).
+  2. **Persistencia del Fallback Resiliente a Supabase:** Para garantizar que el despliegue serverless (ej. en Vercel) nunca se interrumpa ante caídas de red o reinicios de backend, todas las llamadas a endpoints encapsulan su consulta en bloques `try/catch` con fallback automático e indoloro a las consultas cliente de Supabase (`@supabase/supabase-js`).
+  3. **Seguridad Estricta y Eliminación de Credenciales:** Se eliminó la clave de API hardcodeada (`API_KEY: 'gNXGJ0h...'`) que existía en `FetchCedulas.jsx`.
+  4. **Resolución Dinámica de Base URL (`config.js`):** Se adaptó `getApiBaseUrl` para detectar automáticamente hosts bajo `vercel.app` y redirigirlos a `https://cartografia.tejer.red/api/v1` cuando no exista una variable `VITE_API_URL` explícita.
+  5. **Componentes y Vistas Actualizados a Backend Primario:**
+     - `FetchCedulas.jsx`: Llama a `GET /api/v1/casos` con parámetros de fecha; procesa los registros con centroides y señas particulares.
+     - `FetchFosas.jsx`: Llama a `GET /api/v1/fosas` con `limit=10000`, cubriendo la totalidad de fosas registradas.
+     - `FetchNoticias.jsx`: Llama a `GET /api/v1/noticias/corpus/geojson` y `GET /api/v1/noticias`, cargando las notas del corpus GeoJSON directamente procesadas.
+     - `NoticiasListPage.jsx`: Llama a `GET /api/v1/ontology/noticias-list` con paginación, filtros de municipio y búsqueda de texto.
+     - `RedNoticiasPage.jsx`: Llama a `GET /api/v1/ontology/graph` para obtener el grafo semántico con nodos y aristas calculadas.
+     - `RedContextoPage.jsx`: Llama a `GET /api/v1/ontology/context-graph` para la topología de modus operandi y eventos asociados.
+     - `ContextoListPage.jsx`: Llama a `GET /api/v1/ontology/context-entities` recibiendo categorías agregadas y entidades top directamente del backend.
+     - `NotebookListPage.jsx`: Llama a `GET /api/v1/notebooks` para listar cuadernos persistidos.
+     - `notebook.js`: Persistencia (`POST /api/v1/notebooks`) y recuperación (`GET /api/v1/notebooks/{id}`) a través del backend.
+  6. **Análisis de Blast Radius (`codebase-memory detect_changes`):**
+     - Módulos impactados: `frontend/src` (6 símbolos directos / 2 hops: `DataContext.updateLayerData`, `VisibleNotebook.VisibleNotebook`, `config`, `NotebookListPage.handleDeleteNotebook`, `Notebook.Notebook`, `DataContext.avoidLayerOverlap`).
+- **Archivos Modificados y Creados:**
+  - `DEPLOY.md` (Creado: Guía universal de despliegue local y producción en Dockge y Vercel)
+  - `MICROSERVICIOS.md` (Creado: Catálogo de microservicios, matriz de puertos y diagrama de topología Mermaid)
+  - `frontend/src/config.js`
+  - `frontend/src/components/data/FetchCedulas.jsx`
+  - `frontend/src/components/data/FetchFosas.jsx`
+  - `frontend/src/components/data/FetchNoticias.jsx`
+  - `frontend/src/components/analysis/NoticiasListPage.jsx`
+  - `frontend/src/components/analysis/RedNoticiasPage.jsx`
+  - `frontend/src/components/analysis/RedContextoPage.jsx`
+  - `frontend/src/components/analysis/ContextoListPage.jsx`
+  - `frontend/src/components/notebook/NotebookListPage.jsx`
+  - `frontend/src/utils/notebook.js`
+  - `frontend/src/context/layerManager.js`
+  - `.gitignore`
+
+### S. Corrección de Ejecución y Visibilidad de Capa de Noticias (`FetchNoticias.jsx` y `layerManager.js`)
+- **Justificación técnica:**
+  1. **Corrección de ReferenceError Fatal (`FetchNoticias.jsx`):** En `FetchNoticias.jsx`, la variable para noticias de casos se definió como `recordsCasos`, pero en el filtro de coordenadas se utilizaba `records.filter(...)`. Esto provocaba una excepción `ReferenceError: records is not defined` que caía en el bloque catch y abortaba el procesamiento de la capa de noticias. Se corrigió a `(recordsCasos || []).filter(...)`.
+  2. **Corrección de Bandera de Visibilidad en Capa de Noticias (`layerManager.js`):** `DataContext.jsx` asigna a `markerType` las cadenas `'noticiasLayer_active'` o `'noticiasLayer_inactive'` para la capa de noticias. Sin embargo, `layerManager.applyVisibility` validaba `selectedMarkerTypes.includes(markerType)`, y al buscar `'noticiasLayer_active'` dentro de los tipos de marcadores (`['cedula_busqueda', 'fosa', 'noticia_caso', 'noticia_corpus']`), retornaba `false` y forzaba `visibility: 'none'`. Se actualizó `applyVisibility` para reconocer explícitamente los estados booleanos y las banderas `'noticiasLayer_active'` / `'noticiasLayer_inactive'`.
+- **Frontend - Archivos Modificados:**
+  - `frontend/src/components/data/FetchNoticias.jsx`
+  - `frontend/src/context/layerManager.js`
 
 ### R. Paginación por Lotes en Supabase (.range) y Montaje de Fetchers para Rutas Públicas de Cuaderno
 - **Justificación técnica:**

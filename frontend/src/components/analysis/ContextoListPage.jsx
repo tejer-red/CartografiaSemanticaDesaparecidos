@@ -47,7 +47,22 @@ const ContextoListPage = () => {
   useEffect(() => {
     const fetchEntities = async () => {
       try {
-        // 1. Intentar consulta directa a Supabase
+        // 1. Intentar consulta primariamente al Backend API
+        try {
+          const res = await fetch(`${API_BASE_URL}/ontology/context-entities`);
+          if (res.ok) {
+            const result = await res.json();
+            if (result && result.categories) {
+              setData(result);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (apiErr) {
+          console.warn('Backend API context-entities fetch failed, falling back to Supabase:', apiErr);
+        }
+
+        // 2. Fallback: Consulta directa a Supabase
         try {
           const { data: vinculos, error: supaErr } = await supabase
             .from('vinculos_entidades')
@@ -91,14 +106,8 @@ const ContextoListPage = () => {
             return;
           }
         } catch (supaErr) {
-          console.warn('Supabase context fetch failed, falling back to API:', supaErr);
+          console.warn('Supabase context fetch failed:', supaErr);
         }
-
-        // 2. Fallback a Backend API
-        const res = await fetch(`${API_BASE_URL}/ontology/context-entities`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const result = await res.json();
-        setData(result);
       } catch (err) {
         console.error('Error fetching context entities:', err);
         setError(err.message);

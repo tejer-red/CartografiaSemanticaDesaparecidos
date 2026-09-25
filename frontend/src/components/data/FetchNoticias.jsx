@@ -25,83 +25,103 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
         logger.log('[FetchNoticias] Setting loading to true');
         updateLoadingStatus('noticias', true);
 
-        // 1. Obtener noticias del corpus directamente desde Supabase
+        // 1. Obtener noticias del corpus primariamente desde Backend API
         let corpusFeatures = [];
         try {
-          const PAGE_SIZE = 1000;
-          let page = 0;
-          let allCorpus = [];
-
-          while (true) {
-            let corpusQuery = supabase
-              .from('noticias_corpus')
-              .select('*')
-              .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-            if (start_date) corpusQuery = corpusQuery.gte('fecha', start_date);
-            if (end_date) corpusQuery = corpusQuery.lte('fecha', end_date);
-
-            const { data: supaCorpus, error: corpusErr } = await corpusQuery;
-            if (corpusErr) throw corpusErr;
-            if (!supaCorpus || supaCorpus.length === 0) break;
-
-            allCorpus.push(...supaCorpus);
-            if (supaCorpus.length < PAGE_SIZE) break;
-            page++;
-          }
-
-          corpusFeatures = allCorpus
-            .filter(n => n.lat != null && n.lng != null)
-            .map(n => ({
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [n.lng, n.lat]
-              },
-              properties: {
-                id: n.id,
-                titular: n.titular,
-                url: n.url,
-                fecha: n.fecha,
-                municipio: n.municipio_extraido,
-                colonia: n.colonia_extraida,
-                referencia_ubicacion: n.referencia_ubicacion,
-                resumen_hallazgo: n.resumen_hallazgo,
-                total_cuerpos: n.total_cuerpos_estimado,
-                total_restos: n.total_restos_estimado,
-                keywords: n.keywords_matched,
-                precision: n.geocode_precision,
-                tipo_marcador: 'noticia',
-                subtipo: 'noticia_corpus'
-              }
-            }));
-        } catch (supaErr) {
-          logger.warn('[FetchNoticias] Fallback a API para corpus:', supaErr);
+          logger.log('[FetchNoticias] Fetching corpus from Backend API:', `${API_BASE_URL}/noticias/corpus/geojson`);
+          const res = await axios.get(`${API_BASE_URL}/noticias/corpus/geojson`, {
+            params: { 
+              start_date, 
+              end_date, 
+              filter_by_date: Boolean(start_date || end_date), 
+              limit: 2000 
+            }
+          });
+          corpusFeatures = res.data?.features || [];
+          logger.log(`[FetchNoticias] Backend API returned ${corpusFeatures.length} corpus features.`);
+        } catch (apiErr) {
+          logger.warn('[FetchNoticias] Backend API corpus fetch failed, falling back to Supabase:', apiErr);
           try {
-            const res = await axios.get(`${API_BASE_URL}/noticias/corpus/geojson`, {
-              params: { start_date, end_date, filter_by_date: true, limit: 1000 }
-            });
-            corpusFeatures = res.data?.features || [];
-          } catch (e) {
+            const PAGE_SIZE = 1000;
+            let page = 0;
+            let allCorpus = [];
+
+            while (true) {
+              let corpusQuery = supabase
+                .from('noticias_corpus')
+                .select('*')
+                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+              if (start_date) corpusQuery = corpusQuery.gte('fecha', start_date);
+              if (end_date) corpusQuery = corpusQuery.lte('fecha', end_date);
+
+              const { data: supaCorpus, error: corpusErr } = await corpusQuery;
+              if (corpusErr) throw corpusErr;
+              if (!supaCorpus || supaCorpus.length === 0) break;
+
+              allCorpus.push(...supaCorpus);
+              if (supaCorpus.length < PAGE_SIZE) break;
+              page++;
+            }
+
+            corpusFeatures = allCorpus
+              .filter(n => n.lat != null && n.lng != null)
+              .map(n => ({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [n.lng, n.lat]
+                },
+                properties: {
+                  id: n.id,
+                  titular: n.titular,
+                  url: n.url,
+                  fecha: n.fecha,
+                  municipio: n.municipio_extraido,
+                  colonia: n.colonia_extraida,
+                  referencia_ubicacion: n.referencia_ubicacion,
+                  resumen_hallazgo: n.resumen_hallazgo,
+                  total_cuerpos: n.total_cuerpos_estimado,
+                  total_restos: n.total_restos_estimado,
+                  keywords: n.keywords_matched,
+                  precision: n.geocode_precision,
+                  tipo_marcador: 'noticia',
+                  subtipo: 'noticia_corpus'
+                }
+              }));
+            logger.log(`[FetchNoticias] Supabase corpus fallback returned ${corpusFeatures.length} features.`);
+          } catch (supaErr) {
+            logger.error('[FetchNoticias] Both API and Supabase failed for corpus:', supaErr);
             corpusFeatures = [];
           }
         }
 
-        // 2. Obtener noticias de caso (si existen en API, o vacío de forma segura)
+        // 2. Obtener noticias de caso primariamente desde Backend API
         let recordsCasos = [];
         try {
           const resCasos = await axios.get(`${API_BASE_URL}/noticias`, {
             params: { start_date, end_date, limit: 1000 }
           });
           recordsCasos = resCasos.data || [];
-        } catch (e) {
-          recordsCasos = [];
+        } catch (apiCasosErr) {
+          logger.warn('[FetchNoticias] Backend API noticias failed, trying Supabase fallback:', apiCasosErr);
+          try {
+            const { data: supaCasos, error: supaCasosErr } = await supabase
+              .from('noticias')
+              .select('*')
+              .limit(1000);
+            if (!supaCasosErr && supaCasos) {
+              recordsCasos = supaCasos;
+            }
+          } catch (e) {
+            recordsCasos = [];
+          }
         }
 
         const minTimestamp = start_date ? new Date(`${start_date}T00:00:00Z`).getTime() : -Infinity;
         const maxTimestamp = end_date ? new Date(`${end_date}T23:59:59.999Z`).getTime() : Infinity;
 
-        const featuresCasos = records
+        const featuresCasos = (recordsCasos || [])
           .filter(record => record.coordenadas)
           .map(record => {
             const coords = record.coordenadas.split(',').map(Number);

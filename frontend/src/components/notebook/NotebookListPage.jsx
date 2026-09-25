@@ -64,24 +64,6 @@ const NotebookListPage = () => {
       try {
         let remoteNbs = [];
         try {
-          const { data: supaNbs, error: supaErr } = await supabase
-            .from('notebooks')
-            .select('*');
-          if (supaErr) throw supaErr;
-
-          if (supaNbs) {
-            remoteNbs = supaNbs.map(r => ({
-              id: r.id,
-              name: r.id,
-              created_at: r.created_at,
-              isLocal: false,
-              startDate: r.startDate || null,
-              endDate: r.endDate || null,
-              notesCount: Array.isArray(r.notes) ? r.notes.length : 0
-            }));
-          }
-        } catch (supaErr) {
-          logger.warn('Supabase notebooks list failed, falling back to API:', supaErr);
           const response = await fetch(`${API_BASE_URL}/notebooks`);
           if (response.ok) {
             const data = await response.json();
@@ -99,6 +81,28 @@ const NotebookListPage = () => {
                 };
               });
             }
+          }
+        } catch (apiErr) {
+          logger.warn('Backend notebooks list failed, falling back to Supabase:', apiErr);
+          try {
+            const { data: supaNbs, error: supaErr } = await supabase
+              .from('notebooks')
+              .select('*');
+            if (supaErr) throw supaErr;
+
+            if (supaNbs) {
+              remoteNbs = supaNbs.map(r => ({
+                id: r.id,
+                name: r.id,
+                created_at: r.created_at,
+                isLocal: false,
+                startDate: r.startDate || null,
+                endDate: r.endDate || null,
+                notesCount: Array.isArray(r.notes) ? r.notes.length : 0
+              }));
+            }
+          } catch (supaErr) {
+            logger.warn('Both API and Supabase notebooks list failed:', supaErr);
           }
         }
 

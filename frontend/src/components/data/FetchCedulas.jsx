@@ -47,7 +47,16 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
 
         let records = [];
         try {
-          logger.log('[FetchCedulas] Fetching cases directly from Supabase with chunked pagination...');
+          logger.log('[FetchCedulas] Fetching cases from Backend API:', `${API_BASE_URL}/casos`);
+          const params = {};
+          if (start_date) params.start_date = start_date;
+          if (end_date) params.end_date = end_date;
+
+          const response = await axios.get(`${API_BASE_URL}/casos`, { params });
+          records = response.data?.records || [];
+          logger.log(`[FetchCedulas] Backend API returned ${records.length} records.`);
+        } catch (apiErr) {
+          logger.warn('[FetchCedulas] Backend API query failed, falling back to direct Supabase query:', apiErr);
           const PAGE_SIZE = 1000;
           let page = 0;
           let allRows = [];
@@ -81,20 +90,7 @@ const FetchCedulas = ({ fetchCedulas, fetchId, onFetchComplete }) => {
               condicion_localizacion: row.condicion_localizacion || 'NO APLICA'
             };
           });
-          logger.log(`[FetchCedulas] Supabase returned ${records.length} records across ${page + 1} pages.`);
-        } catch (supaErr) {
-          logger.warn('[FetchCedulas] Supabase direct query failed, falling back to API:', supaErr);
-          const response = await axios.get(`${API_BASE_URL}/casos`, {
-            headers: {
-              'API_KEY': 'gNXGJ0hCDavnMHvqbVRhL4yZalLUceQ4ccEHQmB40bQ',
-              'Content-Type': 'application/json'
-            },
-            params: {
-              start_date,
-              end_date
-            }
-          });
-          records = response.data.records || [];
+          logger.log(`[FetchCedulas] Supabase fallback returned ${records.length} records.`);
         }
 
         const formattedRecordsCedula = records.map(record => {

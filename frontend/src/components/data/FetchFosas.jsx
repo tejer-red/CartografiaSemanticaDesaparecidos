@@ -53,9 +53,18 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
         logger.log('[FetchFosas] Calling updateLoadingStatus(fosas, true)');
         updateLoadingStatus('fosas', true);
         
-        logger.log('[FetchFosas] Fetching from Supabase...');
+        logger.log('[FetchFosas] Fetching from Backend API:', `${API_BASE_URL}/fosas`);
         let records = [];
         try {
+          const params = { limit: 10000 };
+          if (start_date) params.start_date = start_date;
+          if (end_date) params.end_date = end_date;
+
+          const response = await axios.get(`${API_BASE_URL}/fosas`, { params });
+          records = response.data || [];
+          logger.log(`[FetchFosas] Backend API returned ${records.length} records.`);
+        } catch (apiErr) {
+          logger.warn('[FetchFosas] Backend API fetch failed, falling back to Supabase:', apiErr);
           const PAGE_SIZE = 1000;
           let page = 0;
           let allRows = [];
@@ -78,13 +87,7 @@ const FetchFosas = ({ fetchFosas, fetchId, onFetchComplete }) => {
             page++;
           }
           records = allRows;
-          logger.log(`[FetchFosas] Supabase returned ${records.length} records.`);
-        } catch (supaErr) {
-          logger.warn('[FetchFosas] Supabase fetch failed, falling back to API:', supaErr);
-          const response = await axios.get(`${API_BASE_URL}/fosas`, {
-            params: { start_date, end_date, limit: 1000 }
-          });
-          records = response.data || [];
+          logger.log(`[FetchFosas] Supabase fallback returned ${records.length} records.`);
         }
 
         logger.log('[FetchFosas] Formatting records...');

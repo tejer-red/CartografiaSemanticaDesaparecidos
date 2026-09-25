@@ -65,3 +65,6 @@ data_export/
 
 INSTRUCCIONES_GPU.md
 REPORTES/
+backend/data/
+*.sqlite
+*.pid
