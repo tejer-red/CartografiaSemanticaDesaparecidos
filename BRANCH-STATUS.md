@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 22:30 CST
+- **Última actualización:** 2026-09-24 22:50 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `2784d43` (`feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint`)
+- **Último commit:** `e6548fe` (`fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Corrección de colisión de rutas en noticias `/corpus`, resiliencia temporal en grafo de contexto y degradación automática a Supabase
+- **Estado general:** Activación de fallback en FetchNoticias cuando el backend retorna 0 noticias
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates` |
+| *Pendiente* | 2026-09-24 | abundis | `fix(frontend): trigger supabase fallback in FetchNoticias when backend returns 0 corpus features` |
+| `e6548fe` | 2026-09-24 | abundis | `fix(analysis): resolve corpus route order, fallback to supabase on empty data, and fix context timeline dates` |
 | `2784d43` | 2026-09-24 | abundis | `feat(analysis): implement news graph timeline, link context fosas/domicilios, and isolate journalistic osint` |
 | `29df1e1` | 2026-09-24 | abundis | `fix(backend): add beautifulsoup4 and trafilatura to requirements and make bs4 import resilient` |
 | `3a1633d` | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |

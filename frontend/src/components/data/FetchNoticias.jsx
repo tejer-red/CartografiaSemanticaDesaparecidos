@@ -39,6 +39,9 @@ const FetchNoticias = ({ fetchNoticias, fetchId, onFetchComplete }) => {
           });
           corpusFeatures = res.data?.features || [];
           logger.log(`[FetchNoticias] Backend API returned ${corpusFeatures.length} corpus features.`);
+          if (corpusFeatures.length === 0) {
+            throw new Error('Backend API returned 0 corpus features, falling back to Supabase');
+          }
         } catch (apiErr) {
           logger.warn('[FetchNoticias] Backend API corpus fetch failed, falling back to Supabase:', apiErr);
           try {
