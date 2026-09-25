@@ -1,10 +1,10 @@
 # Estado de la Rama: `feature/ner-ontologia-mineria`
 
-- **Última actualización:** 2026-09-24 20:23 CST
+- **Última actualización:** 2026-09-24 20:35 CST
 - **Rama base:** `origin/auth-local-networking` (`869c275`)
-- **Último commit:** `1b47358` (`feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback`)
+- **Último commit:** `5273ade` (`fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker`)
 - **Estado de sincronización:** Cambios locales listos para commit
-- **Estado general:** Corrección de driver PostgreSQL (psycopg/psycopg2) y dialect fallback en contenedor Docker de producción
+- **Estado general:** Resolución de alias de importación de módulos (`backend.app`) y PYTHONPATH en Dockerfile
 
 ---
 
@@ -12,7 +12,8 @@
 
 | Hash | Fecha | Autor | Mensaje |
 | :--- | :---: | :---: | :--- |
-| *Pendiente* | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
+| *Pendiente* | 2026-09-24 | abundis | `fix(backend): resolve module import alias and PYTHONPATH in Docker container` |
+| `5273ade` | 2026-09-24 | abundis | `fix(backend): add psycopg binary dependency and postgresql dialect fallback in Docker` |
 | `1b47358` | 2026-09-24 | abundis | `feat(frontend): reroute all data queries to FastAPI backend as primary with Supabase fallback` |
 | `1371eff` | 2026-09-23 | abundis | `fix(frontend): paginate supabase queries to bypass 1000 limit and allow anonymous fetchers on notebook routes` |
 | `32a4b09` | 2026-09-23 | abundis | `fix(frontend): remove 1000 records limit, restore news map layer and fix text and context properties` |
@@ -28,6 +29,15 @@
 ---
 
 ## 2. Bitácora Detallada de Cambios (Cambio a Cambio por Componente)
+
+### V. Resolución de Importación de Módulos en Contenedor Docker (`backend.app` y `PYTHONPATH`)
+- **Justificación técnica:**
+  1. **Error ModuleNotFoundError en Uvicorn (`backend`):** Al ejecutar el contenedor Docker construido con `context: ./backend`, el contenido de `backend/` se monta directamente en `/app`. Por ende, el paquete raíz dentro del contenedor es `app`, y las importaciones absolutas que usan `from backend.app...` fallaban con `ModuleNotFoundError: No module named 'backend'`.
+  2. **Alias Dinámico en `__init__.py`:** Se añadió registro automático en `sys.modules['backend']` y `sys.modules['backend.app']` dentro de `backend/app/__init__.py` cuando el módulo es cargado como `app`.
+  3. **Symlink y Variable de Entorno en `Dockerfile`:** Se incorporó `ENV PYTHONPATH="/app"` y la creación del symlink `/app/backend/app -> /app/app` en `backend/Dockerfile` para garantizar compatibilidad total e inmediata.
+- **Archivos Modificados:**
+  - `backend/Dockerfile`
+  - `backend/app/__init__.py`
 
 ### U. Corrección de Driver PostgreSQL en Docker (`requirements.txt` y `database.py`)
 - **Justificación técnica:**
